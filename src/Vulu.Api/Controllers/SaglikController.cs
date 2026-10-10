@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -6,7 +7,8 @@ using Vulu.Shared;
 namespace Vulu.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/saglik")]
+[AllowAnonymous]
 public class SaglikController : ControllerBase
 {
     private static readonly TimeSpan PingZamanAsimi = TimeSpan.FromSeconds(2);

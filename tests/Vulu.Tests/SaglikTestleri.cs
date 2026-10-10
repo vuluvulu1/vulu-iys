@@ -15,6 +15,7 @@ public class SaglikTestleri
         {
             b.UseSetting("Mongo:BaglantiDizesi", "mongodb://127.0.0.1:1");
             b.UseSetting("Mongo:VeritabaniAdi", "vulu_tsys_test");
+            b.UseSetting("Jwt:Anahtar", ApiFabrikasi.JwtAnahtari);
         });
         using var istemci = fabrika.CreateClient();
 

@@ -14,6 +14,7 @@ public class MongoBaglami
         Teknisyenler = db.GetCollection<Teknisyen>("teknisyenler");
         ServisKayitlari = db.GetCollection<ServisKaydi>("servisKayitlari");
         Randevular = db.GetCollection<Randevu>("randevular");
+        YenilemeTokenlari = db.GetCollection<YenilemeTokeni>("yenilemeTokenlari");
     }
 
     public IMongoCollection<Kullanici> Kullanicilar { get; }
@@ -21,6 +22,7 @@ public class MongoBaglami
     public IMongoCollection<Teknisyen> Teknisyenler { get; }
     public IMongoCollection<ServisKaydi> ServisKayitlari { get; }
     public IMongoCollection<Randevu> Randevular { get; }
+    public IMongoCollection<YenilemeTokeni> YenilemeTokenlari { get; }
 
     // Sınıf eşlemeleri ilk kullanımda donduğu için herhangi bir koleksiyona erişmeden önce çağrılmalı.
     public static void KurallariKaydet()
@@ -44,6 +46,17 @@ public class MongoBaglami
                 Builders<Kullanici>.IndexKeys.Ascending(k => k.KullaniciAdi),
                 new CreateIndexOptions { Unique = true }),
             cancellationToken: iptal);
+
+        await YenilemeTokenlari.Indexes.CreateManyAsync(
+            [
+                new(Builders<YenilemeTokeni>.IndexKeys.Ascending(t => t.TokenHash),
+                    new CreateIndexOptions { Unique = true }),
+                new(Builders<YenilemeTokeni>.IndexKeys.Ascending(t => t.KullaniciId)),
+                // Süresi dolan tokenları MongoDB kendisi siler.
+                new(Builders<YenilemeTokeni>.IndexKeys.Ascending(t => t.SonGecerlilik),
+                    new CreateIndexOptions { ExpireAfter = TimeSpan.Zero })
+            ],
+            iptal);
 
         // Bir kullanıcı hesabı en fazla bir teknisyene bağlanabilir; hesabı olmayanlar kısıta girmez.
         await Teknisyenler.Indexes.CreateOneAsync(

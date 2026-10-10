@@ -1,5 +1,12 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
+using Vulu.Api.Altyapi;
+using Vulu.Api.Controllers;
+using Vulu.Api.Kimlik;
 using Vulu.Api.Veri;
 
 MongoBaglami.KurallariKaydet();
@@ -8,6 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
+builder.Services.Configure<RouteOptions>(o => o.ConstraintMap.Add(ObjectIdKisiti.Ad, typeof(ObjectIdKisiti)));
 
 // MongoDB
 builder.Services.AddOptions<MongoAyarlari>()
@@ -22,20 +31,68 @@ builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>()
         .GetDatabase(sp.GetRequiredService<IOptions<MongoAyarlari>>().Value.VeritabaniAdi));
 builder.Services.AddSingleton<MongoBaglami>();
-builder.Services.AddHostedService<IndexKurulumServisi>();
+builder.Services.AddHostedService<VeritabaniHazirlamaServisi>();
+
+// Kimlik doğrulama
+builder.Services.AddOptions<JwtAyarlari>()
+    .Bind(builder.Configuration.GetSection(JwtAyarlari.Bolum))
+    .Validate(a => a.Anahtar.Length >= JwtAyarlari.EnAzAnahtarUzunlugu,
+        $"Jwt:Anahtar en az {JwtAyarlari.EnAzAnahtarUzunlugu} karakter olmalı (user-secrets veya ortam değişkeni ile verin).")
+    .ValidateOnStart();
+builder.Services.Configure<IlkAdminAyarlari>(builder.Configuration.GetSection(IlkAdminAyarlari.Bolum));
+builder.Services.AddSingleton<TokenServisi>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtAyarlari>>((secenekler, jwt) =>
+    {
+        secenekler.MapInboundClaims = false;
+        secenekler.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = jwt.Value.Yayinci,
+            ValidAudience = jwt.Value.Hedef,
+            IssuerSigningKey = TokenServisi.ImzaAnahtari(jwt.Value),
+            ClockSkew = TimeSpan.FromSeconds(30),
+            NameClaimType = TokenServisi.AdTalebi,
+            RoleClaimType = TokenServisi.RolTalebi
+        };
+    });
+
+// Açıkça [AllowAnonymous] denmeyen her uç nokta giriş ister.
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+
+builder.Services.AddRateLimiter(secenekler =>
+{
+    secenekler.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    secenekler.AddPolicy(KimlikController.GirisSiniriPolitikasi, baglam =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            baglam.Connection.RemoteIpAddress?.ToString() ?? "bilinmeyen",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = baglam.RequestServices.GetRequiredService<IConfiguration>()
+                    .GetValue("GirisSiniri:DakikadaDeneme", 10),
+                Window = TimeSpan.FromMinutes(1)
+            }));
+});
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
 }
 else
 {
     app.UseHttpsRedirection();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 
