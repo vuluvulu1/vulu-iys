@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
+using Vulu.Api.Kurallar;
 using Vulu.Api.Veri;
 using Vulu.Api.Veri.Belgeler;
 using Vulu.Shared;
@@ -122,14 +123,8 @@ public class RandevularController : ControllerBase
             .Find(m => m.Id == istek.MusteriId && m.SilinmeTarihi == null).FirstOrDefaultAsync(iptal);
         if (musteri is null) return Gecersiz("Seçilen müşteri bulunamadı.");
 
-        var teknisyenId = Metin.BosIseNull(istek.TeknisyenId);
-        Teknisyen? teknisyen = null;
-        if (teknisyenId is not null)
-        {
-            teknisyen = await _db.Teknisyenler
-                .Find(t => t.Id == teknisyenId && t.SilinmeTarihi == null).FirstOrDefaultAsync(iptal);
-            if (teknisyen is null) return Gecersiz("Seçilen teknisyen bulunamadı.");
-        }
+        var (teknisyen, atamaHatasi) = await PersonelAtamasi.Coz(_db, istek.TeknisyenId, randevu.TeknisyenId, iptal);
+        if (atamaHatasi is not null) return Gecersiz(atamaHatasi);
 
         var servisKaydiId = Metin.BosIseNull(istek.ServisKaydiId);
         if (servisKaydiId is not null)

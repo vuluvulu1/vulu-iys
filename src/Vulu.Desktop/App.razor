@@ -2,7 +2,15 @@
 @inject OturumServisi Oturum
 @inject NavigationManager Gezinti
 
-@if (Oturum.GirisYapildi)
+@if (!Oturum.GirisYapildi)
+{
+    <Giris />
+}
+else if (Oturum.VuluYoneticisiMi)
+{
+    <VuluYonetimi />
+}
+else
 {
     <Router AppAssembly="typeof(App).Assembly">
         <Found Context="rota">
@@ -14,10 +22,6 @@
             </LayoutView>
         </NotFound>
     </Router>
-}
-else
-{
-    <Giris />
 }
 
 @code {

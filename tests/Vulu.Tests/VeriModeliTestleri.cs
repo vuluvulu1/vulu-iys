@@ -39,27 +39,6 @@ public class VeriModeliTestleri : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Bir_kullanici_hesabi_iki_teknisyene_baglanamaz()
-    {
-        var kullaniciId = ObjectId.GenerateNewId().ToString();
-        await _baglam.Teknisyenler.InsertOneAsync(new Teknisyen { AdSoyad = "A", KullaniciId = kullaniciId });
-
-        var hata = await Assert.ThrowsAsync<MongoWriteException>(() =>
-            _baglam.Teknisyenler.InsertOneAsync(new Teknisyen { AdSoyad = "B", KullaniciId = kullaniciId }));
-
-        Assert.Equal(ServerErrorCategory.DuplicateKey, hata.WriteError.Category);
-    }
-
-    [Fact]
-    public async Task Hesabi_olmayan_birden_fazla_teknisyen_eklenebilir()
-    {
-        await _baglam.Teknisyenler.InsertOneAsync(new Teknisyen { AdSoyad = "A" });
-        await _baglam.Teknisyenler.InsertOneAsync(new Teknisyen { AdSoyad = "B" });
-
-        Assert.Equal(2, await _baglam.Teknisyenler.CountDocumentsAsync(FilterDefinition<Teknisyen>.Empty));
-    }
-
-    [Fact]
     public async Task Servis_kaydi_gomulu_faturayla_beklenen_bicimde_saklanir()
     {
         var kayit = new ServisKaydi

@@ -1,4 +1,5 @@
 @inject OturumServisi Oturum
+@inject YerelAyarlar Ayarlar
 @inject HttpClient Http
 
 <div class="giris-kabugu">
@@ -24,8 +25,12 @@
                 break;
 
             case SunucuDurumu.Hazir:
+                <label for="isletme-kodu">İşletme kodu</label>
+                <input id="isletme-kodu" @bind="_isletmeKodu" @bind:event="oninput" autocomplete="organization"
+                       autocapitalize="none" spellcheck="false" />
+
                 <label for="kullanici-adi">Kullanıcı adı</label>
-                <input id="kullanici-adi" @bind="_kullaniciAdi" @bind:event="oninput" autocomplete="username" autofocus />
+                <input id="kullanici-adi" @bind="_kullaniciAdi" @bind:event="oninput" autocomplete="username" />
 
                 <label for="sifre">Şifre</label>
                 <input id="sifre" type="password" @bind="_sifre" @bind:event="oninput" autocomplete="current-password" />
@@ -47,14 +52,19 @@
     private enum SunucuDurumu { Kontrol, Hazir, Ulasilamiyor, SurumUyumsuz }
 
     private SunucuDurumu _sunucu = SunucuDurumu.Kontrol;
+    private string _isletmeKodu = "";
     private string _kullaniciAdi = "";
     private string _sifre = "";
     private string? _hata;
     private bool _bekliyor;
 
-    private bool Dolu => !string.IsNullOrWhiteSpace(_kullaniciAdi) && _sifre.Length > 0;
+    private bool Dolu => !string.IsNullOrWhiteSpace(_isletmeKodu) && !string.IsNullOrWhiteSpace(_kullaniciAdi) && _sifre.Length > 0;
 
-    protected override Task OnInitializedAsync() => SunucuyuKontrolEt();
+    protected override Task OnInitializedAsync()
+    {
+        _isletmeKodu = Ayarlar.SonIsletmeKodu;
+        return SunucuyuKontrolEt();
+    }
 
     // Giriş formu, sunucuya ulaşılıp sürümün uyumlu olduğu görülmeden açılmaz.
     private async Task SunucuyuKontrolEt()
@@ -80,8 +90,11 @@
 
         _bekliyor = true;
         _hata = null;
-        _hata = await Oturum.GirisYap(_kullaniciAdi, _sifre);
+        _hata = await Oturum.GirisYap(_isletmeKodu, _kullaniciAdi, _sifre);
         _sifre = "";
         _bekliyor = false;
+
+        if (_hata is null)
+            Ayarlar.SonIsletmeKodu = _isletmeKodu.Trim().ToLowerInvariant();
     }
 }

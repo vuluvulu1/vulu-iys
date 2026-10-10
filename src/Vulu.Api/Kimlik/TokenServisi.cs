@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using Vulu.Api.Veri.Belgeler;
 
 namespace Vulu.Api.Kimlik;
 
@@ -15,25 +14,35 @@ public class TokenServisi
     public const string AdTalebi = "name";
     public const string RolTalebi = "role";
 
+    // Oturumun ait olduğu işletmenin kimliği. Vulu yöneticisinin tokenında bulunmaz.
+    public const string IsletmeTalebi = "isletme";
+
+    // Vulu yöneticisinin rolü. İşletme personelinin rolleri (Admin, Teknisyen) ile karışmaz.
+    public const string PlatformRolu = "Platform";
+
     private readonly JwtAyarlari _ayarlar;
 
     public TokenServisi(IOptions<JwtAyarlari> ayarlar) => _ayarlar = ayarlar.Value;
 
-    public (string Token, DateTime Bitis) ErisimTokeniUret(Kullanici kullanici)
+    public (string Token, DateTime Bitis) ErisimTokeniUret(string kimlik, string ad, string rol, string? isletmeId)
     {
         var bitis = DateTime.UtcNow.AddMinutes(_ayarlar.ErisimDakika);
+
+        var talepler = new List<Claim>
+        {
+            new(KimlikTalebi, kimlik),
+            new(AdTalebi, ad),
+            new(RolTalebi, rol)
+        };
+        if (isletmeId is not null)
+            talepler.Add(new Claim(IsletmeTalebi, isletmeId));
 
         var tanim = new SecurityTokenDescriptor
         {
             Issuer = _ayarlar.Yayinci,
             Audience = _ayarlar.Hedef,
             Expires = bitis,
-            Subject = new ClaimsIdentity(
-            [
-                new Claim(KimlikTalebi, kullanici.Id),
-                new Claim(AdTalebi, kullanici.KullaniciAdi),
-                new Claim(RolTalebi, kullanici.Rol.ToString())
-            ]),
+            Subject = new ClaimsIdentity(talepler),
             SigningCredentials = new SigningCredentials(ImzaAnahtari(_ayarlar), SecurityAlgorithms.HmacSha256)
         };
 

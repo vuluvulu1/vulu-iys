@@ -1,11 +1,13 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject OturumServisi Oturum
+@inject ApiIstemcisi Api
 
 <div class="kabuk">
     <aside class="yan-menu">
         <div class="marka">
-            <img src="img/logo.svg" alt="" />
-            <span>vulu</span>
+            <img src="@Bicim.LogoAdresi(Oturum.Isletme)" alt="" />
+            <span>@(Oturum.Isletme?.Ad ?? Oturum.Oturum?.Isletme?.Ad)</span>
         </div>
 
         <nav>
@@ -13,15 +15,15 @@
             <NavLink href="servis-kayitlari">Servis Kayıtları</NavLink>
             <NavLink href="randevular">Randevular</NavLink>
             <NavLink href="musteriler">Müşteriler</NavLink>
-            <NavLink href="teknisyenler">Teknisyenler</NavLink>
             @if (Oturum.AdminMi)
             {
-                <NavLink href="kullanicilar">Kullanıcılar</NavLink>
+                <NavLink href="personel">Personel</NavLink>
+                <NavLink href="isletme">İşletme</NavLink>
             }
         </nav>
 
         <div class="oturum">
-            <div class="oturum-adi">@Oturum.Kullanici?.KullaniciAdi</div>
+            <div class="oturum-adi">@Oturum.Kullanici?.AdSoyad</div>
             <div class="oturum-rol">@RolAdi</div>
             <button class="ikincil" @onclick="Oturum.CikisYap">Çıkış yap</button>
         </div>
@@ -34,4 +36,19 @@
 
 @code {
     private string RolAdi => Oturum.AdminMi ? "Yönetici" : "Teknisyen";
+
+    private void OturumDegisti() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Oturum.Degisti -= OturumDegisti;
+
+    // İşletmenin adı ve logosu girişten sonra bir kez yüklenir; ayarlar sayfası değiştirince oturum üzerinden yenilenir.
+    protected override async Task OnInitializedAsync()
+    {
+        Oturum.Degisti += OturumDegisti;
+        if (Oturum.Isletme is not null) return;
+
+        var sonuc = await Api.Getir<IsletmeYaniti>("api/isletme");
+        if (sonuc is { Basarili: true, Deger: not null })
+            Oturum.IsletmeyiAyarla(sonuc.Deger);
+    }
 }

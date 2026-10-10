@@ -43,7 +43,8 @@ public class FaturaBelgesiTestleri : IClassFixture<ApiFabrikasi>
         var ikinci = await FaturaKes(admin, ikinciKayit.Id, 200m);
         var guncellenen = await FaturaKes(admin, ilkKayit.Id, 150m, odendi: true);
 
-        Assert.Matches(@"^VL-\d{4}-\d{6}$", ilk.Fatura!.No);
+        // Numaranın ön eki işletme kodundan gelir ("test-isletme" -> "TEST").
+        Assert.Matches(@"^TEST-\d{4}-\d{6}$", ilk.Fatura!.No);
         Assert.Equal(Sira(ilk.Fatura.No) + 1, Sira(ikinci.Fatura!.No));
         Assert.Equal(ilk.Fatura.No, guncellenen.Fatura!.No);
 

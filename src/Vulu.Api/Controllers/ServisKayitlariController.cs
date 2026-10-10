@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
@@ -19,12 +18,12 @@ public class ServisKayitlariController : ControllerBase
     private const int EnFazlaSayfaBoyutu = 100;
 
     private readonly MongoBaglami _db;
-    private readonly FirmaAyarlari _firma;
+    private readonly GecerliIsletme _isletme;
 
-    public ServisKayitlariController(MongoBaglami db, IOptions<FirmaAyarlari> firma)
+    public ServisKayitlariController(MongoBaglami db, GecerliIsletme isletme)
     {
         _db = db;
-        _firma = firma.Value;
+        _isletme = isletme;
     }
 
     [HttpGet]
@@ -128,7 +127,7 @@ public class ServisKayitlariController : ControllerBase
         {
             var yil = Zaman.TurkiyeSaati(simdi).Year;
             var sira = await _db.SiradakiNumaraAsync($"fatura-{yil}", iptal);
-            kayit.Fatura.No = $"VL-{yil}-{sira:D6}";
+            kayit.Fatura.No = $"{FaturaBelgesi.NumaraOnEki(_isletme.Zorunlu)}-{yil}-{sira:D6}";
         }
 
         return await Kaydet(kayit, iptal);
@@ -145,7 +144,7 @@ public class ServisKayitlariController : ControllerBase
         // Adres ve e-posta kayıttaki kopyada yoktur; silinmiş olsa da müşteri belgesinden okunur.
         var musteri = await _db.Musteriler.Find(m => m.Id == kayit.MusteriId).FirstOrDefaultAsync(iptal);
 
-        var pdf = FaturaBelgesi.Olustur(kayit, musteri, _firma);
+        var pdf = FaturaBelgesi.Olustur(kayit, musteri, _isletme.Zorunlu);
         return File(pdf, "application/pdf", $"Fatura-{kayit.Fatura.No}.pdf");
     }
 
@@ -188,15 +187,9 @@ public class ServisKayitlariController : ControllerBase
         if (musteri is null)
             return Problem(detail: "Seçilen müşteri bulunamadı.", statusCode: StatusCodes.Status400BadRequest);
 
-        var teknisyenId = Metin.BosIseNull(istek.TeknisyenId);
-        Teknisyen? teknisyen = null;
-        if (teknisyenId is not null)
-        {
-            teknisyen = await _db.Teknisyenler
-                .Find(t => t.Id == teknisyenId && t.SilinmeTarihi == null).FirstOrDefaultAsync(iptal);
-            if (teknisyen is null)
-                return Problem(detail: "Seçilen teknisyen bulunamadı.", statusCode: StatusCodes.Status400BadRequest);
-        }
+        var (teknisyen, atamaHatasi) = await PersonelAtamasi.Coz(_db, istek.TeknisyenId, kayit.TeknisyenId, iptal);
+        if (atamaHatasi is not null)
+            return Problem(detail: atamaHatasi, statusCode: StatusCodes.Status400BadRequest);
 
         kayit.MusteriId = musteri.Id;
         kayit.Musteri = musteri.OzetiniCikar();

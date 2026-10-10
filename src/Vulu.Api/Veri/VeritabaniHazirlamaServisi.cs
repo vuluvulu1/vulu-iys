@@ -6,21 +6,22 @@ using Vulu.Shared;
 
 namespace Vulu.Api.Veri;
 
-// Veritabanı açılışta ulaşılamaz olabilir; API yine de ayağa kalkar, indexler ve ilk yönetici bağlantı gelince kurulur.
+// Açılışta platform veritabanını ve her işletmenin veritabanını kullanıma hazırlar. Veritabanı o an ulaşılamaz
+// olabilir; API yine de ayağa kalkar ve hazırlık bağlantı gelince yapılır.
 public class VeritabaniHazirlamaServisi : BackgroundService
 {
-    private static readonly TimeSpan DenemeZamanAsimi = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan DenemeZamanAsimi = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan DenemeAraligi = TimeSpan.FromSeconds(15);
 
-    private readonly MongoBaglami _baglam;
-    private readonly IlkAdminAyarlari _ilkAdmin;
+    private readonly PlatformBaglami _platform;
+    private readonly IlkAdminAyarlari _ilkYonetici;
     private readonly ILogger<VeritabaniHazirlamaServisi> _log;
 
-    public VeritabaniHazirlamaServisi(MongoBaglami baglam, IOptions<IlkAdminAyarlari> ilkAdmin,
+    public VeritabaniHazirlamaServisi(PlatformBaglami platform, IOptions<IlkAdminAyarlari> ilkYonetici,
         ILogger<VeritabaniHazirlamaServisi> log)
     {
-        _baglam = baglam;
-        _ilkAdmin = ilkAdmin.Value;
+        _platform = platform;
+        _ilkYonetici = ilkYonetici.Value;
         _log = log;
     }
 
@@ -33,9 +34,15 @@ public class VeritabaniHazirlamaServisi : BackgroundService
 
             try
             {
-                await _baglam.IndexleriKurAsync(sure.Token);
-                _log.LogInformation("MongoDB indexleri hazır.");
-                await IlkAdminiOlusturAsync(sure.Token);
+                await _platform.IndexleriKurAsync(sure.Token);
+                await IlkYoneticiyiOlusturAsync(sure.Token);
+
+                // Her işletme kendi veritabanında bekleyen veri geçişlerini ve indexlerini alır.
+                var isletmeler = await _platform.Isletmeler.Find(FilterDefinition<Isletme>.Empty).ToListAsync(sure.Token);
+                foreach (var isletme in isletmeler)
+                    await _platform.IsletmeyiHazirlaAsync(isletme, _log, sure.Token);
+
+                _log.LogInformation("Veritabanı hazır: {Sayi} işletme.", isletmeler.Count);
                 return;
             }
             catch (Exception ex) when (ex is MongoException or TimeoutException or OperationCanceledException)
@@ -50,28 +57,29 @@ public class VeritabaniHazirlamaServisi : BackgroundService
         }
     }
 
-    private async Task IlkAdminiOlusturAsync(CancellationToken iptal)
+    // Hiç vulu yöneticisi yoksa ayarlardaki hesapla ilkini oluşturur; işletmeleri o açar.
+    private async Task IlkYoneticiyiOlusturAsync(CancellationToken iptal)
     {
-        if (await _baglam.Kullanicilar.Find(FilterDefinition<Kullanici>.Empty).AnyAsync(iptal))
+        if (await _platform.Yoneticiler.Find(FilterDefinition<PlatformYoneticisi>.Empty).AnyAsync(iptal))
             return;
 
-        if (string.IsNullOrWhiteSpace(_ilkAdmin.KullaniciAdi)
-            || (_ilkAdmin.Sifre?.Length ?? 0) < KullaniciKurallari.EnAzSifreUzunlugu)
+        if (string.IsNullOrWhiteSpace(_ilkYonetici.KullaniciAdi)
+            || (_ilkYonetici.Sifre?.Length ?? 0) < KullaniciKurallari.EnAzSifreUzunlugu)
         {
-            _log.LogWarning("Veritabanında kullanıcı yok ve IlkAdmin ayarları eksik (şifre en az {Uzunluk} karakter olmalı); kimse giriş yapamaz.",
+            _log.LogWarning("Vulu yöneticisi yok ve IlkAdmin ayarları eksik (şifre en az {Uzunluk} karakter olmalı); kimse işletme açamaz.",
                 KullaniciKurallari.EnAzSifreUzunlugu);
             return;
         }
 
         try
         {
-            await _baglam.Kullanicilar.InsertOneAsync(new Kullanici
+            await _platform.Yoneticiler.InsertOneAsync(new PlatformYoneticisi
             {
-                KullaniciAdi = KullaniciAdlari.Normalle(_ilkAdmin.KullaniciAdi),
-                SifreHash = BCrypt.Net.BCrypt.HashPassword(_ilkAdmin.Sifre),
-                Rol = KullaniciRol.Admin
+                KullaniciAdi = KullaniciAdlari.Normalle(_ilkYonetici.KullaniciAdi),
+                SifreHash = BCrypt.Net.BCrypt.HashPassword(_ilkYonetici.Sifre),
+                AdSoyad = "Vulu Yöneticisi"
             }, cancellationToken: iptal);
-            _log.LogInformation("İlk yönetici hesabı oluşturuldu: {KullaniciAdi}", _ilkAdmin.KullaniciAdi);
+            _log.LogInformation("İlk vulu yöneticisi oluşturuldu: {KullaniciAdi}", _ilkYonetici.KullaniciAdi);
         }
         catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
         {

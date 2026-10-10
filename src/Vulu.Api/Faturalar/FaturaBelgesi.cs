@@ -1,4 +1,3 @@
-using System.Reflection;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -7,7 +6,8 @@ using Vulu.Api.Veri.Belgeler;
 
 namespace Vulu.Api.Faturalar;
 
-// Servis kaydındaki faturadan A4 PDF üretir. Belge saklanmaz; her istekte kayıttaki güncel bilgiden yeniden çizilir.
+// Servis kaydındaki faturadan A4 PDF üretir. Belge saklanmaz; her istekte kayıttaki ve işletme profilindeki
+// güncel bilgiden yeniden çizilir. Başlıkta işletmenin kendi adı, bilgileri ve logosu yer alır.
 public static class FaturaBelgesi
 {
     private const string Koyu = "#2b1a10";
@@ -16,14 +16,21 @@ public static class FaturaBelgesi
     private const string Cizgi = "#d9c7b3";
     private const string Zemin = "#f6efe6";
 
-    private static readonly string Logo = LogoyuOku();
+    private const string BelgeNotu = "Bu belge bilgilendirme amaçlıdır; e-Fatura veya e-Arşiv Fatura yerine geçmez.";
 
-    public static byte[] Olustur(ServisKaydi kayit, Musteri? musteri, FirmaAyarlari firma)
+    // Fatura numarasının başındaki kısaltma işletme kodundan türetilir (örn. "duzce-servis" -> "DUZC").
+    public static string NumaraOnEki(Isletme isletme)
+    {
+        var harfler = new string(isletme.Kod.Where(char.IsLetterOrDigit).Take(4).ToArray()).ToUpperInvariant();
+        return harfler.Length > 0 ? harfler : "F";
+    }
+
+    public static byte[] Olustur(ServisKaydi kayit, Musteri? musteri, Isletme isletme)
     {
         var fatura = kayit.Fatura ?? throw new InvalidOperationException("Kaydın faturası yok.");
 
         // Tutar KDV dahildir; matrah ve KDV ondan ayrılır.
-        var matrah = decimal.Round(fatura.Tutar / (1 + firma.KdvOrani / 100), 2, MidpointRounding.AwayFromZero);
+        var matrah = decimal.Round(fatura.Tutar / (1 + isletme.KdvOrani / 100), 2, MidpointRounding.AwayFromZero);
         var kdv = fatura.Tutar - matrah;
 
         return Document.Create(belge => belge.Page(sayfa =>
@@ -34,12 +41,13 @@ public static class FaturaBelgesi
 
             sayfa.Header().Row(satir =>
             {
-                satir.ConstantItem(54).Height(54).Svg(Logo);
+                if (isletme.Logo is { Length: > 0 } logo)
+                    satir.ConstantItem(66).PaddingRight(12).MaxHeight(54).Image(logo).FitArea();
 
-                satir.RelativeItem().PaddingLeft(12).Column(sutun =>
+                satir.RelativeItem().Column(sutun =>
                 {
-                    sutun.Item().Text(firma.Ad).FontSize(16).Bold();
-                    foreach (var bilgi in FirmaSatirlari(firma))
+                    sutun.Item().Text(isletme.Ad).FontSize(16).Bold();
+                    foreach (var bilgi in IsletmeSatirlari(isletme))
                         sutun.Item().Text(bilgi).FontSize(9).FontColor(Soluk);
                 });
 
@@ -93,7 +101,7 @@ public static class FaturaBelgesi
                 sutun.Item().AlignRight().Width(240).Column(toplamlar =>
                 {
                     ToplamSatiri(toplamlar, "Ara toplam", Zaman.Para(matrah));
-                    ToplamSatiri(toplamlar, $"KDV (%{firma.KdvOrani:0.##})", Zaman.Para(kdv));
+                    ToplamSatiri(toplamlar, $"KDV (%{isletme.KdvOrani:0.##})", Zaman.Para(kdv));
                     toplamlar.Item().PaddingTop(4).BorderTop(1).BorderColor(Koyu).PaddingTop(6).Row(satir =>
                     {
                         satir.RelativeItem().Text("Genel toplam").FontSize(12).Bold();
@@ -111,26 +119,21 @@ public static class FaturaBelgesi
                 });
             });
 
-            sayfa.Footer().Column(sutun =>
-            {
-                if (!string.IsNullOrWhiteSpace(firma.BelgeNotu))
-                    sutun.Item().BorderTop(1).BorderColor(Cizgi).PaddingTop(6)
-                        .Text(firma.BelgeNotu).FontSize(8).FontColor(Soluk);
-            });
+            sayfa.Footer().BorderTop(1).BorderColor(Cizgi).PaddingTop(6).Text(BelgeNotu).FontSize(8).FontColor(Soluk);
         })).GeneratePdf();
     }
 
-    private static IEnumerable<string> FirmaSatirlari(FirmaAyarlari firma)
+    private static IEnumerable<string> IsletmeSatirlari(Isletme isletme)
     {
-        if (!string.IsNullOrWhiteSpace(firma.Adres)) yield return firma.Adres;
+        if (!string.IsNullOrWhiteSpace(isletme.Adres)) yield return isletme.Adres;
 
-        var iletisim = string.Join("  ·  ", new[] { firma.Telefon, firma.Eposta }.Where(b => !string.IsNullOrWhiteSpace(b)));
+        var iletisim = string.Join("  ·  ", new[] { isletme.Telefon, isletme.Eposta }.Where(b => !string.IsNullOrWhiteSpace(b)));
         if (iletisim.Length > 0) yield return iletisim;
 
-        if (!string.IsNullOrWhiteSpace(firma.VergiNo))
-            yield return string.IsNullOrWhiteSpace(firma.VergiDairesi)
-                ? $"Vergi no: {firma.VergiNo}"
-                : $"{firma.VergiDairesi} V.D. – Vergi no: {firma.VergiNo}";
+        if (!string.IsNullOrWhiteSpace(isletme.VergiNo))
+            yield return string.IsNullOrWhiteSpace(isletme.VergiDairesi)
+                ? $"Vergi no: {isletme.VergiNo}"
+                : $"{isletme.VergiDairesi} V.D. – Vergi no: {isletme.VergiNo}";
     }
 
     private static void ToplamSatiri(ColumnDescriptor sutun, string etiket, string deger) =>
@@ -146,12 +149,4 @@ public static class FaturaBelgesi
 
     private static IContainer Hucre(IContainer hucre) =>
         hucre.BorderBottom(1).BorderColor(Cizgi).PaddingVertical(10).PaddingHorizontal(10);
-
-    private static string LogoyuOku()
-    {
-        using var akis = Assembly.GetExecutingAssembly().GetManifestResourceStream("Vulu.Api.logo.svg")
-            ?? throw new InvalidOperationException("Gömülü logo bulunamadı.");
-        using var okuyucu = new StreamReader(akis);
-        return okuyucu.ReadToEnd();
-    }
 }

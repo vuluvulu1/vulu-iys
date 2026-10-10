@@ -14,16 +14,25 @@ public class OturumServisi
     public OturumYaniti? Oturum { get; private set; }
     public KullaniciOzeti? Kullanici => Oturum?.Kullanici;
     public bool GirisYapildi => Oturum is not null;
-    public bool AdminMi => Kullanici?.Rol == KullaniciRol.Admin;
+
+    // Vulu yöneticisinin oturumu bir işletmeye bağlı değildir; servis ekranları yerine işletme yönetimini görür.
+    public bool VuluYoneticisiMi => Oturum is { Isletme: null };
+
+    // İşletmenin yöneticisi.
+    public bool AdminMi => Oturum is { Isletme: not null, Kullanici.Rol: KullaniciRol.Admin };
+
+    // İşletmenin adı, logosu ve iletişim bilgileri; girişten sonra yüklenir, ayarlar değişince yenilenir.
+    public IsletmeYaniti? Isletme { get; private set; }
 
     public event Action? Degisti;
 
     // Başarılıysa null, değilse kullanıcıya gösterilecek hata mesajını döner.
-    public async Task<string?> GirisYap(string kullaniciAdi, string sifre)
+    public async Task<string?> GirisYap(string isletmeKodu, string kullaniciAdi, string sifre)
     {
         try
         {
-            using var yanit = await _http.PostAsJsonAsync("api/kimlik/giris", new GirisIstegi(kullaniciAdi, sifre));
+            using var yanit = await _http.PostAsJsonAsync("api/kimlik/giris",
+                new GirisIstegi(isletmeKodu.Trim(), kullaniciAdi, sifre));
             if (!yanit.IsSuccessStatusCode)
                 return await ApiHatasi.Oku(yanit);
 
@@ -68,8 +77,17 @@ public class OturumServisi
                 return false;
             }
 
-            Ayarla(await yanit.Content.ReadFromJsonAsync<OturumYaniti>());
-            return Oturum is not null;
+            var yeni = await yanit.Content.ReadFromJsonAsync<OturumYaniti>();
+            if (yeni is null)
+            {
+                Ayarla(null);
+                return false;
+            }
+
+            // Yalnızca tokenlar yenilenir; yüklenmiş işletme bilgisi korunur.
+            Oturum = yeni;
+            Degisti?.Invoke();
+            return true;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -84,9 +102,16 @@ public class OturumServisi
 
     public void Kapat() => Ayarla(null);
 
+    public void IsletmeyiAyarla(IsletmeYaniti isletme)
+    {
+        Isletme = isletme;
+        Degisti?.Invoke();
+    }
+
     private void Ayarla(OturumYaniti? oturum)
     {
         Oturum = oturum;
+        Isletme = null;
         Degisti?.Invoke();
     }
 }

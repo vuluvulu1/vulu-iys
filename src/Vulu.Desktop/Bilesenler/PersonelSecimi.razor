@@ -1,0 +1,44 @@
+@* Servis kaydı ve randevu formlarında işin atanacağı personeli seçtirir. *@
+@inject ApiIstemcisi Api
+
+<select id="@ElemanId" value="@Secili" @onchange="Degisti">
+    <option value="">— Atanmadı —</option>
+    @foreach (var kisi in _personel)
+    {
+        <option value="@kisi.Id">@kisi.AdSoyad@(kisi.Uzmanlik is null ? "" : $" ({kisi.Uzmanlik})")</option>
+    }
+    @* Hesabı sonradan devre dışı bırakılmış biri listede yoktur; kayıt düzenlenirken ataması kaybolmasın. *@
+    @if (!string.IsNullOrEmpty(MevcutId) && _yuklendi && _personel.All(k => k.Id != MevcutId))
+    {
+        <option value="@MevcutId">@MevcutAd (devre dışı)</option>
+    }
+</select>
+
+@if (_hata is not null)
+{
+    <p class="hata" role="alert">@_hata</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public string ElemanId { get; set; } = "";
+    [Parameter] public string Secili { get; set; } = "";
+    [Parameter] public EventCallback<string> SeciliChanged { get; set; }
+
+    // Düzenlenen kayıtta şu an atanmış olan kişi.
+    [Parameter] public string? MevcutId { get; set; }
+    [Parameter] public string? MevcutAd { get; set; }
+
+    private List<PersonelOzeti> _personel = [];
+    private bool _yuklendi;
+    private string? _hata;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var sonuc = await Api.Getir<List<PersonelOzeti>>("api/personel");
+        _personel = sonuc.Deger ?? [];
+        _hata = sonuc.Hata;
+        _yuklendi = true;
+    }
+
+    private Task Degisti(ChangeEventArgs olay) => SeciliChanged.InvokeAsync(olay.Value?.ToString() ?? "");
+}

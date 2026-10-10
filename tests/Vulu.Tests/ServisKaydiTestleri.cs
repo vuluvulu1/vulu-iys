@@ -29,11 +29,8 @@ public class ServisKaydiTestleri : IClassFixture<ApiFabrikasi>
         return await Oku<MusteriYaniti>(yanit, HttpStatusCode.Created);
     }
 
-    private static async Task<TeknisyenYaniti> TeknisyenEkle(HttpClient admin, string adSoyad = "Servis Teknisyeni")
-    {
-        using var yanit = await admin.PostAsJsonAsync("api/teknisyenler", new TeknisyenIstegi(adSoyad, "05442223344", null, null));
-        return await Oku<TeknisyenYaniti>(yanit, HttpStatusCode.Created);
-    }
+    private static Task<KullaniciOzeti> TeknisyenEkle(HttpClient admin, string adSoyad = "Servis Teknisyeni") =>
+        ApiFabrikasi.PersonelEkle(admin, adSoyad);
 
     private static async Task<ServisKaydiYaniti> KayitEkle(HttpClient istemci, string musteriId, string? teknisyenId = null,
         string cihaz = "Laptop Dell XPS", string sorun = "Açılmıyor")
@@ -205,7 +202,7 @@ public class ServisKaydiTestleri : IClassFixture<ApiFabrikasi>
     {
         using var admin = await _api.YetkiliIstemci();
         var ad = "t" + Guid.NewGuid().ToString("N")[..10];
-        using var hesap = await admin.PostAsJsonAsync("api/kullanicilar", new KullaniciOlusturIstegi(ad, Sifre, KullaniciRol.Teknisyen));
+        using var hesap = await admin.PostAsJsonAsync("api/kullanicilar", new KullaniciOlusturIstegi(ad, Sifre, KullaniciRol.Teknisyen, "Test Personeli"));
         hesap.EnsureSuccessStatusCode();
         using var teknisyen = await _api.YetkiliIstemci(ad, Sifre);
 
