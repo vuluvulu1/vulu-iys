@@ -53,6 +53,12 @@ internal static class Program
             .SetMinSize(900, 600)
             .Center();
 
+        app.MainWindow.WindowCreated += (_, _) =>
+        {
+            if (OperatingSystem.IsWindows())
+                WindowsUyumlulugu.BaslikCubugunuBoya(app.MainWindow.WindowHandle);
+        };
+
 #if !DEBUG
         // Dağıtılan sürümde tarayıcı geliştirici araçları ve sağ tık menüsü kapalıdır.
         app.MainWindow
