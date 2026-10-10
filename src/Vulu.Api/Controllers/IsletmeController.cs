@@ -94,5 +94,5 @@ public static class IsletmeDonusumleri
     public static IsletmeYaniti YanitaCevir(this Isletme i, long? personelSayisi = null) => new(
         i.Id, i.Kod, i.Ad, i.Adres, i.Telefon, i.Eposta, i.VergiDairesi, i.VergiNo, i.KdvOrani, i.AktifMi,
         i.OlusturmaTarihi, i.Logo is null ? null : Convert.ToBase64String(i.Logo), i.LogoTuru,
-        i.PersonelSiniri, personelSayisi);
+        personelSayisi);
 }

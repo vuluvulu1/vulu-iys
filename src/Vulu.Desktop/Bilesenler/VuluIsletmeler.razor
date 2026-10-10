@@ -40,7 +40,7 @@ else
                 <tr @key="isletme.Id">
                     <td>@isletme.Ad</td>
                     <td><code>@isletme.Kod</code></td>
-                    <td class="dar">@isletme.PersonelSayisi / @isletme.PersonelSiniri</td>
+                    <td class="dar">@isletme.PersonelSayisi</td>
                     <td class="dar">@Bicim.Tarih(isletme.OlusturmaTarihi)</td>
                     <td>
                         <span class="@(isletme.AktifMi ? "durum iyi" : "durum kotu")">
@@ -64,24 +64,35 @@ else
 {
     <Pencere Baslik="Yeni işletme" Genis="true" KapatIstendi="YeniyiKapat">
         <form @onsubmit="Olustur">
-            <label for="i-ad">İşletme adı</label>
-            <input id="i-ad" @bind="_yeni.Ad" @bind:event="oninput" autocomplete="off" />
-
-            <div class="yan-yana">
+            <div class="iki-sutun">
+                <div>
+                    <label for="i-ad">İşletme adı</label>
+                    <input id="i-ad" @bind="_yeni.Ad" @bind:event="oninput" autocomplete="off" />
+                </div>
                 <div>
                     <label for="i-kod">İşletme kodu</label>
                     <input id="i-kod" @bind="_yeni.Kod" @bind:event="oninput" autocomplete="off" autocapitalize="none"
                            spellcheck="false" placeholder="ornek-servis" />
                 </div>
-                <div>
-                    <label for="i-sinir">Personel sınırı</label>
-                    <input id="i-sinir" type="number" min="@IsletmeKurallari.EnAzPersonelSiniri"
-                           max="@IsletmeKurallari.EnFazlaPersonelSiniri" @bind="_yeni.PersonelSiniri" />
-                </div>
             </div>
             <p class="soluk aciklama">
                 Personel giriş ekranında bu kodu yazar. Küçük harf, rakam ve tire; açıldıktan sonra değiştirilemez.
             </p>
+
+            <label for="i-adres">Adres</label>
+            <textarea id="i-adres" rows="2" @bind="_yeni.Adres" @bind:event="oninput"></textarea>
+
+            <div class="iki-sutun">
+                <div>
+                    <label for="i-telefon">Telefon</label>
+                    <input id="i-telefon" @bind="_yeni.Telefon" @bind:event="oninput" inputmode="numeric" maxlength="11"
+                           placeholder="03801234567" autocomplete="off" />
+                </div>
+                <div>
+                    <label for="i-eposta">E-posta</label>
+                    <input id="i-eposta" type="email" @bind="_yeni.Eposta" @bind:event="oninput" autocomplete="off" />
+                </div>
+            </div>
 
             <h3 class="form-basligi">İşletmenin ilk yöneticisi</h3>
 
@@ -117,7 +128,9 @@ else
     {
         public string Ad { get; set; } = "";
         public string Kod { get; set; } = "";
-        public int PersonelSiniri { get; set; } = IsletmeKurallari.VarsayilanPersonelSiniri;
+        public string Adres { get; set; } = "";
+        public string Telefon { get; set; } = "";
+        public string Eposta { get; set; } = "";
         public string YoneticiAdSoyad { get; set; } = "";
         public string YoneticiKullaniciAdi { get; set; } = "";
         public string YoneticiSifre { get; set; } = "";
@@ -161,7 +174,8 @@ else
         _kaydediliyor = true;
         var sonuc = await Api.Ekle<IsletmeYaniti>("api/platform/isletmeler",
             new IsletmeOlusturIstegi(_yeni.Kod.Trim().ToLowerInvariant(), _yeni.Ad.Trim(),
-                _yeni.YoneticiKullaniciAdi.Trim(), _yeni.YoneticiSifre, _yeni.YoneticiAdSoyad.Trim(), _yeni.PersonelSiniri));
+                _yeni.Adres.Trim(), _yeni.Telefon.Trim(), _yeni.Eposta.Trim(),
+                _yeni.YoneticiKullaniciAdi.Trim(), _yeni.YoneticiSifre, _yeni.YoneticiAdSoyad.Trim()));
         _kaydediliyor = false;
 
         if (!sonuc.Basarili)

@@ -13,13 +13,6 @@ else
     <div class="arac-cubugu">
         <button @onclick="YeniAc">Yeni personel</button>
         <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
-        @if (_personel is not null && Oturum.Isletme is { } isletme)
-        {
-            var aktif = _personel.Count(k => k.AktifMi);
-            <span class="kullanim @(aktif >= isletme.PersonelSiniri ? "durum kotu" : "soluk")">
-                Aktif hesap: @aktif / @isletme.PersonelSiniri
-            </span>
-        }
     </div>
 
     @if (_listeHatasi is not null)

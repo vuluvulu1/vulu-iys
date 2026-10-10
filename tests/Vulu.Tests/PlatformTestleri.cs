@@ -15,9 +15,9 @@ public class PlatformTestleri : IClassFixture<ApiFabrikasi>
 
     private static string Yol(IsletmeYaniti isletme) => $"api/platform/isletmeler/{isletme.Id}";
 
-    private static Task<HttpResponseMessage> Durum(HttpClient yonetici, IsletmeYaniti isletme, bool aktif,
-        int personelSiniri = 1000) =>
-        yonetici.PutAsJsonAsync(Yol(isletme), new IsletmeDurumIstegi(isletme.Ad, aktif, personelSiniri));
+    private static Task<HttpResponseMessage> Durum(HttpClient yonetici, IsletmeYaniti isletme, bool aktif) =>
+        yonetici.PutAsJsonAsync(Yol(isletme),
+            new IsletmeDurumIstegi(isletme.Ad, aktif, isletme.Adres!, isletme.Telefon!, isletme.Eposta!));
 
     private static Task<HttpResponseMessage> PersonelAc(HttpClient admin, string kullaniciAdi) =>
         admin.PostAsJsonAsync("api/kullanicilar",
@@ -102,52 +102,68 @@ public class PlatformTestleri : IClassFixture<ApiFabrikasi>
         Assert.Contains(liste!, i => i.Kod == ApiFabrikasi.IsletmeKodu);
     }
 
-    // --- Personel sınırı ---
+    // --- İletişim bilgileri ve personel sayısı ---
 
     [Fact]
-    public async Task Personel_siniri_dolunca_yeni_hesap_acilamaz_devre_disi_hesaplar_sayilmaz()
+    public async Task Isletme_iletisim_bilgileriyle_acilir_vulu_yoneticisi_sonradan_duzeltir()
     {
         using var yonetici = await _api.YoneticiIstemcisi();
         var kod = YeniKod();
-        var isletme = await ApiFabrikasi.IsletmeAc(yonetici, kod, "Küçük Paket", personelSiniri: 2);
-        using var admin = await _api.YetkiliIstemci(isletmeKodu: kod);
 
-        // Yönetici bir yer tutuyor; bir personel daha açılabilir, üçüncüsü açılamaz.
-        using var ikinci = await PersonelAc(admin, "ikinci");
-        using var ucuncu = await PersonelAc(admin, "ucuncu");
-        Assert.Equal(HttpStatusCode.Created, ikinci.StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, ucuncu.StatusCode);
+        using var ac = await yonetici.PostAsJsonAsync("api/platform/isletmeler",
+            new IsletmeOlusturIstegi(kod, "İletişimli İşletme", " Atatürk Cad. No: 12, Düzce ", "03801112233", "iletisim@ornek.com",
+                "admin", "Gecerli-Sifre-1", "Ad Soyad"));
+        var isletme = (await ac.Content.ReadFromJsonAsync<IsletmeYaniti>())!;
+        using var admin = await _api.YetkiliIstemci("admin", "Gecerli-Sifre-1", kod);
+        var isletmeninGordugu = await admin.GetFromJsonAsync<IsletmeYaniti>("api/isletme");
 
-        // Biri devre dışı kalınca yer açılır; sınır doluyken devre dışı hesap yeniden açılamaz.
-        var ikinciHesap = (await ikinci.Content.ReadFromJsonAsync<KullaniciOzeti>())!;
-        KullaniciGuncelleIstegi Guncelleme(bool aktif) =>
-            new(ikinciHesap.KullaniciAdi, ikinciHesap.Rol, aktif, null, ikinciHesap.AdSoyad);
-        (await admin.PutAsJsonAsync($"api/kullanicilar/{ikinciHesap.Id}", Guncelleme(aktif: false))).EnsureSuccessStatusCode();
-        using var yerine = await PersonelAc(admin, "yerine");
-        using var yenidenAc = await admin.PutAsJsonAsync($"api/kullanicilar/{ikinciHesap.Id}", Guncelleme(aktif: true));
-        Assert.Equal(HttpStatusCode.Created, yerine.StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, yenidenAc.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, ac.StatusCode);
+        Assert.Equal("Atatürk Cad. No: 12, Düzce", isletmeninGordugu!.Adres);
+        Assert.Equal("03801112233", isletmeninGordugu.Telefon);
+        Assert.Equal("iletisim@ornek.com", isletmeninGordugu.Eposta);
 
-        // Vulu yöneticisi sınırı artırınca hemen etkili olur ve listede kullanım görünür.
-        (await Durum(yonetici, isletme, aktif: true, personelSiniri: 3)).EnsureSuccessStatusCode();
-        using var artirinca = await admin.PutAsJsonAsync($"api/kullanicilar/{ikinciHesap.Id}", Guncelleme(aktif: true));
+        using var duzelt = await yonetici.PutAsJsonAsync(Yol(isletme),
+            new IsletmeDurumIstegi("İletişimli İşletme", true, "Yeni Adres Sok. No: 3, Düzce", "03809998877", "yeni@ornek.com"));
         var listedeki = (await yonetici.GetFromJsonAsync<List<IsletmeYaniti>>("api/platform/isletmeler"))!.Single(i => i.Id == isletme.Id);
-        Assert.Equal(HttpStatusCode.OK, artirinca.StatusCode);
-        Assert.Equal(3, listedeki.PersonelSiniri);
-        Assert.Equal(3, listedeki.PersonelSayisi);
+
+        Assert.Equal(HttpStatusCode.OK, duzelt.StatusCode);
+        Assert.Equal("Yeni Adres Sok. No: 3, Düzce", listedeki.Adres);
+        Assert.Equal("03809998877", listedeki.Telefon);
+        Assert.Equal("yeni@ornek.com", listedeki.Eposta);
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(5000)]
-    public async Task Gecersiz_personel_siniri_400_doner(int sinir)
+    [InlineData("", "03801234567", "bilgi@ornek.com")]
+    [InlineData("Test Cad. No: 1, Düzce", "", "bilgi@ornek.com")]
+    [InlineData("Test Cad. No: 1, Düzce", "12345", "bilgi@ornek.com")]
+    [InlineData("Test Cad. No: 1, Düzce", "03801234567", "")]
+    [InlineData("Test Cad. No: 1, Düzce", "03801234567", "eposta-degil")]
+    public async Task Iletisim_bilgisi_eksik_ya_da_gecersiz_isletme_acilamaz(string adres, string telefon, string eposta)
     {
         using var yonetici = await _api.YoneticiIstemcisi();
 
         using var yanit = await yonetici.PostAsJsonAsync("api/platform/isletmeler",
-            new IsletmeOlusturIstegi(YeniKod(), "Geçersiz Paket", "admin", "Gecerli-Sifre-1", "Ad Soyad", sinir));
+            new IsletmeOlusturIstegi(YeniKod(), "Eksik Bilgili", adres, telefon, eposta, "admin", "Gecerli-Sifre-1", "Ad Soyad"));
 
         Assert.Equal(HttpStatusCode.BadRequest, yanit.StatusCode);
+    }
+
+    [Fact]
+    public async Task Personel_sayisi_sinirsizdir_ve_listede_aktif_hesap_sayisi_gorunur()
+    {
+        using var yonetici = await _api.YoneticiIstemcisi();
+        var kod = YeniKod();
+        var isletme = await ApiFabrikasi.IsletmeAc(yonetici, kod, "Kalabalık İşletme");
+        using var admin = await _api.YetkiliIstemci(isletmeKodu: kod);
+
+        for (var i = 0; i < 7; i++)
+        {
+            using var yanit = await PersonelAc(admin, $"personel{i}");
+            Assert.Equal(HttpStatusCode.Created, yanit.StatusCode);
+        }
+
+        var listedeki = (await yonetici.GetFromJsonAsync<List<IsletmeYaniti>>("api/platform/isletmeler"))!.Single(i => i.Id == isletme.Id);
+        Assert.Equal(8, listedeki.PersonelSayisi);
     }
 
     // --- Vulu yöneticileri ---

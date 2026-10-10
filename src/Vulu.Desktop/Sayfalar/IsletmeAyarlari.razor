@@ -18,13 +18,15 @@ else
         <div class="logo-satiri">
             <img src="@LogoOnizleme" alt="İşletme logosu" />
             <div>
-                <label for="i-logo">Logo (PNG ya da JPEG, en fazla @(IsletmeKurallari.EnFazlaLogoBayt / 1024) KB)</label>
-                <InputFile id="i-logo" OnChange="LogoSecildi" accept="image/png,image/jpeg" />
+                <label for="i-logo">Logo</label>
+                <InputFile id="i-logo" OnChange="LogoSecildi" accept="image/*" />
                 @if (_mevcutLogo is not null || _yeniLogo is not null)
                 {
                     <button type="button" class="ikincil" @onclick="LogoyuKaldir">Logoyu kaldır</button>
                 }
-                <p class="soluk aciklama">Logo yan menüde ve fatura belgesinin başlığında görünür.</p>
+                <p class="soluk aciklama">
+                    @(_logoIsleniyor ? "Görsel hazırlanıyor…" : "Herhangi bir görsel seçebilirsiniz; yüklenirken otomatik küçültülür. Logo yan menüde ve fatura belgesinde görünür.")
+                </p>
             </div>
         </div>
 
@@ -106,6 +108,7 @@ else
     private (string Veri, string Tur)? _mevcutLogo;
     private (string Veri, string Tur)? _yeniLogo;
     private bool _logoKaldirilacak;
+    private bool _logoIsleniyor;
     private string? _hata;
     private bool _kaydediliyor;
     private bool _kaydedildi;
@@ -147,27 +150,59 @@ else
         };
     }
 
+    // Seçilen görsel olduğu gibi gönderilmez: önce en uzun kenarı LogoKenari pikseli aşmayacak şekilde küçültülür.
+    // Böylece kullanıcı telefonla çekilmiş büyük bir fotoğrafı da seçebilir, sunucuya küçük bir dosya gider.
     private async Task LogoSecildi(InputFileChangeEventArgs olay)
     {
         _hata = null;
         _kaydedildi = false;
         var dosya = olay.File;
 
-        if (!IsletmeKurallari.LogoTurleri.Contains(dosya.ContentType))
+        if (!dosya.ContentType.StartsWith("image/", StringComparison.Ordinal))
         {
-            _hata = "Logo PNG ya da JPEG olmalı.";
+            _hata = "Bir görsel dosyası seçin.";
             return;
         }
-        if (dosya.Size > IsletmeKurallari.EnFazlaLogoBayt)
+        if (dosya.Size > IsletmeKurallari.EnFazlaLogoKaynakBayt)
         {
-            _hata = $"Logo en fazla {IsletmeKurallari.EnFazlaLogoBayt / 1024} KB olabilir; seçilen dosya {dosya.Size / 1024} KB.";
+            _hata = $"Görsel çok büyük ({dosya.Size / (1024 * 1024)} MB); en fazla {IsletmeKurallari.EnFazlaLogoKaynakBayt / (1024 * 1024)} MB olabilir.";
             return;
         }
 
+        _logoIsleniyor = true;
+        try
+        {
+            // PNG saydam zemini korur. Fotoğraf gibi PNG'de büyük kalan görseller JPEG'e çevrilir.
+            var (veri, tur) = await Kucult(dosya, "image/png");
+            if (veri.Length > IsletmeKurallari.EnFazlaLogoBayt)
+                (veri, tur) = await Kucult(dosya, "image/jpeg");
+
+            if (veri.Length is 0 or > IsletmeKurallari.EnFazlaLogoBayt)
+            {
+                _hata = "Görsel işlenemedi; başka bir dosya deneyin.";
+                return;
+            }
+
+            _yeniLogo = (Convert.ToBase64String(veri), tur);
+            _logoKaldirilacak = false;
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or Microsoft.JSInterop.JSException)
+        {
+            _hata = "Görsel okunamadı; başka bir dosya deneyin.";
+        }
+        finally
+        {
+            _logoIsleniyor = false;
+        }
+    }
+
+    private static async Task<(byte[] Veri, string Tur)> Kucult(IBrowserFile dosya, string tur)
+    {
+        var kucuk = await dosya.RequestImageFileAsync(tur, IsletmeKurallari.LogoKenari, IsletmeKurallari.LogoKenari);
+        await using var akis = kucuk.OpenReadStream(IsletmeKurallari.EnFazlaLogoKaynakBayt);
         using var bellek = new MemoryStream();
-        await dosya.OpenReadStream(IsletmeKurallari.EnFazlaLogoBayt).CopyToAsync(bellek);
-        _yeniLogo = (Convert.ToBase64String(bellek.ToArray()), dosya.ContentType);
-        _logoKaldirilacak = false;
+        await akis.CopyToAsync(bellek);
+        return (bellek.ToArray(), tur);
     }
 
     private void LogoyuKaldir()

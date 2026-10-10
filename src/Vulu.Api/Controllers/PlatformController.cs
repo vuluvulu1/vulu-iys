@@ -56,7 +56,9 @@ public class PlatformController : ControllerBase
         {
             Kod = kod,
             Ad = istek.Ad.Trim(),
-            PersonelSiniri = istek.PersonelSiniri,
+            Adres = istek.Adres.Trim(),
+            Telefon = istek.Telefon.Trim(),
+            Eposta = istek.Eposta.Trim(),
             VeritabaniAdi = _platform.YeniVeritabaniAdi(kod)
         };
 
@@ -91,14 +93,16 @@ public class PlatformController : ControllerBase
         return CreatedAtAction(nameof(Listele), isletme.YanitaCevir(personelSayisi: 1));
     }
 
-    // Ad düzeltmesi, askıya alma / yeniden açma ve personel sınırı. İşletmenin verisi silinmez.
+    // Ad ve iletişim bilgisi düzeltmesi, askıya alma / yeniden açma. İşletmenin verisi silinmez.
     [HttpPut("{id:oid}")]
     public async Task<ActionResult<IsletmeYaniti>> Guncelle(string id, IsletmeDurumIstegi istek, CancellationToken iptal)
     {
         var guncelleme = Builders<Isletme>.Update
             .Set(i => i.Ad, istek.Ad.Trim())
             .Set(i => i.AktifMi, istek.AktifMi)
-            .Set(i => i.PersonelSiniri, istek.PersonelSiniri);
+            .Set(i => i.Adres, istek.Adres.Trim())
+            .Set(i => i.Telefon, istek.Telefon.Trim())
+            .Set(i => i.Eposta, istek.Eposta.Trim());
 
         var isletme = await _platform.Isletmeler.FindOneAndUpdateAsync<Isletme>(i => i.Id == id, guncelleme,
             new FindOneAndUpdateOptions<Isletme> { ReturnDocument = ReturnDocument.After }, iptal);
