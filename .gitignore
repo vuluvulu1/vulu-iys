@@ -480,3 +480,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Test paketi (paketle.ps1)
+/dist/
+
+# Makineye özel gizli ayarlar
+appsettings.Local.json

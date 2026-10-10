@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
@@ -12,6 +13,11 @@ using Vulu.Api.Veri;
 MongoBaglami.KurallariKaydet();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Makineye özel gizli ayarlar (git'e girmez). appsettings dosyalarından sonra, ortam değişkenlerinden önce okunur.
+var kaynaklar = builder.Configuration.Sources;
+var sonJson = kaynaklar.Select((kaynak, sira) => kaynak is JsonConfigurationSource ? sira : -1).Max();
+kaynaklar.Insert(sonJson + 1, new JsonConfigurationSource { Path = "appsettings.Local.json", Optional = true });
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -37,7 +43,7 @@ builder.Services.AddHostedService<VeritabaniHazirlamaServisi>();
 builder.Services.AddOptions<JwtAyarlari>()
     .Bind(builder.Configuration.GetSection(JwtAyarlari.Bolum))
     .Validate(a => a.Anahtar.Length >= JwtAyarlari.EnAzAnahtarUzunlugu,
-        $"Jwt:Anahtar en az {JwtAyarlari.EnAzAnahtarUzunlugu} karakter olmalı (user-secrets veya ortam değişkeni ile verin).")
+        $"Jwt:Anahtar en az {JwtAyarlari.EnAzAnahtarUzunlugu} karakter olmalı (appsettings.Local.json veya ortam değişkeni ile verin).")
     .ValidateOnStart();
 builder.Services.Configure<IlkAdminAyarlari>(builder.Configuration.GetSection(IlkAdminAyarlari.Bolum));
 builder.Services.AddSingleton<TokenServisi>();
