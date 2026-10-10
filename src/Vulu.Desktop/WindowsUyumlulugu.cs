@@ -25,6 +25,28 @@ internal static class WindowsUyumlulugu
         return anahtar?.GetValue("pv") is string surum && surum.Length > 0 && surum != "0.0.0.0";
     }
 
+    // Başlık çubuğunu arayüzün kahve paletine boyar (renkler wwwroot/css/app.css ile aynı).
+    // Renk ayarı Windows 11'de çalışır; Windows 10 bunu desteklemediği için orada çubuk yalnızca koyu temaya alınır.
+    public static void BaslikCubugunuBoya(IntPtr pencere)
+    {
+        const int KoyuTema = 20, KenarRengi = 34, BaslikRengi = 35, MetinRengi = 36;
+
+        Ayarla(pencere, KoyuTema, 1);
+        Ayarla(pencere, BaslikRengi, Renk(0x2b, 0x1a, 0x10));
+        Ayarla(pencere, MetinRengi, Renk(0xf3, 0xe6, 0xd6));
+        Ayarla(pencere, KenarRengi, Renk(0x4a, 0x2e, 0x1c));
+    }
+
+    // Windows renkleri 0x00BBGGRR sırasıyla bekler.
+    private static int Renk(int kirmizi, int yesil, int mavi) => kirmizi | (yesil << 8) | (mavi << 16);
+
+    // Desteklenmeyen ayarlar hata kodu döndürür ve yok sayılır; pencere varsayılan görünümüyle kalır.
+    private static void Ayarla(IntPtr pencere, int ayar, int deger) =>
+        DwmSetWindowAttribute(pencere, ayar, ref deger, sizeof(int));
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
     public static void HataGoster(string mesaj)
     {
         const uint HataSimgesi = 0x10;
