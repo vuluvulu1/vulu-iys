@@ -53,6 +53,21 @@ public static partial class Bicim
         _ => "etiket iptal"
     };
 
+    public static string Durum(RandevuDurumu durum) => durum switch
+    {
+        RandevuDurumu.Planlandi => "Planlandı",
+        RandevuDurumu.Tamamlandi => "Tamamlandı",
+        RandevuDurumu.IptalEdildi => "İptal edildi",
+        _ => durum.ToString()
+    };
+
+    public static string DurumSinifi(RandevuDurumu durum) => durum switch
+    {
+        RandevuDurumu.Planlandi => "etiket suruyor",
+        RandevuDurumu.Tamamlandi => "etiket tamam",
+        _ => "etiket iptal"
+    };
+
     [GeneratedRegex(@"^\d{1,3}(\.\d{3})+$")]
     private static partial Regex BinlikAyracli();
 

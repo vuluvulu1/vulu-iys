@@ -152,6 +152,11 @@ textarea {
     resize: vertical;
 }
 
+/* Tarih seçicinin takvim simgesi ve açılır penceresi koyu temaya uysun. */
+input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
 input::placeholder {
     color: var(--soluk-metin);
     opacity: 0.6;
