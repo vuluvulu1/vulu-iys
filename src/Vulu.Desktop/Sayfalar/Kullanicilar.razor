@@ -1,0 +1,224 @@
+@page "/kullanicilar"
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<h1>Kullanıcılar</h1>
+
+@if (!Oturum.AdminMi)
+{
+    <p class="hata">Bu sayfayı yalnızca yöneticiler görebilir.</p>
+}
+else
+{
+    <div class="arac-cubugu">
+        <button @onclick="YeniAc">Yeni kullanıcı</button>
+        <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
+    </div>
+
+    @if (_listeHatasi is not null)
+    {
+        <p class="hata" role="alert">@_listeHatasi</p>
+    }
+
+    @if (_kullanicilar is null)
+    {
+        <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
+    }
+    else
+    {
+        <table class="tablo">
+            <thead>
+                <tr>
+                    <th>Kullanıcı adı</th>
+                    <th>Rol</th>
+                    <th>Durum</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var kullanici in _kullanicilar)
+                {
+                    <tr @key="kullanici.Id">
+                        <td>
+                            @kullanici.KullaniciAdi
+                            @if (kullanici.Id == Oturum.Kullanici?.Id)
+                            {
+                                <span class="rozet">siz</span>
+                            }
+                        </td>
+                        <td>@RolAdi(kullanici.Rol)</td>
+                        <td>
+                            <span class="@(kullanici.AktifMi ? "durum iyi" : "durum kotu")">
+                                @(kullanici.AktifMi ? "Aktif" : "Devre dışı")
+                            </span>
+                        </td>
+                        <td class="islemler">
+                            <button class="ikincil" @onclick="() => DuzenleAc(kullanici)">Düzenle</button>
+                            <button class="tehlike" @onclick="() => _silinecek = kullanici"
+                                    disabled="@(kullanici.Id == Oturum.Kullanici?.Id)">Sil</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@if (_form is not null)
+{
+    <Pencere Baslik="@(_duzenlenen is null ? "Yeni kullanıcı" : "Kullanıcıyı düzenle")" KapatIstendi="FormuKapat">
+        <form @onsubmit="Kaydet">
+            <label for="f-ad">Kullanıcı adı</label>
+            <input id="f-ad" @bind="_form.KullaniciAdi" @bind:event="oninput" autocomplete="off" />
+
+            <label for="f-sifre">@(_duzenlenen is null ? "Şifre" : "Yeni şifre (boş bırakılırsa değişmez)")</label>
+            <input id="f-sifre" type="password" @bind="_form.Sifre" @bind:event="oninput" autocomplete="new-password" />
+
+            <label for="f-rol">Rol</label>
+            <select id="f-rol" @bind="_form.Rol">
+                <option value="@KullaniciRol.Teknisyen">Teknisyen</option>
+                <option value="@KullaniciRol.Admin">Yönetici</option>
+            </select>
+
+            @if (_duzenlenen is not null)
+            {
+                <label class="onay-kutusu">
+                    <input type="checkbox" @bind="_form.AktifMi" />
+                    Hesap aktif
+                </label>
+            }
+
+            @if (_formHatasi is not null)
+            {
+                <p class="hata" role="alert">@_formHatasi</p>
+            }
+
+            <footer>
+                <button type="button" class="ikincil" @onclick="FormuKapat">Vazgeç</button>
+                <button type="submit" disabled="@_kaydediliyor">@(_kaydediliyor ? "Kaydediliyor…" : "Kaydet")</button>
+            </footer>
+        </form>
+    </Pencere>
+}
+
+@if (_silinecek is not null)
+{
+    <Pencere Baslik="Kullanıcıyı sil" KapatIstendi="SilmeyiKapat">
+        <p><strong>@_silinecek.KullaniciAdi</strong> hesabı kalıcı olarak silinecek. Bu işlem geri alınamaz.</p>
+
+        @if (_silmeHatasi is not null)
+        {
+            <p class="hata" role="alert">@_silmeHatasi</p>
+        }
+
+        <footer>
+            <button type="button" class="ikincil" @onclick="SilmeyiKapat">Vazgeç</button>
+            <button type="button" class="tehlike" @onclick="Sil" disabled="@_kaydediliyor">Sil</button>
+        </footer>
+    </Pencere>
+}
+
+@code {
+    private class KullaniciFormu
+    {
+        public string KullaniciAdi { get; set; } = "";
+        public string Sifre { get; set; } = "";
+        public KullaniciRol Rol { get; set; } = KullaniciRol.Teknisyen;
+        public bool AktifMi { get; set; } = true;
+    }
+
+    private List<KullaniciOzeti>? _kullanicilar;
+    private string? _listeHatasi;
+    private bool _yukleniyor;
+
+    private KullaniciFormu? _form;
+    private KullaniciOzeti? _duzenlenen;
+    private string? _formHatasi;
+    private bool _kaydediliyor;
+
+    private KullaniciOzeti? _silinecek;
+    private string? _silmeHatasi;
+
+    protected override Task OnInitializedAsync() => Oturum.AdminMi ? Yukle() : Task.CompletedTask;
+
+    private static string RolAdi(KullaniciRol rol) => rol == KullaniciRol.Admin ? "Yönetici" : "Teknisyen";
+
+    private async Task Yukle()
+    {
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<List<KullaniciOzeti>>("api/kullanicilar");
+        _yukleniyor = false;
+
+        _listeHatasi = sonuc.Hata;
+        if (sonuc.Basarili)
+            _kullanicilar = sonuc.Deger ?? [];
+    }
+
+    private void YeniAc()
+    {
+        _duzenlenen = null;
+        _formHatasi = null;
+        _form = new KullaniciFormu();
+    }
+
+    private void DuzenleAc(KullaniciOzeti kullanici)
+    {
+        _duzenlenen = kullanici;
+        _formHatasi = null;
+        _form = new KullaniciFormu
+        {
+            KullaniciAdi = kullanici.KullaniciAdi,
+            Rol = kullanici.Rol,
+            AktifMi = kullanici.AktifMi
+        };
+    }
+
+    private void FormuKapat() => _form = null;
+
+    private async Task Kaydet()
+    {
+        if (_form is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = _duzenlenen is null
+            ? await Api.Ekle<KullaniciOzeti>("api/kullanicilar",
+                new KullaniciOlusturIstegi(_form.KullaniciAdi.Trim(), _form.Sifre, _form.Rol))
+            : await Api.Guncelle<KullaniciOzeti>($"api/kullanicilar/{_duzenlenen.Id}",
+                new KullaniciGuncelleIstegi(_form.KullaniciAdi.Trim(), _form.Rol, _form.AktifMi,
+                    _form.Sifre.Length > 0 ? _form.Sifre : null));
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _formHatasi = sonuc.Hata;
+            return;
+        }
+
+        _form = null;
+        await Yukle();
+    }
+
+    private void SilmeyiKapat()
+    {
+        _silinecek = null;
+        _silmeHatasi = null;
+    }
+
+    private async Task Sil()
+    {
+        if (_silinecek is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Sil($"api/kullanicilar/{_silinecek.Id}");
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _silmeHatasi = sonuc.Hata;
+            return;
+        }
+
+        SilmeyiKapat();
+        await Yukle();
+    }
+}

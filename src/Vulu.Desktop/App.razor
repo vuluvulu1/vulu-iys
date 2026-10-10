@@ -1,10 +1,35 @@
-<Router AppAssembly="typeof(App).Assembly">
-    <Found Context="rota">
-        <RouteView RouteData="rota" DefaultLayout="typeof(AnaDuzen)" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="typeof(AnaDuzen)">
-            <p>Sayfa bulunamadı.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+@implements IDisposable
+@inject OturumServisi Oturum
+@inject NavigationManager Gezinti
+
+@if (Oturum.GirisYapildi)
+{
+    <Router AppAssembly="typeof(App).Assembly">
+        <Found Context="rota">
+            <RouteView RouteData="rota" DefaultLayout="typeof(AnaDuzen)" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="typeof(AnaDuzen)">
+                <p>Sayfa bulunamadı.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+else
+{
+    <Giris />
+}
+
+@code {
+    protected override void OnInitialized() => Oturum.Degisti += OturumDegisti;
+
+    private void OturumDegisti() => InvokeAsync(() =>
+    {
+        // Bir sonraki girişte önceki kullanıcının kaldığı sayfa değil ana sayfa açılsın.
+        if (!Oturum.GirisYapildi)
+            Gezinti.NavigateTo("");
+        StateHasChanged();
+    });
+
+    public void Dispose() => Oturum.Degisti -= OturumDegisti;
+}

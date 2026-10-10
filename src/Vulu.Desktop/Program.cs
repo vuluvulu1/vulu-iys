@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Photino.Blazor;
+using Vulu.Desktop.Servisler;
 
 namespace Vulu.Desktop;
 
@@ -21,6 +22,8 @@ internal static class Program
 
         builder.Services.AddLogging();
         builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(apiAdresi) });
+        builder.Services.AddSingleton<OturumServisi>();
+        builder.Services.AddSingleton<ApiIstemcisi>();
 
         builder.RootComponents.Add<App>("app");
 
@@ -28,6 +31,7 @@ internal static class Program
 
         app.MainWindow
             .SetTitle("vulu Teknik Servis Yönetim Sistemi")
+            .SetIconFile(Path.Combine(AppContext.BaseDirectory, "logo.ico"))
             .SetSize(1280, 800)
             .Center();
 

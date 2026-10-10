@@ -69,8 +69,12 @@ yoksa `mongodb://localhost:27017` kullanılır. Her test kendi geçici veritaban
 - [x] 0. İskelet
 - [x] 1. Veri modeli
 - [x] 2. API çekirdeği (kimlik doğrulama, roller, doğrulama)
-- [ ] 3. API modülleri
-- [ ] 4. Testler
-- [ ] 5. Masaüstü kabuğu
-- [ ] 6. Ekranlar
-- [ ] 7. Paketleme
+- [x] 3. Giriş ekranı, oturum yönetimi, kullanıcı yönetimi ekranı
+- [ ] 4. Müşteriler (uç noktalar + ekran)
+- [ ] 5. Teknisyenler (uç noktalar + ekran)
+- [ ] 6. Servis kayıtları ve fatura (uç noktalar + ekran)
+- [ ] 7. Randevular (uç noktalar + ekran)
+- [ ] 8. Dağıtım paketi
+
+Logo `assets/logo.svg` dosyasındadır. Değiştirilirse pencere ve exe simgesi
+`tools/ikon-uret.ps1` ile yeniden üretilir (`assets/logo.ico`).
