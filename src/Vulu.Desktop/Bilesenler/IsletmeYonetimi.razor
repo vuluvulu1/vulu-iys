@@ -1,20 +1,25 @@
-@* Vulu yöneticisinin tek bir işletme üzerindeki işlemleri: ad ve personel sınırı, yönetici şifresi, kalıcı silme. *@
+@* Vulu yöneticisinin tek bir işletme üzerindeki işlemleri: ad ve iletişim bilgileri, yönetici şifresi, kalıcı silme. *@
 @inject ApiIstemcisi Api
 
 <Pencere Baslik="@Isletme.Ad" Genis="true" KapatIstendi="Kapat">
     <form @onsubmit="GeneliKaydet">
-        <div class="yan-yana">
+        <label for="y-ad">İşletme adı</label>
+        <input id="y-ad" @bind="_ad" @bind:event="oninput" autocomplete="off" />
+
+        <label for="y-adres">Adres</label>
+        <textarea id="y-adres" rows="2" @bind="_adres" @bind:event="oninput"></textarea>
+
+        <div class="iki-sutun">
             <div>
-                <label for="y-ad">İşletme adı</label>
-                <input id="y-ad" @bind="_ad" @bind:event="oninput" autocomplete="off" />
+                <label for="y-telefon">Telefon</label>
+                <input id="y-telefon" @bind="_telefon" @bind:event="oninput" inputmode="numeric" maxlength="11"
+                       placeholder="03801234567" autocomplete="off" />
             </div>
             <div>
-                <label for="y-sinir">Personel sınırı</label>
-                <input id="y-sinir" type="number" min="@IsletmeKurallari.EnAzPersonelSiniri"
-                       max="@IsletmeKurallari.EnFazlaPersonelSiniri" @bind="_personelSiniri" />
+                <label for="y-eposta">E-posta</label>
+                <input id="y-eposta" type="email" @bind="_eposta" @bind:event="oninput" autocomplete="off" />
             </div>
         </div>
-        <p class="soluk aciklama">Şu an @Isletme.PersonelSayisi aktif personel hesabı var.</p>
 
         <label class="onay-kutusu">
             <input id="y-aktif" type="checkbox" @bind="_aktif" />
@@ -104,7 +109,9 @@
 
     private string _ad = "";
     private bool _aktif;
-    private int _personelSiniri;
+    private string _adres = "";
+    private string _telefon = "";
+    private string _eposta = "";
 
     private List<IsletmeYoneticisiOzeti> _yoneticiler = [];
     private string _sifirlanacakId = "";
@@ -143,7 +150,9 @@
 
         _ad = Isletme.Ad;
         _aktif = Isletme.AktifMi;
-        _personelSiniri = Isletme.PersonelSiniri;
+        _adres = Isletme.Adres ?? "";
+        _telefon = Isletme.Telefon ?? "";
+        _eposta = Isletme.Eposta ?? "";
     }
 
     protected override async Task OnInitializedAsync()
@@ -168,7 +177,8 @@
         if (_mesgul) return;
 
         _mesgul = true;
-        var sonuc = await Api.Guncelle<IsletmeYaniti>(Yol, new IsletmeDurumIstegi(_ad.Trim(), _aktif, _personelSiniri));
+        var sonuc = await Api.Guncelle<IsletmeYaniti>(Yol,
+            new IsletmeDurumIstegi(_ad.Trim(), _aktif, _adres.Trim(), _telefon.Trim(), _eposta.Trim()));
         _mesgul = false;
 
         Bildir(Bolum.Genel, sonuc.Hata, sonuc.Basarili ? "Kaydedildi." : null);

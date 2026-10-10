@@ -20,12 +20,11 @@ public record IsletmeYaniti(
     // Logo varsa base64 kodlu içeriği ve türü (image/png ya da image/jpeg).
     string? LogoVerisi,
     string? LogoTuru,
-    // Aynı anda aktif olabilecek personel hesabı sayısı.
-    int PersonelSiniri,
     // Aktif personel sayısı; yalnızca vulu yöneticisinin işletme listesinde doldurulur.
     long? PersonelSayisi);
 
-// Vulu yöneticisinin işletme kaydı açarken verdiği bilgiler: işletme ve onun ilk yöneticisi.
+// Vulu yöneticisinin işletme kaydı açarken verdiği bilgiler: işletme, iletişim bilgileri ve ilk yöneticisi.
+// İletişim bilgileri kayıt sırasında zorunludur; anlaşma yapılan işletmenin kime ait olduğu baştan bilinir.
 public record IsletmeOlusturIstegi(
     [Required(ErrorMessage = "İşletme kodu gerekli.")]
     [RegularExpression(IsletmeKurallari.KodDeseni, ErrorMessage = IsletmeKurallari.KodMesaji)]
@@ -33,6 +32,16 @@ public record IsletmeOlusturIstegi(
     [Required(ErrorMessage = "İşletme adı gerekli.")]
     [StringLength(120, MinimumLength = 2, ErrorMessage = "İşletme adı 2-120 karakter olmalı.")]
     string Ad,
+    [Required(ErrorMessage = "Adres gerekli.")]
+    [StringLength(500, MinimumLength = 5, ErrorMessage = "Adres 5-500 karakter olmalı.")]
+    string Adres,
+    [Required(ErrorMessage = "Telefon gerekli.")]
+    [RegularExpression(TelefonKurallari.Desen, ErrorMessage = TelefonKurallari.Mesaj)]
+    string Telefon,
+    [Required(ErrorMessage = "E-posta gerekli.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi girin.")]
+    [StringLength(200, ErrorMessage = "E-posta en fazla 200 karakter olabilir.")]
+    string Eposta,
     [Required(ErrorMessage = "Yönetici kullanıcı adı gerekli.")]
     [StringLength(32, MinimumLength = 3, ErrorMessage = "Kullanıcı adı 3-32 karakter olmalı.")]
     [RegularExpression(KullaniciKurallari.AdDeseni, ErrorMessage = KullaniciKurallari.AdDeseniMesaji)]
@@ -42,18 +51,24 @@ public record IsletmeOlusturIstegi(
     string YoneticiSifre,
     [Required(ErrorMessage = "Yönetici ad soyadı gerekli.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
-    string YoneticiAdSoyad,
-    [Range(IsletmeKurallari.EnAzPersonelSiniri, IsletmeKurallari.EnFazlaPersonelSiniri, ErrorMessage = IsletmeKurallari.PersonelSiniriMesaji)]
-    int PersonelSiniri = IsletmeKurallari.VarsayilanPersonelSiniri);
+    string YoneticiAdSoyad);
 
-// Vulu yöneticisinin sonradan değiştirebildikleri: ad, açık/askıda durumu ve personel sınırı.
+// Vulu yöneticisinin sonradan değiştirebildikleri: ad, iletişim bilgileri ve açık/askıda durumu.
 public record IsletmeDurumIstegi(
     [Required(ErrorMessage = "İşletme adı gerekli.")]
     [StringLength(120, MinimumLength = 2, ErrorMessage = "İşletme adı 2-120 karakter olmalı.")]
     string Ad,
     bool AktifMi,
-    [Range(IsletmeKurallari.EnAzPersonelSiniri, IsletmeKurallari.EnFazlaPersonelSiniri, ErrorMessage = IsletmeKurallari.PersonelSiniriMesaji)]
-    int PersonelSiniri);
+    [Required(ErrorMessage = "Adres gerekli.")]
+    [StringLength(500, MinimumLength = 5, ErrorMessage = "Adres 5-500 karakter olmalı.")]
+    string Adres,
+    [Required(ErrorMessage = "Telefon gerekli.")]
+    [RegularExpression(TelefonKurallari.Desen, ErrorMessage = TelefonKurallari.Mesaj)]
+    string Telefon,
+    [Required(ErrorMessage = "E-posta gerekli.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi girin.")]
+    [StringLength(200, ErrorMessage = "E-posta en fazla 200 karakter olabilir.")]
+    string Eposta);
 
 // Vulu yöneticisinin şifre sıfırlamak için gördüğü, bir işletmenin yönetici hesapları.
 public record IsletmeYoneticisiOzeti(string Id, string KullaniciAdi, string AdSoyad, bool AktifMi);
@@ -118,11 +133,11 @@ public static class IsletmeKurallari
     // Bu kodla giriş yapanlar bir işletmenin personeli değil, vulu yöneticisidir.
     public const string PlatformKodu = "vulu";
 
-    public const int EnFazlaLogoBayt = 256 * 1024;
+    // Masaüstü uygulaması seçilen görseli göndermeden önce LogoKenari pikseli aşmayacak şekilde küçültür;
+    // kullanıcı büyük bir fotoğraf da seçebilir. Buradaki sınır küçültülmüş görsel içindir ve sunucuyu
+    // aşırı büyük isteklerden korur.
+    public const int EnFazlaLogoBayt = 2 * 1024 * 1024;
+    public const int LogoKenari = 512;
+    public const long EnFazlaLogoKaynakBayt = 25L * 1024 * 1024;
     public static readonly string[] LogoTurleri = ["image/png", "image/jpeg"];
-
-    public const int EnAzPersonelSiniri = 1;
-    public const int EnFazlaPersonelSiniri = 1000;
-    public const int VarsayilanPersonelSiniri = 5;
-    public const string PersonelSiniriMesaji = "Personel sınırı 1 ile 1000 arasında olmalı.";
 }

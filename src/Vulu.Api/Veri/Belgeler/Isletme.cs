@@ -33,9 +33,6 @@ public class Isletme
     public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
 
     public string VeritabaniAdi { get; set; } = string.Empty;
-
-    // Aynı anda aktif olabilecek personel hesabı sayısı. Anlaşma ve ödeme koşulları sistemde tutulmaz.
-    public int PersonelSiniri { get; set; } = Shared.IsletmeKurallari.VarsayilanPersonelSiniri;
 }
 
 // Vulu yöneticisi: işletme kaydı açar ve askıya alır. Hiçbir işletmenin personeli değildir.

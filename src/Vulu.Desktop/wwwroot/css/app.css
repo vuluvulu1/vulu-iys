@@ -14,8 +14,48 @@
     --kose: 3px;
 }
 
+/* Tarayıcının kendi çizdiği öğeler (açılır listeler, takvim, sayı okları, dosya seçici) koyu temayı kullanır;
+   onay kutuları ve benzeri vurgular temanın rengini alır. */
+:root {
+    color-scheme: dark;
+    accent-color: var(--vurgu);
+}
+
 * {
     box-sizing: border-box;
+}
+
+/* Kaydırma çubukları */
+
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Saydam kenarlık çubuğu inceltir ve çevresinde boşluk bırakır. */
+::-webkit-scrollbar-thumb {
+    background: var(--kenar);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--vurgu);
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+::selection {
+    background: var(--vurgu);
+    color: var(--vurgu-ustu);
 }
 
 html, body {
@@ -157,14 +197,79 @@ input:not([type="checkbox"]), select, textarea {
     font: inherit;
 }
 
+input, textarea {
+    caret-color: var(--vurgu-acik);
+}
+
 textarea {
     resize: vertical;
 }
 
-/* Tarih seçicinin takvim simgesi ve açılır penceresi koyu temaya uysun. */
-input[type="datetime-local"], input[type="date"], input[type="number"] {
-    color-scheme: dark;
+/* Açılır liste: tarayıcının oku yerine temanın renginde bir ok. */
+select {
+    appearance: none;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23b89a7c' stroke-width='2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    background-size: 11px;
+    cursor: pointer;
 }
+
+select option {
+    background: var(--yuzey);
+    color: var(--metin);
+}
+
+select option:disabled {
+    color: var(--soluk-metin);
+}
+
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Dosya seçicinin düğmesi ikincil düğmeler gibi görünür. */
+input[type="file"] {
+    color: var(--soluk-metin);
+}
+
+input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    padding: 6px 12px;
+    border: 1px solid var(--kenar);
+    border-radius: var(--kose);
+    background: var(--yuzey-acik);
+    color: var(--metin);
+    font: inherit;
+    cursor: pointer;
+}
+
+input[type="file"]::file-selector-button:hover {
+    border-color: var(--soluk-metin);
+}
+
+/* Takvim simgesi ve arama kutusundaki temizle düğmesi. */
+input::-webkit-calendar-picker-indicator,
+input[type="search"]::-webkit-search-cancel-button {
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+input::-webkit-calendar-picker-indicator:hover,
+input[type="search"]::-webkit-search-cancel-button:hover {
+    opacity: 1;
+}
+
+/* Tarayıcı otomatik doldurduğunda kendi açık zeminini basmasın. */
+input:-webkit-autofill {
+    -webkit-text-fill-color: var(--metin);
+    box-shadow: 0 0 0 100px var(--arka-plan) inset;
+}
+
 
 input::placeholder {
     color: var(--soluk-metin);

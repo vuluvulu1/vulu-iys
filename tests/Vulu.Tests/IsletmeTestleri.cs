@@ -125,7 +125,7 @@ public class IsletmeTestleri : IClassFixture<ApiFabrikasi>
         using var anonim = _api.CreateClient();
         (await personel.GetAsync("api/musteriler")).EnsureSuccessStatusCode();
 
-        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Askıya Alınacak", false, 1000))).EnsureSuccessStatusCode();
+        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Askıya Alınacak", false, "Test Cad. No: 1, Düzce", "03801234567", "bilgi@ornek.com"))).EnsureSuccessStatusCode();
 
         using var acikOturum = await personel.GetAsync("api/musteriler");
         using var yeniGiris = await anonim.PostAsJsonAsync("api/kimlik/giris", new GirisIstegi(kod, ApiFabrikasi.AdminAdi, ApiFabrikasi.AdminSifresi));
@@ -134,7 +134,7 @@ public class IsletmeTestleri : IClassFixture<ApiFabrikasi>
         Assert.Equal(HttpStatusCode.Forbidden, yeniGiris.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, yenileme.StatusCode);
 
-        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Yeniden Açıldı", true, 1000))).EnsureSuccessStatusCode();
+        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Yeniden Açıldı", true, "Test Cad. No: 1, Düzce", "03801234567", "bilgi@ornek.com"))).EnsureSuccessStatusCode();
 
         using var yenidenAcik = await personel.GetAsync("api/musteriler");
         Assert.Equal(HttpStatusCode.OK, yenidenAcik.StatusCode);
@@ -148,7 +148,7 @@ public class IsletmeTestleri : IClassFixture<ApiFabrikasi>
 
         using var listele = await isletmeYoneticisi.GetAsync("api/platform/isletmeler");
         using var ac = await isletmeYoneticisi.PostAsJsonAsync("api/platform/isletmeler",
-            new IsletmeOlusturIstegi(YeniKod(), "Yetkisiz", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
+            new IsletmeOlusturIstegi(YeniKod(), "Yetkisiz", "Test Cad. No: 1, Düzce", "03801234567", "bilgi@ornek.com", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
         using var musteriler = await vuluYoneticisi.GetAsync("api/musteriler");
         using var personel = await vuluYoneticisi.GetAsync("api/kullanicilar");
         using var profil = await vuluYoneticisi.GetAsync("api/isletme");
@@ -170,7 +170,7 @@ public class IsletmeTestleri : IClassFixture<ApiFabrikasi>
         using var yonetici = await _api.YoneticiIstemcisi();
 
         using var yanit = await yonetici.PostAsJsonAsync("api/platform/isletmeler",
-            new IsletmeOlusturIstegi(kod, "Geçersiz Kod", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
+            new IsletmeOlusturIstegi(kod, "Geçersiz Kod", "Test Cad. No: 1, Düzce", "03801234567", "bilgi@ornek.com", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
 
         Assert.Equal(HttpStatusCode.BadRequest, yanit.StatusCode);
     }
@@ -181,9 +181,9 @@ public class IsletmeTestleri : IClassFixture<ApiFabrikasi>
         using var yonetici = await _api.YoneticiIstemcisi();
 
         using var ayni = await yonetici.PostAsJsonAsync("api/platform/isletmeler",
-            new IsletmeOlusturIstegi(ApiFabrikasi.IsletmeKodu, "Aynı Kod", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
+            new IsletmeOlusturIstegi(ApiFabrikasi.IsletmeKodu, "Aynı Kod", "Test Cad. No: 1, Düzce", "03801234567", "bilgi@ornek.com", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
         using var ayrilmis = await yonetici.PostAsJsonAsync("api/platform/isletmeler",
-            new IsletmeOlusturIstegi(IsletmeKurallari.PlatformKodu, "Ayrılmış Kod", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
+            new IsletmeOlusturIstegi(IsletmeKurallari.PlatformKodu, "Ayrılmış Kod", "Test Cad. No: 1, Düzce", "03801234567", "bilgi@ornek.com", "admin", "Gecerli-Sifre-1", "Ad Soyad"));
 
         Assert.Equal(HttpStatusCode.Conflict, ayni.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, ayrilmis.StatusCode);

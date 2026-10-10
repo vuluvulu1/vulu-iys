@@ -18,13 +18,11 @@ public class KullanicilarController : ControllerBase
 {
     private readonly MongoBaglami _db;
     private readonly PlatformBaglami _platform;
-    private readonly GecerliIsletme _isletme;
 
-    public KullanicilarController(MongoBaglami db, PlatformBaglami platform, GecerliIsletme isletme)
+    public KullanicilarController(MongoBaglami db, PlatformBaglami platform)
     {
         _db = db;
         _platform = platform;
-        _isletme = isletme;
     }
 
     [HttpGet]
@@ -40,8 +38,6 @@ public class KullanicilarController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<KullaniciOzeti>> Olustur(KullaniciOlusturIstegi istek, CancellationToken iptal)
     {
-        if (await PersonelSiniriDoldu(iptal)) return SinirDoldu();
-
         var kullanici = new Kullanici
         {
             KullaniciAdi = KullaniciAdlari.Normalle(istek.KullaniciAdi),
@@ -74,9 +70,6 @@ public class KullanicilarController : ControllerBase
             && (istek.Rol != KullaniciRol.Admin || !istek.AktifMi);
         if (adminligiBirakiyor && !await BaskaAktifAdminVarMi(id, iptal))
             return Problem(detail: "Sistemde en az bir aktif yönetici kalmalı.", statusCode: StatusCodes.Status409Conflict);
-
-        // Devre dışı bir hesabı yeniden açmak da paketteki sınırdan bir yer kullanır.
-        if (!kullanici.AktifMi && istek.AktifMi && await PersonelSiniriDoldu(iptal)) return SinirDoldu();
 
         var oturumlarKapansin = !istek.AktifMi || istek.Rol != kullanici.Rol || !string.IsNullOrEmpty(istek.YeniSifre);
         var adDegisti = kullanici.AdSoyad != istek.AdSoyad.Trim();
@@ -136,16 +129,6 @@ public class KullanicilarController : ControllerBase
         await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.KullaniciId == id, iptal);
         return NoContent();
     }
-
-    // Paket, aynı anda aktif olabilecek personel hesabı sayısını sınırlar; devre dışı hesaplar sayılmaz.
-    // Sayım ile ekleme arasında başka bir ekleme araya girerse sınır bir hesap aşılabilir; bu kabul edilir.
-    private async Task<bool> PersonelSiniriDoldu(CancellationToken iptal) =>
-        await _db.Kullanicilar.CountDocumentsAsync(k => k.AktifMi, cancellationToken: iptal) >= _isletme.Zorunlu.PersonelSiniri;
-
-    private ObjectResult SinirDoldu() =>
-        Problem(detail: $"Paketinizdeki personel sınırına ulaşıldı ({_isletme.Zorunlu.PersonelSiniri} aktif hesap). "
-                + "Yeni hesap için bir hesabı devre dışı bırakın ya da paketinizi yükseltmek için vulu ile iletişime geçin.",
-            statusCode: StatusCodes.Status409Conflict);
 
     private Task<bool> BaskaAktifAdminVarMi(string haricId, CancellationToken iptal) =>
         _db.Kullanicilar.Find(k => k.Id != haricId && k.Rol == KullaniciRol.Admin && k.AktifMi).AnyAsync(iptal);
