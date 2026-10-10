@@ -1,0 +1,259 @@
+@page "/teknisyenler"
+@implements IDisposable
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<h1>Teknisyenler</h1>
+
+<div class="arac-cubugu">
+    @if (Oturum.AdminMi)
+    {
+        <button @onclick="YeniAc">Yeni teknisyen</button>
+    }
+    <input class="arama" type="search" placeholder="Ad, telefon veya uzmanlık ara" aria-label="Teknisyen ara"
+           @bind="_arama" @bind:event="oninput" @bind:after="AramaDegisti" />
+</div>
+
+@if (_listeHatasi is not null)
+{
+    <p class="hata" role="alert">@_listeHatasi</p>
+}
+
+@if (_teknisyenler is null)
+{
+    <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
+}
+else if (_teknisyenler.Count == 0)
+{
+    <p class="soluk">@(string.IsNullOrWhiteSpace(_arama) ? "Henüz teknisyen yok." : "Aramayla eşleşen teknisyen yok.")</p>
+}
+else
+{
+    <table class="tablo">
+        <thead>
+            <tr>
+                <th>Ad soyad</th>
+                <th>Telefon</th>
+                <th>Uzmanlık</th>
+                <th>Kullanıcı hesabı</th>
+                @if (Oturum.AdminMi)
+                {
+                    <th></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var teknisyen in _teknisyenler)
+            {
+                <tr @key="teknisyen.Id">
+                    <td>@teknisyen.AdSoyad</td>
+                    <td>@teknisyen.Telefon</td>
+                    <td>@(teknisyen.Uzmanlik ?? "—")</td>
+                    <td>@(teknisyen.KullaniciAdi ?? "—")</td>
+                    @if (Oturum.AdminMi)
+                    {
+                        <td class="islemler">
+                            <button class="ikincil" @onclick="() => DuzenleAc(teknisyen)">Düzenle</button>
+                            <button class="tehlike" @onclick="() => _silinecek = teknisyen">Sil</button>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="sayfalama">
+        <span class="soluk">@_teknisyenler.Count kayıt</span>
+    </div>
+}
+
+@if (_form is not null)
+{
+    <Pencere Baslik="@(_duzenlenen is null ? "Yeni teknisyen" : "Teknisyeni düzenle")" KapatIstendi="FormuKapat">
+        <form @onsubmit="Kaydet">
+            <label for="t-ad">Ad soyad</label>
+            <input id="t-ad" @bind="_form.AdSoyad" @bind:event="oninput" autocomplete="off" />
+
+            <label for="t-telefon">Telefon</label>
+            <input id="t-telefon" @bind="_form.Telefon" @bind:event="oninput" inputmode="numeric" maxlength="11"
+                   placeholder="05551234567" autocomplete="off" />
+
+            <label for="t-uzmanlik">Uzmanlık (isteğe bağlı)</label>
+            <input id="t-uzmanlik" @bind="_form.Uzmanlik" @bind:event="oninput" autocomplete="off" />
+
+            <label for="t-hesap">Kullanıcı hesabı (isteğe bağlı)</label>
+            <select id="t-hesap" @bind="_form.KullaniciId">
+                <option value="">— Yok —</option>
+                @foreach (var hesap in _hesaplar)
+                {
+                    var baskasinda = BagliTeknisyen(hesap.Id);
+                    <option value="@hesap.Id" disabled="@(baskasinda is not null)">
+                        @hesap.KullaniciAdi@(baskasinda is not null ? $" ({baskasinda} hesabı)" : "")
+                    </option>
+                }
+            </select>
+
+            @if (_formHatasi is not null)
+            {
+                <p class="hata" role="alert">@_formHatasi</p>
+            }
+
+            <footer>
+                <button type="button" class="ikincil" @onclick="FormuKapat">Vazgeç</button>
+                <button type="submit" disabled="@_kaydediliyor">@(_kaydediliyor ? "Kaydediliyor…" : "Kaydet")</button>
+            </footer>
+        </form>
+    </Pencere>
+}
+
+@if (_silinecek is not null)
+{
+    <Pencere Baslik="Teknisyeni sil" KapatIstendi="SilmeyiKapat">
+        <p><strong>@_silinecek.AdSoyad</strong> teknisyen listesinden kaldırılacak. Geçmiş servis kayıtları korunur.</p>
+
+        @if (_silmeHatasi is not null)
+        {
+            <p class="hata" role="alert">@_silmeHatasi</p>
+        }
+
+        <footer>
+            <button type="button" class="ikincil" @onclick="SilmeyiKapat">Vazgeç</button>
+            <button type="button" class="tehlike" @onclick="Sil" disabled="@_kaydediliyor">Sil</button>
+        </footer>
+    </Pencere>
+}
+
+@code {
+    private static readonly TimeSpan AramaGecikmesi = TimeSpan.FromMilliseconds(300);
+
+    private class TeknisyenFormu
+    {
+        public string AdSoyad { get; set; } = "";
+        public string Telefon { get; set; } = "";
+        public string Uzmanlik { get; set; } = "";
+        public string KullaniciId { get; set; } = "";
+    }
+
+    private List<TeknisyenYaniti>? _teknisyenler;
+    // Hesap seçiminde "başkasına bağlı" bilgisini göstermek için aramadan bağımsız tam liste.
+    private List<TeknisyenYaniti> _tumTeknisyenler = [];
+    private List<KullaniciOzeti> _hesaplar = [];
+    private string _arama = "";
+    private string? _listeHatasi;
+    private bool _yukleniyor;
+    private CancellationTokenSource? _aramaBekleme;
+
+    private TeknisyenFormu? _form;
+    private TeknisyenYaniti? _duzenlenen;
+    private string? _formHatasi;
+    private bool _kaydediliyor;
+
+    private TeknisyenYaniti? _silinecek;
+    private string? _silmeHatasi;
+
+    protected override Task OnInitializedAsync() => Yukle();
+
+    private async Task Yukle()
+    {
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<List<TeknisyenYaniti>>(
+            $"api/teknisyenler?arama={Uri.EscapeDataString(_arama.Trim())}");
+        _yukleniyor = false;
+
+        _listeHatasi = sonuc.Hata;
+        if (sonuc.Basarili)
+            _teknisyenler = sonuc.Deger ?? [];
+    }
+
+    // Her tuşta istek atmamak için yazma durunca aranır.
+    private async Task AramaDegisti()
+    {
+        _aramaBekleme?.Cancel();
+        var bekleme = _aramaBekleme = new CancellationTokenSource();
+
+        try { await Task.Delay(AramaGecikmesi, bekleme.Token); }
+        catch (TaskCanceledException) { return; }
+
+        await Yukle();
+    }
+
+    private string? BagliTeknisyen(string hesapId) =>
+        _tumTeknisyenler.FirstOrDefault(t => t.KullaniciId == hesapId && t.Id != _duzenlenen?.Id)?.AdSoyad;
+
+    private Task YeniAc() => FormuAc(null);
+
+    private Task DuzenleAc(TeknisyenYaniti teknisyen) => FormuAc(teknisyen);
+
+    private async Task FormuAc(TeknisyenYaniti? teknisyen)
+    {
+        _duzenlenen = teknisyen;
+        _form = new TeknisyenFormu
+        {
+            AdSoyad = teknisyen?.AdSoyad ?? "",
+            Telefon = teknisyen?.Telefon ?? "",
+            Uzmanlik = teknisyen?.Uzmanlik ?? "",
+            KullaniciId = teknisyen?.KullaniciId ?? ""
+        };
+
+        // Hesap listesi form her açıldığında tazelenir; başka ekranda yeni hesap açılmış olabilir.
+        var hesaplar = await Api.Getir<List<KullaniciOzeti>>("api/kullanicilar");
+        var tumu = await Api.Getir<List<TeknisyenYaniti>>("api/teknisyenler");
+        _hesaplar = hesaplar.Deger ?? [];
+        _tumTeknisyenler = tumu.Deger ?? [];
+        _formHatasi = hesaplar.Hata ?? tumu.Hata;
+    }
+
+    private void FormuKapat() => _form = null;
+
+    private async Task Kaydet()
+    {
+        if (_form is null || _kaydediliyor) return;
+
+        var istek = new TeknisyenIstegi(
+            _form.AdSoyad.Trim(),
+            _form.Telefon.Trim(),
+            string.IsNullOrWhiteSpace(_form.Uzmanlik) ? null : _form.Uzmanlik.Trim(),
+            string.IsNullOrEmpty(_form.KullaniciId) ? null : _form.KullaniciId);
+
+        _kaydediliyor = true;
+        var sonuc = _duzenlenen is null
+            ? await Api.Ekle<TeknisyenYaniti>("api/teknisyenler", istek)
+            : await Api.Guncelle<TeknisyenYaniti>($"api/teknisyenler/{_duzenlenen.Id}", istek);
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _formHatasi = sonuc.Hata;
+            return;
+        }
+
+        _form = null;
+        await Yukle();
+    }
+
+    private void SilmeyiKapat()
+    {
+        _silinecek = null;
+        _silmeHatasi = null;
+    }
+
+    private async Task Sil()
+    {
+        if (_silinecek is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Sil($"api/teknisyenler/{_silinecek.Id}");
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _silmeHatasi = sonuc.Hata;
+            return;
+        }
+
+        SilmeyiKapat();
+        await Yukle();
+    }
+
+    public void Dispose() => _aramaBekleme?.Cancel();
+}
