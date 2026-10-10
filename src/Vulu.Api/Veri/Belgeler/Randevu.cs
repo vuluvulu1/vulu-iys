@@ -22,6 +22,14 @@ public class Randevu
     public string? ServisKaydiId { get; set; }
 
     public DateTime RandevuTarihi { get; set; }
+    public int SureDakika { get; set; } = RandevuKurallari.VarsayilanSure;
+
+    // RandevuTarihi + süre. Çakışma sorgusu index kullanabilsin diye ayrıca saklanır.
+    public DateTime BitisTarihi { get; set; }
+
     public string? Aciklama { get; set; }
     public RandevuDurumu Durum { get; set; } = RandevuDurumu.Planlandi;
+
+    // Her yazmada bir artar; kayıt okunduğu sürümle eşleşmiyorsa yazılmaz (bkz. ServisKaydi.Surum).
+    public int Surum { get; set; }
 }

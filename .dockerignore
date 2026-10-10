@@ -5,7 +5,8 @@
 dist/
 tests/
 tools/
-assets/
+assets/*
+!assets/logo.svg
 src/Vulu.Desktop/
 
 # Gizli ayarlar imaja girmez; barındırma ortamında ortam değişkeniyle verilir.

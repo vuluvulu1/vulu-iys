@@ -42,6 +42,19 @@ dotnet run --project src/Vulu.Desktop
 
 Masaüstü uygulamasının bağlandığı API adresi `src/Vulu.Desktop/appsettings.json` içindedir.
 
+## Fatura belgesi
+
+Kesilen her faturaya yıl içinde sıralı bir numara verilir (`VL-2026-000001`) ve panelden PDF olarak açılabilir.
+Belgenin başlığındaki işletme bilgileri ve KDV oranı `src/Vulu.Api/appsettings.json` içindeki `Firma`
+bölümünden gelir (barındırma ortamında `Firma__Ad`, `Firma__VergiNo`, ... ortam değişkenleri). Fatura tutarı KDV
+dahil girilir; belge matrahı ve KDV'yi bu orana göre ayırır.
+
+Belge bilgilendirme amaçlıdır: e-Fatura / e-Arşiv Fatura değildir ve resmî fatura yerine geçmez. Alttaki not
+`Firma:BelgeNotu` ile değiştirilebilir.
+
+PDF üretimi QuestPDF ile yapılır; Community lisansı yıllık geliri 1 milyon ABD dolarının altındaki işletmeler
+için ücretsizdir.
+
 ## Test paketi
 
 Tek tıkla denemek için:

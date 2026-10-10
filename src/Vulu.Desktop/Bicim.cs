@@ -12,6 +12,43 @@ public static partial class Bicim
     // API tarihleri UTC verir; ekranda bilgisayarın saat dilimine çevrilir.
     public static string Tarih(DateTime utc) => utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm", Turkce);
 
+    // Yerel tarihi, API sorgu dizgisinde kullanılacak UTC anına çevirir.
+    public static string SorguTarihi(DateTime yerel) =>
+        Uri.EscapeDataString(DateTime.SpecifyKind(yerel, DateTimeKind.Local).ToUniversalTime().ToString("o"));
+
+    // Haftalar Pazartesi başlar.
+    public static DateTime HaftaBasi(DateTime gun) => gun.Date.AddDays(-(((int)gun.DayOfWeek + 6) % 7));
+
+    public static string HaftaAraligi(DateTime haftaBasi)
+    {
+        var son = haftaBasi.AddDays(6);
+        return haftaBasi.Month == son.Month
+            ? $"{haftaBasi.Day} – {son.ToString("d MMMM yyyy", Turkce)}"
+            : $"{haftaBasi.ToString("d MMMM", Turkce)} – {son.ToString("d MMMM yyyy", Turkce)}";
+    }
+
+    public static string GunBasligi(DateTime gun) => gun.ToString("ddd d MMM", Turkce);
+
+    public static string SaatAraligi(DateTime utc, int sureDakika)
+    {
+        var baslangic = utc.ToLocalTime();
+        return $"{baslangic:HH:mm}–{baslangic.AddMinutes(sureDakika):HH:mm}";
+    }
+
+    public static string Sure(int dakika) => dakika switch
+    {
+        < 60 => $"{dakika} dakika",
+        _ when dakika % 60 == 0 => $"{dakika / 60} saat",
+        _ => $"{dakika / 60} saat {dakika % 60} dakika"
+    };
+
+    public static string TakvimSinifi(RandevuDurumu durum) => durum switch
+    {
+        RandevuDurumu.Planlandi => "planli",
+        RandevuDurumu.Tamamlandi => "tamam",
+        _ => "iptal"
+    };
+
     public static string Para(decimal tutar) => tutar.ToString("N2", Turkce) + " ₺";
 
     public static string ParaGirdisi(decimal tutar) => tutar.ToString("0.00", Turkce);

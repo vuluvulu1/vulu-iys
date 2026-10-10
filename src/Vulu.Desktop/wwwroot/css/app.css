@@ -266,6 +266,186 @@ button:disabled {
     width: auto;
 }
 
+/* Yan yana iki düğme: seçili görünüm dolu, diğeri çerçeveli. */
+.gorunum-secimi {
+    display: flex;
+}
+
+.gorunum-secimi button:first-child {
+    border-radius: var(--kose) 0 0 var(--kose);
+}
+
+.gorunum-secimi button:last-child {
+    margin-left: -1px;
+    border-radius: 0 var(--kose) var(--kose) 0;
+}
+
+.yan-yana {
+    display: grid;
+    grid-template-columns: 1fr 160px;
+    gap: 12px;
+}
+
+/* Ana sayfa özeti */
+
+.ozet-kutulari {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.ozet-kutusu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    background: var(--yuzey);
+    border: 1px solid var(--kenar);
+    border-radius: var(--kose);
+    color: var(--metin);
+    text-decoration: none;
+}
+
+a.ozet-kutusu:hover {
+    border-color: var(--vurgu);
+}
+
+.ozet-kutusu .sayi {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--vurgu-acik);
+}
+
+.ozet-kutusu .etiket-metni {
+    color: var(--soluk-metin);
+    font-size: 13px;
+}
+
+.ozet-listeleri {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 12px;
+}
+
+.ozet-listeleri .kart {
+    max-width: none;
+}
+
+.ozet-listesi {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ozet-listesi li {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--kenar);
+}
+
+.ozet-listesi .dar {
+    white-space: nowrap;
+    color: var(--soluk-metin);
+}
+
+/* Haftalık takvim */
+
+.hafta-cubugu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.hafta-cubugu strong {
+    margin-left: 8px;
+}
+
+.takvim {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    align-items: start;
+}
+
+.takvim-gunu {
+    min-height: 140px;
+    padding: 8px;
+    background: var(--yuzey);
+    border: 1px solid var(--kenar);
+    border-radius: var(--kose);
+}
+
+.takvim-gunu.bugun {
+    border-color: var(--vurgu);
+}
+
+.takvim-gunu header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: var(--soluk-metin);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.takvim-gunu.bugun header {
+    color: var(--vurgu-acik);
+}
+
+.takvim-gunu header button {
+    padding: 0 7px;
+    line-height: 1.5;
+}
+
+.takvim-gunu p {
+    margin: 0;
+}
+
+.takvim-randevusu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    border: 0;
+    border-left: 3px solid var(--vurgu-acik);
+    border-radius: 0;
+    background: var(--yuzey-acik);
+    color: var(--metin);
+    font-weight: 400;
+    font-size: 13px;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.takvim-randevusu:hover:not(:disabled) {
+    background: var(--kenar);
+    border-color: var(--vurgu-acik);
+}
+
+.takvim-randevusu .saat {
+    font-weight: 600;
+}
+
+.takvim-randevusu.tamam {
+    border-left-color: var(--basari);
+    opacity: 0.75;
+}
+
+.takvim-randevusu.iptal {
+    border-left-color: var(--hata);
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
 .tablo .dar {
     white-space: nowrap;
 }

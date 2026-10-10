@@ -87,7 +87,8 @@ public class TeknisyenlerController : ControllerBase
             Builders<ServisKaydi>.Update.Set(s => s.TeknisyenAdi, teknisyen.AdSoyad).Inc(s => s.Surum, 1),
             cancellationToken: iptal);
         await _db.Randevular.UpdateManyAsync(r => r.TeknisyenId == id,
-            Builders<Randevu>.Update.Set(r => r.TeknisyenAdi, teknisyen.AdSoyad), cancellationToken: iptal);
+            Builders<Randevu>.Update.Set(r => r.TeknisyenAdi, teknisyen.AdSoyad).Inc(r => r.Surum, 1),
+            cancellationToken: iptal);
 
         return (await YanitlaraCevir([teknisyen], iptal))[0];
     }

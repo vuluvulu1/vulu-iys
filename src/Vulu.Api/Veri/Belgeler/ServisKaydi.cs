@@ -40,6 +40,9 @@ public class ServisKaydi
 
 public class Fatura
 {
+    // Yıl içinde sıralı belge numarası (örn. VL-2026-000042); fatura ilk kesildiğinde verilir ve değişmez.
+    public string No { get; set; } = string.Empty;
+
     [BsonRepresentation(BsonType.Decimal128)]
     public decimal Tutar { get; set; }
 

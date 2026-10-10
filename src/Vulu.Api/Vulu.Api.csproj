@@ -11,6 +11,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Fatura belgesinin başlığındaki logo; tek kaynağı assets klasörüdür. -->
+    <EmbeddedResource Include="..\..\assets\logo.svg" LogicalName="Vulu.Api.logo.svg" />
   </ItemGroup>
 
   <ItemGroup>
