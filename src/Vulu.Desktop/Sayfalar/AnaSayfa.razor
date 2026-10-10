@@ -1,13 +1,14 @@
 @page "/"
 @inject HttpClient Http
+@inject OturumServisi Oturum
 
-<h1>Teknik Servis Yönetim Sistemi</h1>
+<h1>Hoş geldiniz, @Oturum.Kullanici?.KullaniciAdi</h1>
 
 <section class="kart">
     <h2>Bağlantı durumu</h2>
     <p>API: <span class="@Sinif(_apiErisilebilir)">@Metin(_apiErisilebilir)</span></p>
     <p>Veritabanı: <span class="@Sinif(_veritabaniErisilebilir)">@Metin(_veritabaniErisilebilir)</span></p>
-    <button @onclick="KontrolEt" disabled="@_kontrolEdiliyor">Yeniden kontrol et</button>
+    <button class="ikincil" @onclick="KontrolEt" disabled="@_kontrolEdiliyor">Yeniden kontrol et</button>
 </section>
 
 @code {

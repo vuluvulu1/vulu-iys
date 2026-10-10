@@ -1,0 +1,43 @@
+@inject OturumServisi Oturum
+
+<div class="giris-kabugu">
+    <form class="giris-karti" @onsubmit="GirisYap">
+        <img class="giris-logo" src="img/logo.svg" alt="vulu" />
+        <h1>Teknik Servis Yönetim Sistemi</h1>
+
+        <label for="kullanici-adi">Kullanıcı adı</label>
+        <input id="kullanici-adi" @bind="_kullaniciAdi" @bind:event="oninput" autocomplete="username" autofocus />
+
+        <label for="sifre">Şifre</label>
+        <input id="sifre" type="password" @bind="_sifre" @bind:event="oninput" autocomplete="current-password" />
+
+        @if (_hata is not null)
+        {
+            <p class="hata" role="alert">@_hata</p>
+        }
+
+        <button type="submit" disabled="@(_bekliyor || !Dolu)">
+            @(_bekliyor ? "Giriş yapılıyor…" : "Giriş yap")
+        </button>
+    </form>
+</div>
+
+@code {
+    private string _kullaniciAdi = "";
+    private string _sifre = "";
+    private string? _hata;
+    private bool _bekliyor;
+
+    private bool Dolu => !string.IsNullOrWhiteSpace(_kullaniciAdi) && _sifre.Length > 0;
+
+    private async Task GirisYap()
+    {
+        if (_bekliyor || !Dolu) return;
+
+        _bekliyor = true;
+        _hata = null;
+        _hata = await Oturum.GirisYap(_kullaniciAdi, _sifre);
+        _sifre = "";
+        _bekliyor = false;
+    }
+}

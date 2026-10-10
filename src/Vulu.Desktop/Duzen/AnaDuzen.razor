@@ -1,13 +1,33 @@
 @inherits LayoutComponentBase
+@inject OturumServisi Oturum
 
 <div class="kabuk">
     <aside class="yan-menu">
-        <div class="marka">vulu</div>
+        <div class="marka">
+            <img src="img/logo.svg" alt="" />
+            <span>vulu</span>
+        </div>
+
         <nav>
             <NavLink href="" Match="NavLinkMatch.All">Ana Sayfa</NavLink>
+            @if (Oturum.AdminMi)
+            {
+                <NavLink href="kullanicilar">Kullanıcılar</NavLink>
+            }
         </nav>
+
+        <div class="oturum">
+            <div class="oturum-adi">@Oturum.Kullanici?.KullaniciAdi</div>
+            <div class="oturum-rol">@RolAdi</div>
+            <button class="ikincil" @onclick="Oturum.CikisYap">Çıkış yap</button>
+        </div>
     </aside>
+
     <main class="icerik">
         @Body
     </main>
 </div>
+
+@code {
+    private string RolAdi => Oturum.AdminMi ? "Yönetici" : "Teknisyen";
+}
