@@ -1,0 +1,134 @@
+:root {
+    --arka-plan: #18181b;
+    --yuzey: #27272a;
+    --kenar: #3f3f46;
+    --metin: #f4f4f5;
+    --soluk-metin: #a1a1aa;
+    --vurgu: #6366f1;
+    --hata: #ef4444;
+    --basari: #22c55e;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    background: var(--arka-plan);
+    color: var(--metin);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+}
+
+.kabuk {
+    display: flex;
+    height: 100vh;
+}
+
+.yan-menu {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--yuzey);
+    border-right: 1px solid var(--kenar);
+    padding: 20px 12px;
+}
+
+.marka {
+    font-size: 22px;
+    font-weight: 700;
+    padding: 0 12px 20px;
+}
+
+.yan-menu nav a {
+    display: block;
+    padding: 9px 12px;
+    border-radius: 6px;
+    color: var(--soluk-metin);
+    text-decoration: none;
+}
+
+.yan-menu nav a:hover {
+    color: var(--metin);
+}
+
+.yan-menu nav a.active {
+    background: var(--vurgu);
+    color: #fff;
+}
+
+.icerik {
+    flex: 1;
+    overflow: auto;
+    padding: 28px 32px;
+}
+
+h1 {
+    font-size: 24px;
+    margin: 0 0 20px;
+}
+
+h2 {
+    font-size: 16px;
+    margin: 0 0 12px;
+}
+
+.kart {
+    background: var(--yuzey);
+    border: 1px solid var(--kenar);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 420px;
+}
+
+.kart p {
+    margin: 0 0 8px;
+}
+
+.durum {
+    color: var(--soluk-metin);
+}
+
+.durum.iyi {
+    color: var(--basari);
+}
+
+.durum.kotu {
+    color: var(--hata);
+}
+
+button {
+    margin-top: 8px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--vurgu);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 16px;
+    background: var(--hata);
+    color: #fff;
+}
+
+#blazor-error-ui .reload {
+    color: #fff;
+    margin-left: 8px;
+}

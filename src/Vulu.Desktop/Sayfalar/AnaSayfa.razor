@@ -1,0 +1,56 @@
+@page "/"
+@inject HttpClient Http
+
+<h1>Teknik Servis Yönetim Sistemi</h1>
+
+<section class="kart">
+    <h2>Bağlantı durumu</h2>
+    <p>API: <span class="@Sinif(_apiErisilebilir)">@Metin(_apiErisilebilir)</span></p>
+    <p>Veritabanı: <span class="@Sinif(_veritabaniErisilebilir)">@Metin(_veritabaniErisilebilir)</span></p>
+    <button @onclick="KontrolEt" disabled="@_kontrolEdiliyor">Yeniden kontrol et</button>
+</section>
+
+@code {
+    private bool? _apiErisilebilir;
+    private bool? _veritabaniErisilebilir;
+    private bool _kontrolEdiliyor;
+
+    protected override Task OnInitializedAsync() => KontrolEt();
+
+    private async Task KontrolEt()
+    {
+        _kontrolEdiliyor = true;
+        _apiErisilebilir = null;
+        _veritabaniErisilebilir = null;
+
+        try
+        {
+            // 503 de gövde taşıdığı için durum koduna bakmadan okunuyor.
+            using var yanit = await Http.GetAsync("api/saglik");
+            var saglik = await yanit.Content.ReadFromJsonAsync<SaglikYaniti>();
+            _apiErisilebilir = true;
+            _veritabaniErisilebilir = saglik?.VeritabaniErisilebilir ?? false;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            _apiErisilebilir = false;
+            _veritabaniErisilebilir = false;
+        }
+
+        _kontrolEdiliyor = false;
+    }
+
+    private static string Metin(bool? durum) => durum switch
+    {
+        true => "bağlı",
+        false => "ulaşılamıyor",
+        null => "kontrol ediliyor…"
+    };
+
+    private static string Sinif(bool? durum) => durum switch
+    {
+        true => "durum iyi",
+        false => "durum kotu",
+        null => "durum"
+    };
+}
