@@ -1,5 +1,4 @@
 @page "/teknisyenler"
-@implements IDisposable
 @inject ApiIstemcisi Api
 @inject OturumServisi Oturum
 
@@ -10,8 +9,7 @@
     {
         <button @onclick="YeniAc">Yeni teknisyen</button>
     }
-    <input class="arama" type="search" placeholder="Ad, telefon veya uzmanlık ara" aria-label="Teknisyen ara"
-           @bind="_arama" @bind:event="oninput" @bind:after="AramaDegisti" />
+    <AramaKutusu YerTutucu="Ad, telefon veya uzmanlık ara" Etiket="Teknisyen ara" Arandi="Ara" />
 </div>
 
 @if (_listeHatasi is not null)
@@ -93,39 +91,19 @@ else
                 }
             </select>
 
-            @if (_formHatasi is not null)
-            {
-                <p class="hata" role="alert">@_formHatasi</p>
-            }
-
-            <footer>
-                <button type="button" class="ikincil" @onclick="FormuKapat">Vazgeç</button>
-                <button type="submit" disabled="@_kaydediliyor">@(_kaydediliyor ? "Kaydediliyor…" : "Kaydet")</button>
-            </footer>
+            <FormAltligi Hata="@_formHatasi" Mesgul="_kaydediliyor" Vazgec="FormuKapat" />
         </form>
     </Pencere>
 }
 
 @if (_silinecek is not null)
 {
-    <Pencere Baslik="Teknisyeni sil" KapatIstendi="SilmeyiKapat">
-        <p><strong>@_silinecek.AdSoyad</strong> teknisyen listesinden kaldırılacak. Geçmiş servis kayıtları korunur.</p>
-
-        @if (_silmeHatasi is not null)
-        {
-            <p class="hata" role="alert">@_silmeHatasi</p>
-        }
-
-        <footer>
-            <button type="button" class="ikincil" @onclick="SilmeyiKapat">Vazgeç</button>
-            <button type="button" class="tehlike" @onclick="Sil" disabled="@_kaydediliyor">Sil</button>
-        </footer>
-    </Pencere>
+    <SilmeOnayi Baslik="Teknisyeni sil" Hata="@_silmeHatasi" Mesgul="_kaydediliyor" Onayla="Sil" Vazgec="SilmeyiKapat">
+        <strong>@_silinecek.AdSoyad</strong> teknisyen listesinden kaldırılacak. Geçmiş servis kayıtları korunur.
+    </SilmeOnayi>
 }
 
 @code {
-    private static readonly TimeSpan AramaGecikmesi = TimeSpan.FromMilliseconds(300);
-
     private class TeknisyenFormu
     {
         public string AdSoyad { get; set; } = "";
@@ -141,7 +119,6 @@ else
     private string _arama = "";
     private string? _listeHatasi;
     private bool _yukleniyor;
-    private CancellationTokenSource? _aramaBekleme;
 
     private TeknisyenFormu? _form;
     private TeknisyenYaniti? _duzenlenen;
@@ -157,7 +134,7 @@ else
     {
         _yukleniyor = true;
         var sonuc = await Api.Getir<List<TeknisyenYaniti>>(
-            $"api/teknisyenler?arama={Uri.EscapeDataString(_arama.Trim())}");
+            $"api/teknisyenler?arama={Uri.EscapeDataString(_arama)}");
         _yukleniyor = false;
 
         _listeHatasi = sonuc.Hata;
@@ -165,16 +142,10 @@ else
             _teknisyenler = sonuc.Deger ?? [];
     }
 
-    // Her tuşta istek atmamak için yazma durunca aranır.
-    private async Task AramaDegisti()
+    private Task Ara(string arama)
     {
-        _aramaBekleme?.Cancel();
-        var bekleme = _aramaBekleme = new CancellationTokenSource();
-
-        try { await Task.Delay(AramaGecikmesi, bekleme.Token); }
-        catch (TaskCanceledException) { return; }
-
-        await Yukle();
+        _arama = arama;
+        return Yukle();
     }
 
     private string? BagliTeknisyen(string hesapId) =>
@@ -254,6 +225,4 @@ else
         SilmeyiKapat();
         await Yukle();
     }
-
-    public void Dispose() => _aramaBekleme?.Cancel();
 }

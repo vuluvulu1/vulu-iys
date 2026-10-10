@@ -7,6 +7,9 @@ namespace Vulu.Api.Veri;
 
 public class MongoBaglami
 {
+    // Ad sıralaması Türkçe alfabeye göre yapılır; sorgu ve index aynı kuralı kullanmazsa index devreye girmez.
+    public static readonly Collation TurkceSiralama = new("tr");
+
     public MongoBaglami(IMongoDatabase db)
     {
         Kullanicilar = db.GetCollection<Kullanici>("kullanicilar");
@@ -67,6 +70,18 @@ public class MongoBaglami
                     Unique = true,
                     PartialFilterExpression = Builders<Teknisyen>.Filter.Type(t => t.KullaniciId, BsonType.ObjectId)
                 }),
+            cancellationToken: iptal);
+
+        await Musteriler.Indexes.CreateOneAsync(
+            new CreateIndexModel<Musteri>(
+                Builders<Musteri>.IndexKeys.Ascending(m => m.AdSoyad),
+                new CreateIndexOptions { Collation = TurkceSiralama }),
+            cancellationToken: iptal);
+
+        await Teknisyenler.Indexes.CreateOneAsync(
+            new CreateIndexModel<Teknisyen>(
+                Builders<Teknisyen>.IndexKeys.Ascending(t => t.AdSoyad),
+                new CreateIndexOptions { Collation = TurkceSiralama }),
             cancellationToken: iptal);
 
         await ServisKayitlari.Indexes.CreateManyAsync(

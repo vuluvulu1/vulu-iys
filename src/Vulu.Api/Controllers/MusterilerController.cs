@@ -13,7 +13,6 @@ namespace Vulu.Api.Controllers;
 public class MusterilerController : ControllerBase
 {
     private const int EnFazlaSayfaBoyutu = 100;
-    private static readonly Collation TurkceSiralama = new("tr");
 
     private readonly MongoBaglami _db;
 
@@ -33,7 +32,7 @@ public class MusterilerController : ControllerBase
 
         var toplam = await _db.Musteriler.CountDocumentsAsync(filtre, cancellationToken: iptal);
         var musteriler = await _db.Musteriler
-            .Find(filtre, new FindOptions { Collation = TurkceSiralama })
+            .Find(filtre, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
             .SortBy(m => m.AdSoyad)
             .Skip((sayfa - 1) * boyut)
             .Limit(boyut)
@@ -105,12 +104,10 @@ public class MusterilerController : ControllerBase
     {
         musteri.AdSoyad = istek.AdSoyad.Trim();
         musteri.Telefon = istek.Telefon.Trim();
-        musteri.Email = BosIseNull(istek.Email);
-        musteri.Adres = BosIseNull(istek.Adres);
+        musteri.Email = Metin.BosIseNull(istek.Email);
+        musteri.Adres = Metin.BosIseNull(istek.Adres);
         musteri.AramaMetni = AramaMetni.Olustur(musteri.AdSoyad, musteri.Telefon, musteri.Email);
     }
-
-    private static string? BosIseNull(string? deger) => string.IsNullOrWhiteSpace(deger) ? null : deger.Trim();
 
     private ObjectResult Bulunamadi() =>
         Problem(detail: "Müşteri bulunamadı.", statusCode: StatusCodes.Status404NotFound);

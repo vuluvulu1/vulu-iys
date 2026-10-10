@@ -1,0 +1,29 @@
+@* Yazma durunca arama yapan kutu; her tuşta istek atılmaz. *@
+@implements IDisposable
+
+<input class="arama" type="search" placeholder="@YerTutucu" aria-label="@Etiket"
+       @bind="_deger" @bind:event="oninput" @bind:after="Degisti" />
+
+@code {
+    private static readonly TimeSpan Gecikme = TimeSpan.FromMilliseconds(300);
+
+    [Parameter, EditorRequired] public string YerTutucu { get; set; } = "";
+    [Parameter, EditorRequired] public string Etiket { get; set; } = "";
+    [Parameter] public EventCallback<string> Arandi { get; set; }
+
+    private string _deger = "";
+    private CancellationTokenSource? _bekleme;
+
+    private async Task Degisti()
+    {
+        _bekleme?.Cancel();
+        var bekleme = _bekleme = new CancellationTokenSource();
+
+        try { await Task.Delay(Gecikme, bekleme.Token); }
+        catch (TaskCanceledException) { return; }
+
+        await Arandi.InvokeAsync(_deger.Trim());
+    }
+
+    public void Dispose() => _bekleme?.Cancel();
+}
