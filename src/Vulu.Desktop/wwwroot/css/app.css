@@ -162,7 +162,7 @@ textarea {
 }
 
 /* Tarih seçicinin takvim simgesi ve açılır penceresi koyu temaya uysun. */
-input[type="datetime-local"] {
+input[type="datetime-local"], input[type="date"], input[type="number"] {
     color-scheme: dark;
 }
 
@@ -275,6 +275,11 @@ button:disabled {
     width: auto;
 }
 
+.arac-cubugu .kullanim {
+    margin-left: auto;
+    align-self: center;
+}
+
 /* Yan yana iki düğme: seçili görünüm dolu, diğeri çerçeveli. */
 .gorunum-secimi {
     display: flex;
@@ -293,6 +298,46 @@ button:disabled {
     display: grid;
     grid-template-columns: 1fr 1fr 120px;
     gap: 12px;
+}
+
+.uc-sutun.esit {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Çok bölümlü pencerelerde her bölümün kendi düğmesi ve yanında sonucu. */
+.bolum-dugmesi {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.satir-ici {
+    margin: 0;
+}
+
+.ozet-listesi.odemeler li {
+    grid-template-columns: 100px 1fr auto;
+}
+
+.icerik > .aciklama {
+    margin: 14px 0 0;
+    font-size: 13px;
+}
+
+/* Paket kullanımı ve abonelik uyarısı */
+.uyari-seridi {
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--hata);
+    border-radius: var(--kose);
+    color: var(--hata);
+}
+
+.uyari-seridi.yaklasan {
+    border-color: var(--vurgu-acik);
+    color: var(--vurgu-acik);
 }
 
 /* Sayfa içinde duran (pencere olmayan) form: işletme ayarları. */

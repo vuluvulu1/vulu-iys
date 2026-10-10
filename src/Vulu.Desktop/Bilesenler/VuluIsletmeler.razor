@@ -1,0 +1,204 @@
+@* Hizmeti kullanan işletmelerin listesi ve yeni işletme kaydı. *@
+@inject ApiIstemcisi Api
+
+<h1>İşletmeler</h1>
+
+<div class="arac-cubugu">
+    <button @onclick="YeniAc">Yeni işletme</button>
+    <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
+</div>
+
+@if (_listeHatasi is not null)
+{
+    <p class="hata" role="alert">@_listeHatasi</p>
+}
+
+@if (_isletmeler is null)
+{
+    <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
+}
+else if (_isletmeler.Count == 0)
+{
+    <p class="soluk">Henüz işletme yok. İlk işletmeyi “Yeni işletme” ile açın.</p>
+}
+else
+{
+    <table class="tablo">
+        <thead>
+            <tr>
+                <th>İşletme</th>
+                <th>Kod</th>
+                <th>Personel</th>
+                <th>Abonelik</th>
+                <th>Durum</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var isletme in _isletmeler)
+            {
+                var kalan = Bicim.AbonelikKalanGun(isletme.AbonelikBitisi);
+
+                <tr @key="isletme.Id">
+                    <td>@isletme.Ad</td>
+                    <td><code>@isletme.Kod</code></td>
+                    <td class="dar">@isletme.PersonelSayisi / @isletme.PersonelSiniri</td>
+                    <td class="dar">
+                        @if (isletme.AbonelikBitisi is { } bitis)
+                        {
+                            <span class="@(kalan < 0 ? "durum kotu" : "")">@Bicim.Gun(bitis)</span>
+                            @if (kalan < 0)
+                            {
+                                <br /><span class="durum kotu">Süresi doldu</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="soluk">Süresiz</span>
+                        }
+                    </td>
+                    <td>
+                        <span class="@(isletme.AktifMi ? "durum iyi" : "durum kotu")">
+                            @(isletme.AktifMi ? "Açık" : "Askıda")
+                        </span>
+                    </td>
+                    <td class="islemler">
+                        <button class="ikincil" @onclick="() => _yonetilen = isletme">Yönet</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="sayfalama">
+        <span class="soluk">@_isletmeler.Count işletme</span>
+    </div>
+}
+
+@if (_yeni is not null)
+{
+    <Pencere Baslik="Yeni işletme" Genis="true" KapatIstendi="YeniyiKapat">
+        <form @onsubmit="Olustur">
+            <label for="i-ad">İşletme adı</label>
+            <input id="i-ad" @bind="_yeni.Ad" @bind:event="oninput" autocomplete="off" />
+
+            <div class="yan-yana">
+                <div>
+                    <label for="i-kod">İşletme kodu</label>
+                    <input id="i-kod" @bind="_yeni.Kod" @bind:event="oninput" autocomplete="off" autocapitalize="none"
+                           spellcheck="false" placeholder="ornek-servis" />
+                </div>
+                <div>
+                    <label for="i-sinir">Personel sınırı</label>
+                    <input id="i-sinir" type="number" min="@IsletmeKurallari.EnAzPersonelSiniri"
+                           max="@IsletmeKurallari.EnFazlaPersonelSiniri" @bind="_yeni.PersonelSiniri" />
+                </div>
+            </div>
+            <p class="soluk aciklama">
+                Personel giriş ekranında bu kodu yazar. Küçük harf, rakam ve tire; açıldıktan sonra değiştirilemez.
+            </p>
+
+            <h3 class="form-basligi">İşletmenin ilk yöneticisi</h3>
+
+            <label for="i-yonetici-ad">Ad soyad</label>
+            <input id="i-yonetici-ad" @bind="_yeni.YoneticiAdSoyad" @bind:event="oninput" autocomplete="off" />
+
+            <div class="iki-sutun">
+                <div>
+                    <label for="i-yonetici-kullanici">Kullanıcı adı</label>
+                    <input id="i-yonetici-kullanici" @bind="_yeni.YoneticiKullaniciAdi" @bind:event="oninput" autocomplete="off" />
+                </div>
+                <div>
+                    <label for="i-yonetici-sifre">Şifre</label>
+                    <input id="i-yonetici-sifre" type="password" @bind="_yeni.YoneticiSifre" @bind:event="oninput" autocomplete="new-password" />
+                </div>
+            </div>
+            <p class="soluk aciklama">
+                Bu bilgileri işletmeye siz iletirsiniz. Yönetici giriş yaptıktan sonra kendi personelini ekler.
+            </p>
+
+            <FormAltligi Hata="@_formHatasi" Mesgul="_kaydediliyor" Vazgec="YeniyiKapat" />
+        </form>
+    </Pencere>
+}
+
+@if (_yonetilen is not null)
+{
+    <IsletmeYonetimi Isletme="_yonetilen" Degisti="YonetilenDegisti" Silindi="YonetilenSilindi" Kapat="() => _yonetilen = null" />
+}
+
+@code {
+    private class YeniIsletme
+    {
+        public string Ad { get; set; } = "";
+        public string Kod { get; set; } = "";
+        public int PersonelSiniri { get; set; } = IsletmeKurallari.VarsayilanPersonelSiniri;
+        public string YoneticiAdSoyad { get; set; } = "";
+        public string YoneticiKullaniciAdi { get; set; } = "";
+        public string YoneticiSifre { get; set; } = "";
+    }
+
+    private List<IsletmeYaniti>? _isletmeler;
+    private string? _listeHatasi;
+    private bool _yukleniyor;
+
+    private YeniIsletme? _yeni;
+    private string? _formHatasi;
+    private bool _kaydediliyor;
+
+    private IsletmeYaniti? _yonetilen;
+
+    protected override Task OnInitializedAsync() => Yukle();
+
+    private async Task Yukle()
+    {
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<List<IsletmeYaniti>>("api/platform/isletmeler");
+        _yukleniyor = false;
+
+        _listeHatasi = sonuc.Hata;
+        if (sonuc.Basarili)
+            _isletmeler = sonuc.Deger ?? [];
+    }
+
+    private void YeniAc()
+    {
+        _formHatasi = null;
+        _yeni = new YeniIsletme();
+    }
+
+    private void YeniyiKapat() => _yeni = null;
+
+    private async Task Olustur()
+    {
+        if (_yeni is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Ekle<IsletmeYaniti>("api/platform/isletmeler",
+            new IsletmeOlusturIstegi(_yeni.Kod.Trim().ToLowerInvariant(), _yeni.Ad.Trim(),
+                _yeni.YoneticiKullaniciAdi.Trim(), _yeni.YoneticiSifre, _yeni.YoneticiAdSoyad.Trim(), _yeni.PersonelSiniri));
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _formHatasi = sonuc.Hata;
+            return;
+        }
+
+        _yeni = null;
+        await Yukle();
+    }
+
+    // Yönetim penceresi açık kalır ve güncel kaydı gösterir; liste de arkada yenilenir.
+    private Task YonetilenDegisti(IsletmeYaniti isletme)
+    {
+        _yonetilen = isletme;
+        return Yukle();
+    }
+
+    private Task YonetilenSilindi()
+    {
+        _yonetilen = null;
+        return Yukle();
+    }
+}

@@ -98,10 +98,10 @@ public class ApiFabrikasi : WebApplicationFactory<Program>, IAsyncLifetime
         YetkiliIstemci(YoneticiAdi, YoneticiSifresi, IsletmeKurallari.PlatformKodu);
 
     public static async Task<IsletmeYaniti> IsletmeAc(HttpClient yonetici, string kod, string ad,
-        string adminAdi = AdminAdi, string adminSifresi = AdminSifresi)
+        string adminAdi = AdminAdi, string adminSifresi = AdminSifresi, int personelSiniri = 1000)
     {
         using var yanit = await yonetici.PostAsJsonAsync("api/platform/isletmeler",
-            new IsletmeOlusturIstegi(kod, ad, adminAdi, adminSifresi, "İşletme Yöneticisi"));
+            new IsletmeOlusturIstegi(kod, ad, adminAdi, adminSifresi, "İşletme Yöneticisi", personelSiniri));
         yanit.EnsureSuccessStatusCode();
         return (await yanit.Content.ReadFromJsonAsync<IsletmeYaniti>())!;
     }

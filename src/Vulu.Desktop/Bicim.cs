@@ -53,6 +53,19 @@ public static partial class Bicim
         _ => "iptal"
     };
 
+    // Saat taşımayan günler (abonelik bitişi gibi) UTC gün başı olarak saklanır; saat dilimine çevrilmeden gösterilir.
+    public static string Gun(DateTime utcGun) => utcGun.ToUniversalTime().ToString("dd.MM.yyyy", Turkce);
+
+    // Tarih seçiciden gelen yerel günü, saklanacak UTC gün başına çevirir.
+    public static DateTime? UtcGun(DateTime? secilen) =>
+        secilen is { } gun ? DateTime.SpecifyKind(gun.Date, DateTimeKind.Utc) : null;
+
+    // Aboneliğin bitmesine kalan gün sayısı; bugün bitiyorsa 0, geçtiyse eksi. Süresizse null.
+    // Bitiş bir takvim günüdür; kullanıcının kendi takvimindeki bugünle karşılaştırılır (UTC ile değil,
+    // yoksa gece yarısından sonraki ilk saatlerde bir gün geriden gelir).
+    public static int? AbonelikKalanGun(DateTime? bitis) =>
+        bitis is { } gun ? (int)(gun.ToUniversalTime().Date - DateTime.Today).TotalDays : null;
+
     public static string Para(decimal tutar) => tutar.ToString("N2", Turkce) + " ₺";
 
     public static string ParaGirdisi(decimal tutar) => tutar.ToString("0.00", Turkce);

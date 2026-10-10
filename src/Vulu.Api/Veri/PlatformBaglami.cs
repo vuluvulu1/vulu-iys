@@ -30,6 +30,17 @@ public class PlatformBaglami
 
     public string YeniVeritabaniAdi(string kod) => _ayarlar.IsletmeVeritabaniOneki + kod.Replace('-', '_');
 
+    // İşletmenin bütün verisini geri dönüşsüz siler.
+    public Task IsletmeVeritabaniniSilAsync(Isletme isletme, CancellationToken iptal = default)
+    {
+        // Kayıttaki ad bozulmuş olsa bile platform veritabanı ve MongoDB'nin kendi veritabanları asla silinmez.
+        string[] korunanlar = [_ayarlar.VeritabaniAdi, "admin", "local", "config"];
+        if (string.IsNullOrWhiteSpace(isletme.VeritabaniAdi) || korunanlar.Contains(isletme.VeritabaniAdi))
+            throw new InvalidOperationException($"'{isletme.VeritabaniAdi}' bir işletme veritabanı değil; silinmedi.");
+
+        return _istemci.DropDatabaseAsync(isletme.VeritabaniAdi, iptal);
+    }
+
     // İşletme veritabanını kullanıma hazırlar: bekleyen veri geçişlerini uygular ve indexleri kurar.
     public async Task IsletmeyiHazirlaAsync(Isletme isletme, ILogger log, CancellationToken iptal = default)
     {
