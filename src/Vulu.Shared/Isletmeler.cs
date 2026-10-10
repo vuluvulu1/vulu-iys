@@ -20,9 +20,8 @@ public record IsletmeYaniti(
     // Logo varsa base64 kodlu içeriği ve türü (image/png ya da image/jpeg).
     string? LogoVerisi,
     string? LogoTuru,
-    // Paket: aynı anda aktif olabilecek personel hesabı sayısı ve aboneliğin ödendiği son gün (boşsa süresiz).
+    // Aynı anda aktif olabilecek personel hesabı sayısı.
     int PersonelSiniri,
-    DateTime? AbonelikBitisi,
     // Aktif personel sayısı; yalnızca vulu yöneticisinin işletme listesinde doldurulur.
     long? PersonelSayisi);
 
@@ -47,26 +46,14 @@ public record IsletmeOlusturIstegi(
     [Range(IsletmeKurallari.EnAzPersonelSiniri, IsletmeKurallari.EnFazlaPersonelSiniri, ErrorMessage = IsletmeKurallari.PersonelSiniriMesaji)]
     int PersonelSiniri = IsletmeKurallari.VarsayilanPersonelSiniri);
 
-// Vulu yöneticisinin sonradan değiştirebildikleri: ad, açık/askıda durumu ve paket.
+// Vulu yöneticisinin sonradan değiştirebildikleri: ad, açık/askıda durumu ve personel sınırı.
 public record IsletmeDurumIstegi(
     [Required(ErrorMessage = "İşletme adı gerekli.")]
     [StringLength(120, MinimumLength = 2, ErrorMessage = "İşletme adı 2-120 karakter olmalı.")]
     string Ad,
     bool AktifMi,
     [Range(IsletmeKurallari.EnAzPersonelSiniri, IsletmeKurallari.EnFazlaPersonelSiniri, ErrorMessage = IsletmeKurallari.PersonelSiniriMesaji)]
-    int PersonelSiniri,
-    DateTime? AbonelikBitisi);
-
-// İşletmeden alınan bir abonelik ödemesi. YeniAbonelikBitisi verilirse aboneliğin bitiş günü de güncellenir.
-public record OdemeIstegi(
-    [Range(typeof(decimal), "0.01", "10000000", ParseLimitsInInvariantCulture = true, ErrorMessage = "Tutar 0,01 ile 10.000.000 arasında olmalı.")]
-    decimal Tutar,
-    DateTime Tarih,
-    [StringLength(200, ErrorMessage = "Açıklama en fazla 200 karakter olabilir.")]
-    string? Aciklama,
-    DateTime? YeniAbonelikBitisi);
-
-public record OdemeYaniti(DateTime Tarih, decimal Tutar, string? Aciklama);
+    int PersonelSiniri);
 
 // Vulu yöneticisinin şifre sıfırlamak için gördüğü, bir işletmenin yönetici hesapları.
 public record IsletmeYoneticisiOzeti(string Id, string KullaniciAdi, string AdSoyad, bool AktifMi);

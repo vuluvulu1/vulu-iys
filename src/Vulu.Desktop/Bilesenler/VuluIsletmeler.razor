@@ -29,7 +29,7 @@ else
                 <th>İşletme</th>
                 <th>Kod</th>
                 <th>Personel</th>
-                <th>Abonelik</th>
+                <th>Açılış</th>
                 <th>Durum</th>
                 <th></th>
             </tr>
@@ -37,26 +37,11 @@ else
         <tbody>
             @foreach (var isletme in _isletmeler)
             {
-                var kalan = Bicim.AbonelikKalanGun(isletme.AbonelikBitisi);
-
                 <tr @key="isletme.Id">
                     <td>@isletme.Ad</td>
                     <td><code>@isletme.Kod</code></td>
                     <td class="dar">@isletme.PersonelSayisi / @isletme.PersonelSiniri</td>
-                    <td class="dar">
-                        @if (isletme.AbonelikBitisi is { } bitis)
-                        {
-                            <span class="@(kalan < 0 ? "durum kotu" : "")">@Bicim.Gun(bitis)</span>
-                            @if (kalan < 0)
-                            {
-                                <br /><span class="durum kotu">Süresi doldu</span>
-                            }
-                        }
-                        else
-                        {
-                            <span class="soluk">Süresiz</span>
-                        }
-                    </td>
+                    <td class="dar">@Bicim.Tarih(isletme.OlusturmaTarihi)</td>
                     <td>
                         <span class="@(isletme.AktifMi ? "durum iyi" : "durum kotu")">
                             @(isletme.AktifMi ? "Açık" : "Askıda")

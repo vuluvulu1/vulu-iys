@@ -1,22 +1,20 @@
-@* Vulu yöneticisinin tek bir işletme üzerindeki işlemleri: ad ve paket, ödemeler, yönetici şifresi, kalıcı silme. *@
+@* Vulu yöneticisinin tek bir işletme üzerindeki işlemleri: ad ve personel sınırı, yönetici şifresi, kalıcı silme. *@
 @inject ApiIstemcisi Api
 
 <Pencere Baslik="@Isletme.Ad" Genis="true" KapatIstendi="Kapat">
     <form @onsubmit="GeneliKaydet">
-        <label for="y-ad">İşletme adı</label>
-        <input id="y-ad" @bind="_ad" @bind:event="oninput" autocomplete="off" />
-
-        <div class="iki-sutun">
+        <div class="yan-yana">
             <div>
-                <label for="y-sinir">Personel sınırı (şu an @Isletme.PersonelSayisi aktif)</label>
+                <label for="y-ad">İşletme adı</label>
+                <input id="y-ad" @bind="_ad" @bind:event="oninput" autocomplete="off" />
+            </div>
+            <div>
+                <label for="y-sinir">Personel sınırı</label>
                 <input id="y-sinir" type="number" min="@IsletmeKurallari.EnAzPersonelSiniri"
                        max="@IsletmeKurallari.EnFazlaPersonelSiniri" @bind="_personelSiniri" />
             </div>
-            <div>
-                <label for="y-bitis">Abonelik bitişi (boşsa süresiz)</label>
-                <input id="y-bitis" type="date" @bind="_abonelikBitisi" />
-            </div>
         </div>
+        <p class="soluk aciklama">Şu an @Isletme.PersonelSayisi aktif personel hesabı var.</p>
 
         <label class="onay-kutusu">
             <input id="y-aktif" type="checkbox" @bind="_aktif" />
@@ -24,7 +22,6 @@
         </label>
         <p class="soluk aciklama">
             Askıya alınan işletmenin personeli giriş yapamaz ve açık oturumları kapanır; verisi silinmez.
-            Aboneliğin süresi dolunca işletme kendiliğinden kapanmaz, burada askıya alınır.
         </p>
 
         <div class="bolum-dugmesi">
@@ -32,52 +29,6 @@
             <button type="submit" disabled="@_mesgul">Kaydet</button>
         </div>
     </form>
-
-    <section class="bolum">
-        <h3>Ödemeler</h3>
-
-        @if (_odemeler is { Count: > 0 })
-        {
-            <ul class="ozet-listesi odemeler">
-                @foreach (var odeme in _odemeler)
-                {
-                    <li>
-                        <span class="dar">@Bicim.Gun(odeme.Tarih)</span>
-                        <span>@(odeme.Aciklama ?? "—")</span>
-                        <strong>@Bicim.Para(odeme.Tutar)</strong>
-                    </li>
-                }
-            </ul>
-        }
-        else
-        {
-            <p class="soluk aciklama">@(_odemeler is null ? "Yükleniyor…" : "Kayıtlı ödeme yok.")</p>
-        }
-
-        <form @onsubmit="OdemeEkle">
-            <div class="uc-sutun esit">
-                <div>
-                    <label for="y-odeme-tutar">Tutar (₺)</label>
-                    <input id="y-odeme-tutar" @bind="_odemeTutari" @bind:event="oninput" inputmode="decimal" placeholder="1.500,00" autocomplete="off" />
-                </div>
-                <div>
-                    <label for="y-odeme-tarih">Ödeme günü</label>
-                    <input id="y-odeme-tarih" type="date" @bind="_odemeTarihi" />
-                </div>
-                <div>
-                    <label for="y-odeme-bitis">Aboneliği şu güne uzat</label>
-                    <input id="y-odeme-bitis" type="date" @bind="_odemeYeniBitis" />
-                </div>
-            </div>
-            <label for="y-odeme-aciklama">Açıklama (isteğe bağlı)</label>
-            <input id="y-odeme-aciklama" @bind="_odemeAciklamasi" @bind:event="oninput" autocomplete="off" />
-
-            <div class="bolum-dugmesi">
-                @Bildirim(Bolum.Odeme)
-                <button type="submit" disabled="@_mesgul">Ödeme ekle</button>
-            </div>
-        </form>
-    </section>
 
     <section class="bolum">
         <h3>Yönetici şifresini sıfırla</h3>
@@ -144,7 +95,7 @@
 </Pencere>
 
 @code {
-    private enum Bolum { Genel, Odeme, Sifre, Silme }
+    private enum Bolum { Genel, Sifre, Silme }
 
     [Parameter, EditorRequired] public IsletmeYaniti Isletme { get; set; } = null!;
     [Parameter] public EventCallback<IsletmeYaniti> Degisti { get; set; }
@@ -154,13 +105,6 @@
     private string _ad = "";
     private bool _aktif;
     private int _personelSiniri;
-    private DateTime? _abonelikBitisi;
-
-    private List<OdemeYaniti>? _odemeler;
-    private string _odemeTutari = "";
-    private DateTime? _odemeTarihi = DateTime.Today;
-    private DateTime? _odemeYeniBitis;
-    private string _odemeAciklamasi = "";
 
     private List<IsletmeYoneticisiOzeti> _yoneticiler = [];
     private string _sifirlanacakId = "";
@@ -200,20 +144,16 @@
         _ad = Isletme.Ad;
         _aktif = Isletme.AktifMi;
         _personelSiniri = Isletme.PersonelSiniri;
-        _abonelikBitisi = Isletme.AbonelikBitisi?.ToUniversalTime().Date;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        var odemeler = await Api.Getir<List<OdemeYaniti>>($"{Yol}/odemeler");
-        _odemeler = odemeler.Deger ?? [];
-
         var yoneticiler = await Api.Getir<List<IsletmeYoneticisiOzeti>>($"{Yol}/yoneticiler");
         _yoneticiler = yoneticiler.Deger ?? [];
         _sifirlanacakId = _yoneticiler.FirstOrDefault()?.Id ?? "";
 
-        if ((odemeler.Hata ?? yoneticiler.Hata) is { } hata)
-            Bildir(Bolum.Genel, hata, null);
+        if (yoneticiler.Hata is { } hata)
+            Bildir(Bolum.Sifre, hata, null);
     }
 
     private void Bildir(Bolum bolum, string? hata, string? basari)
@@ -228,45 +168,12 @@
         if (_mesgul) return;
 
         _mesgul = true;
-        var sonuc = await Api.Guncelle<IsletmeYaniti>(Yol,
-            new IsletmeDurumIstegi(_ad.Trim(), _aktif, _personelSiniri, Bicim.UtcGun(_abonelikBitisi)));
+        var sonuc = await Api.Guncelle<IsletmeYaniti>(Yol, new IsletmeDurumIstegi(_ad.Trim(), _aktif, _personelSiniri));
         _mesgul = false;
 
         Bildir(Bolum.Genel, sonuc.Hata, sonuc.Basarili ? "Kaydedildi." : null);
         if (sonuc is { Basarili: true, Deger: not null })
             await Degisti.InvokeAsync(sonuc.Deger);
-    }
-
-    private async Task OdemeEkle()
-    {
-        if (_mesgul) return;
-
-        if (!Bicim.ParaOku(_odemeTutari, out var tutar) || tutar <= 0)
-        {
-            Bildir(Bolum.Odeme, "Geçerli bir tutar girin (örn. 1.500,00).", null);
-            return;
-        }
-        if (_odemeTarihi is null)
-        {
-            Bildir(Bolum.Odeme, "Ödeme günü seçilmeli.", null);
-            return;
-        }
-
-        _mesgul = true;
-        var sonuc = await Api.Ekle<IsletmeYaniti>($"{Yol}/odemeler", new OdemeIstegi(tutar,
-            Bicim.UtcGun(_odemeTarihi)!.Value, string.IsNullOrWhiteSpace(_odemeAciklamasi) ? null : _odemeAciklamasi.Trim(),
-            Bicim.UtcGun(_odemeYeniBitis)));
-        if (sonuc.Basarili)
-            _odemeler = (await Api.Getir<List<OdemeYaniti>>($"{Yol}/odemeler")).Deger ?? _odemeler;
-        _mesgul = false;
-
-        Bildir(Bolum.Odeme, sonuc.Hata, sonuc.Basarili ? "Ödeme eklendi." : null);
-        if (sonuc is not { Basarili: true, Deger: not null }) return;
-
-        _odemeTutari = "";
-        _odemeAciklamasi = "";
-        _odemeYeniBitis = null;
-        await Degisti.InvokeAsync(sonuc.Deger);
     }
 
     private async Task SifreyiSifirla()
