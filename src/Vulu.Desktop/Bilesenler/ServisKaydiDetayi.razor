@@ -50,6 +50,8 @@
             @if (Kayit.Fatura is { } fatura)
             {
                 <dl class="ayrinti">
+                    <dt>Fatura no</dt>
+                    <dd>@fatura.No</dd>
                     <dt>Tutar</dt>
                     <dd><strong>@Bicim.Para(fatura.Tutar)</strong></dd>
                     <dt>Ödeme</dt>
@@ -78,6 +80,10 @@
                 <button type="button" disabled="@_mesgul" @onclick="FaturayiKaydet">
                     @(Kayit.Fatura is null ? "Fatura kes" : "Faturayı güncelle")
                 </button>
+                @if (Kayit.Fatura is not null)
+                {
+                    <button type="button" class="ikincil" disabled="@_mesgul" @onclick="FaturayiAc">PDF olarak aç</button>
+                }
                 @if (Kayit.Fatura is not null && Oturum.AdminMi)
                 {
                     <button type="button" class="tehlike" disabled="@_mesgul" @onclick="FaturayiSil">
@@ -147,6 +153,21 @@
         }
 
         await Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/fatura", new FaturaIstegi(tutar, _odendi)));
+    }
+
+    // Fatura belgesini sunucudan indirir ve bilgisayarın PDF görüntüleyicisinde açar.
+    private async Task FaturayiAc()
+    {
+        if (Kayit.Fatura is not { } fatura) return;
+
+        _mesgul = true;
+        _hata = null;
+        var sonuc = await Api.Indir($"{Yol}/fatura/pdf");
+        _mesgul = false;
+
+        _hata = sonuc.Basarili && sonuc.Deger is not null
+            ? BelgeAcici.Ac($"Fatura-{fatura.No}.pdf", sonuc.Deger)
+            : sonuc.Hata;
     }
 
     // Silme düğmeleri iki adımlıdır: ilk tıklama onay ister, ikincisi siler.

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
+using Vulu.Api.Faturalar;
 using Vulu.Api.Kurallar;
 using Vulu.Api.Veri;
 using Vulu.Api.Veri.Belgeler;
@@ -17,8 +19,13 @@ public class ServisKayitlariController : ControllerBase
     private const int EnFazlaSayfaBoyutu = 100;
 
     private readonly MongoBaglami _db;
+    private readonly FirmaAyarlari _firma;
 
-    public ServisKayitlariController(MongoBaglami db) => _db = db;
+    public ServisKayitlariController(MongoBaglami db, IOptions<FirmaAyarlari> firma)
+    {
+        _db = db;
+        _firma = firma.Value;
+    }
 
     [HttpGet]
     public async Task<ActionResult<Sayfa<ServisKaydiYaniti>>> Listele(
@@ -111,10 +118,35 @@ public class ServisKayitlariController : ControllerBase
         var kayit = await Bul(id, iptal);
         if (kayit is null) return Bulunamadi();
 
-        if (ServisKaydiKurallari.FaturayiKaydet(kayit, istek.Tutar, istek.OdendiMi, DateTime.UtcNow) is { } hata)
+        var simdi = DateTime.UtcNow;
+        if (ServisKaydiKurallari.FaturayiKaydet(kayit, istek.Tutar, istek.OdendiMi, simdi) is { } hata)
             return KuralIhlali(hata);
 
+        // Numara fatura ilk kesildiğinde verilir. Kayıt bu sırada başkası tarafından değiştirildiyse yazma
+        // reddedilir ve alınan numara boşa gider; sırada atlama olabilir ama aynı numara iki kez verilmez.
+        if (kayit.Fatura!.No.Length == 0)
+        {
+            var yil = Zaman.TurkiyeSaati(simdi).Year;
+            var sira = await _db.SiradakiNumaraAsync($"fatura-{yil}", iptal);
+            kayit.Fatura.No = $"VL-{yil}-{sira:D6}";
+        }
+
         return await Kaydet(kayit, iptal);
+    }
+
+    [HttpGet("{id:oid}/fatura/pdf")]
+    public async Task<IActionResult> FaturaPdf(string id, CancellationToken iptal)
+    {
+        var kayit = await Bul(id, iptal);
+        if (kayit is null) return Bulunamadi();
+        if (kayit.Fatura is null)
+            return Problem(detail: "Bu kaydın faturası yok.", statusCode: StatusCodes.Status404NotFound);
+
+        // Adres ve e-posta kayıttaki kopyada yoktur; silinmiş olsa da müşteri belgesinden okunur.
+        var musteri = await _db.Musteriler.Find(m => m.Id == kayit.MusteriId).FirstOrDefaultAsync(iptal);
+
+        var pdf = FaturaBelgesi.Olustur(kayit, musteri, _firma);
+        return File(pdf, "application/pdf", $"Fatura-{kayit.Fatura.No}.pdf");
     }
 
     [HttpDelete("{id:oid}/fatura")]
@@ -208,5 +240,5 @@ public static class ServisKaydiDonusumleri
         k.CihazBilgisi, k.Sorun, k.Durum, k.OlusturmaTarihi, k.TamamlanmaTarihi,
         k.Fatura is null
             ? null
-            : new FaturaYaniti(k.Fatura.Tutar, k.Fatura.OdendiMi, k.Fatura.OlusturmaTarihi, k.Fatura.OdemeTarihi));
+            : new FaturaYaniti(k.Fatura.No, k.Fatura.Tutar, k.Fatura.OdendiMi, k.Fatura.OlusturmaTarihi, k.Fatura.OdemeTarihi));
 }

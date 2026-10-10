@@ -13,7 +13,7 @@ namespace Vulu.Api.Controllers;
 [Route("api/randevular")]
 public class RandevularController : ControllerBase
 {
-    private const int EnFazlaSayfaBoyutu = 100;
+    private const int EnFazlaSayfaBoyutu = 200;
 
     // Saat farkları ve formu doldururken geçen süre için küçük bir pay.
     private static readonly TimeSpan GecmisToleransi = TimeSpan.FromMinutes(10);
@@ -42,8 +42,8 @@ public class RandevularController : ControllerBase
         if (durum is not null) filtre &= f.Eq(r => r.Durum, durum.Value);
         if (musteriId is not null) filtre &= f.Eq(r => r.MusteriId, musteriId);
         if (teknisyenId is not null) filtre &= f.Eq(r => r.TeknisyenId, teknisyenId);
-        if (baslangic is not null) filtre &= f.Gte(r => r.RandevuTarihi, UtcYap(baslangic.Value));
-        if (bitis is not null) filtre &= f.Lt(r => r.RandevuTarihi, UtcYap(bitis.Value));
+        if (baslangic is not null) filtre &= f.Gte(r => r.RandevuTarihi, Zaman.UtcYap(baslangic.Value));
+        if (bitis is not null) filtre &= f.Lt(r => r.RandevuTarihi, Zaman.UtcYap(bitis.Value));
         if (!string.IsNullOrWhiteSpace(arama))
             filtre &= f.Regex(r => r.Musteri.AramaMetni, AramaMetni.Desen(arama));
 
@@ -67,11 +67,12 @@ public class RandevularController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RandevuYaniti>> Ekle(RandevuIstegi istek, CancellationToken iptal)
     {
-        if (UtcYap(istek.RandevuTarihi) < DateTime.UtcNow - GecmisToleransi)
+        if (Zaman.UtcYap(istek.RandevuTarihi) < DateTime.UtcNow - GecmisToleransi)
             return Problem(detail: "Randevu tarihi geçmişte olamaz.", statusCode: StatusCodes.Status400BadRequest);
 
         var randevu = new Randevu();
         if (await Uygula(randevu, istek, iptal) is { } hata) return hata;
+        if (await CakismayiDenetle(randevu, iptal) is { } cakisma) return cakisma;
 
         await _db.Randevular.InsertOneAsync(randevu, cancellationToken: iptal);
         return CreatedAtAction(nameof(Getir), new { id = randevu.Id }, randevu.YanitaCevir());
@@ -83,19 +84,23 @@ public class RandevularController : ControllerBase
         var randevu = await Bul(id, iptal);
         if (randevu is null) return Bulunamadi();
         if (await Uygula(randevu, istek, iptal) is { } hata) return hata;
+        if (await CakismayiDenetle(randevu, iptal) is { } cakisma) return cakisma;
 
-        await _db.Randevular.ReplaceOneAsync(r => r.Id == id, randevu, cancellationToken: iptal);
-        return randevu.YanitaCevir();
+        return await Kaydet(randevu, iptal);
     }
 
     [HttpPut("{id:oid}/durum")]
     public async Task<ActionResult<RandevuYaniti>> DurumuDegistir(string id, RandevuDurumuIstegi istek, CancellationToken iptal)
     {
-        var randevu = await _db.Randevular.FindOneAndUpdateAsync<Randevu>(r => r.Id == id,
-            Builders<Randevu>.Update.Set(r => r.Durum, istek.Durum),
-            new FindOneAndUpdateOptions<Randevu> { ReturnDocument = ReturnDocument.After }, iptal);
+        var randevu = await Bul(id, iptal);
+        if (randevu is null) return Bulunamadi();
 
-        return randevu is null ? Bulunamadi() : randevu.YanitaCevir();
+        randevu.Durum = istek.Durum;
+
+        // İptal edilmiş bir randevu yeniden planlanırken o saat artık dolu olabilir.
+        if (await CakismayiDenetle(randevu, iptal) is { } cakisma) return cakisma;
+
+        return await Kaydet(randevu, iptal);
     }
 
     // Randevunun olağan sonu iptal ya da tamamlanmadır; silme yanlış girilen kayıtlar içindir.
@@ -139,18 +144,51 @@ public class RandevularController : ControllerBase
         randevu.TeknisyenId = teknisyen?.Id;
         randevu.TeknisyenAdi = teknisyen?.AdSoyad;
         randevu.ServisKaydiId = servisKaydiId;
-        randevu.RandevuTarihi = UtcYap(istek.RandevuTarihi);
+        randevu.RandevuTarihi = Zaman.UtcYap(istek.RandevuTarihi);
+        randevu.SureDakika = istek.SureDakika;
+        randevu.BitisTarihi = randevu.RandevuTarihi.AddMinutes(randevu.SureDakika);
         randevu.Aciklama = Metin.BosIseNull(istek.Aciklama);
         return null;
     }
 
-    // Saat dilimi belirtilmemiş tarihler UTC sayılır.
-    private static DateTime UtcYap(DateTime tarih) => tarih.Kind switch
+    // Bir teknisyenin planlı randevuları saat olarak üst üste binemez. Teknisyeni olmayan ya da planlı olmayan
+    // randevular denetlenmez. Kontrol ile yazma arasında başka bir randevu araya girebilir; bu dar aralık
+    // çok belgeli işlem (transaction) olmadan kapatılamaz.
+    private async Task<ObjectResult?> CakismayiDenetle(Randevu randevu, CancellationToken iptal)
     {
-        DateTimeKind.Utc => tarih,
-        DateTimeKind.Local => tarih.ToUniversalTime(),
-        _ => DateTime.SpecifyKind(tarih, DateTimeKind.Utc)
-    };
+        if (randevu.TeknisyenId is null || randevu.Durum != RandevuDurumu.Planlandi) return null;
+
+        var f = Builders<Randevu>.Filter;
+        var filtre = f.Eq(r => r.TeknisyenId, randevu.TeknisyenId)
+            & f.Eq(r => r.Durum, RandevuDurumu.Planlandi)
+            & f.Lt(r => r.RandevuTarihi, randevu.BitisTarihi)
+            & f.Gt(r => r.BitisTarihi, randevu.RandevuTarihi);
+        if (randevu.Id is not null) filtre &= f.Ne(r => r.Id, randevu.Id);
+
+        var cakisan = await _db.Randevular.Find(filtre).SortBy(r => r.RandevuTarihi).FirstOrDefaultAsync(iptal);
+        if (cakisan is null) return null;
+
+        return Problem(
+            detail: $"{randevu.TeknisyenAdi} için bu saatte başka bir randevu var: "
+                + $"{Zaman.TarihSaat(cakisan.RandevuTarihi)}, {cakisan.Musteri.AdSoyad} ({cakisan.SureDakika} dk).",
+            statusCode: StatusCodes.Status409Conflict);
+    }
+
+    // Randevuyu yalnızca okunduğu sürümdeyse yazar; arada başkası değiştirdiyse 409 döner.
+    private async Task<ActionResult<RandevuYaniti>> Kaydet(Randevu randevu, CancellationToken iptal)
+    {
+        var okunanSurum = randevu.Surum;
+        randevu.Surum++;
+
+        var sonuc = await _db.Randevular.ReplaceOneAsync(
+            r => r.Id == randevu.Id && r.Surum == okunanSurum, randevu, cancellationToken: iptal);
+
+        if (sonuc.MatchedCount == 0)
+            return Problem(detail: "Randevu bu sırada başka biri tarafından değiştirildi. Yenileyip yeniden deneyin.",
+                statusCode: StatusCodes.Status409Conflict);
+
+        return randevu.YanitaCevir();
+    }
 
     private static bool KimlikGecerli(string? kimlik) => kimlik is null || ObjectId.TryParse(kimlik, out _);
 
@@ -165,5 +203,5 @@ public static class RandevuDonusumleri
 {
     public static RandevuYaniti YanitaCevir(this Randevu r) => new(
         r.Id, r.MusteriId, r.Musteri.AdSoyad, r.Musteri.Telefon, r.TeknisyenId, r.TeknisyenAdi,
-        r.ServisKaydiId, r.RandevuTarihi, r.Aciklama, r.Durum);
+        r.ServisKaydiId, r.RandevuTarihi, r.SureDakika, r.Aciklama, r.Durum);
 }

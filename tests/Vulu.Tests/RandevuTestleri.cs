@@ -28,9 +28,9 @@ public class RandevuTestleri : IClassFixture<ApiFabrikasi>
     }
 
     private static async Task<RandevuYaniti> RandevuEkle(HttpClient istemci, string musteriId, DateTime tarih,
-        string? teknisyenId = null, string? servisKaydiId = null, string? aciklama = null)
+        string? teknisyenId = null, string? servisKaydiId = null, string? aciklama = null, int sure = 60)
     {
-        using var yanit = await istemci.PostAsJsonAsync(Yol, new RandevuIstegi(musteriId, teknisyenId, servisKaydiId, tarih, aciklama));
+        using var yanit = await istemci.PostAsJsonAsync(Yol, new RandevuIstegi(musteriId, teknisyenId, servisKaydiId, tarih, sure, aciklama));
         return await Oku<RandevuYaniti>(yanit, HttpStatusCode.Created);
     }
 
@@ -66,10 +66,10 @@ public class RandevuTestleri : IClassFixture<ApiFabrikasi>
         var baskasininKaydi = await Oku<ServisKaydiYaniti>(kayitYaniti, HttpStatusCode.Created);
         const string olmayan = "0123456789abcdef01234567";
 
-        using var musterisiz = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(olmayan, null, null, Yarin(), null));
-        using var teknisyensiz = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(musteri.Id, olmayan, null, Yarin(), null));
-        using var yanlisKayit = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(musteri.Id, null, baskasininKaydi.Id, Yarin(), null));
-        using var gecmis = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(musteri.Id, null, null, DateTime.UtcNow.AddDays(-1), null));
+        using var musterisiz = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(olmayan, null, null, Yarin(), 60, null));
+        using var teknisyensiz = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(musteri.Id, olmayan, null, Yarin(), 60, null));
+        using var yanlisKayit = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(musteri.Id, null, baskasininKaydi.Id, Yarin(), 60, null));
+        using var gecmis = await admin.PostAsJsonAsync(Yol, new RandevuIstegi(musteri.Id, null, null, DateTime.UtcNow.AddDays(-1), 60, null));
 
         Assert.Equal(HttpStatusCode.BadRequest, musterisiz.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, teknisyensiz.StatusCode);
@@ -85,7 +85,7 @@ public class RandevuTestleri : IClassFixture<ApiFabrikasi>
         var randevu = await RandevuEkle(admin, musteri.Id, Yarin(9));
 
         using var guncelle = await admin.PutAsJsonAsync($"{Yol}/{randevu.Id}",
-            new RandevuIstegi(musteri.Id, null, null, Yarin(16), "Saat değişti"));
+            new RandevuIstegi(musteri.Id, null, null, Yarin(16), 90, "Saat değişti"));
         var guncel = await Oku<RandevuYaniti>(guncelle);
         using var tamamla = await admin.PutAsJsonAsync($"{Yol}/{randevu.Id}/durum", new RandevuDurumuIstegi(RandevuDurumu.Tamamlandi));
         var tamamlanan = await Oku<RandevuYaniti>(tamamla);

@@ -18,6 +18,7 @@ public class MongoBaglami
         ServisKayitlari = db.GetCollection<ServisKaydi>("servisKayitlari");
         Randevular = db.GetCollection<Randevu>("randevular");
         YenilemeTokenlari = db.GetCollection<YenilemeTokeni>("yenilemeTokenlari");
+        Sayaclar = db.GetCollection<BsonDocument>("sayaclar");
     }
 
     public IMongoCollection<Kullanici> Kullanicilar { get; }
@@ -26,6 +27,19 @@ public class MongoBaglami
     public IMongoCollection<ServisKaydi> ServisKayitlari { get; }
     public IMongoCollection<Randevu> Randevular { get; }
     public IMongoCollection<YenilemeTokeni> YenilemeTokenlari { get; }
+    private IMongoCollection<BsonDocument> Sayaclar { get; }
+
+    // Adı verilen sayacı bir artırıp yeni değerini döner. Tek belgede tek işlem olduğu için aynı anda gelen
+    // iki istek aynı numarayı alamaz.
+    public async Task<long> SiradakiNumaraAsync(string sayac, CancellationToken iptal = default)
+    {
+        var belge = await Sayaclar.FindOneAndUpdateAsync(
+            Builders<BsonDocument>.Filter.Eq("_id", sayac),
+            Builders<BsonDocument>.Update.Inc("deger", 1L),
+            new FindOneAndUpdateOptions<BsonDocument> { IsUpsert = true, ReturnDocument = ReturnDocument.After },
+            iptal);
+        return belge["deger"].ToInt64();
+    }
 
     // Sınıf eşlemeleri ilk kullanımda donduğu için herhangi bir koleksiyona erişmeden önce çağrılmalı.
     public static void KurallariKaydet()
@@ -97,7 +111,8 @@ public class MongoBaglami
             [
                 new(Builders<Randevu>.IndexKeys.Ascending(r => r.RandevuTarihi)),
                 new(Builders<Randevu>.IndexKeys.Ascending(r => r.MusteriId)),
-                new(Builders<Randevu>.IndexKeys.Ascending(r => r.TeknisyenId)),
+                // Çakışma denetimi: bir teknisyenin planlı randevuları saat aralığına göre aranır.
+                new(Builders<Randevu>.IndexKeys.Ascending(r => r.TeknisyenId).Ascending(r => r.RandevuTarihi)),
                 new(Builders<Randevu>.IndexKeys.Ascending(r => r.ServisKaydiId))
             ],
             iptal);

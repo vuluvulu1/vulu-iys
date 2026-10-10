@@ -1,57 +1,107 @@
 @page "/"
-@inject HttpClient Http
+@inject ApiIstemcisi Api
 @inject OturumServisi Oturum
 
 <h1>Hoş geldiniz, @Oturum.Kullanici?.KullaniciAdi</h1>
 
-<section class="kart">
-    <h2>Bağlantı durumu</h2>
-    <p>API: <span class="@Sinif(_apiErisilebilir)">@Metin(_apiErisilebilir)</span></p>
-    <p>Veritabanı: <span class="@Sinif(_veritabaniErisilebilir)">@Metin(_veritabaniErisilebilir)</span></p>
-    <button class="ikincil" @onclick="KontrolEt" disabled="@_kontrolEdiliyor">Yeniden kontrol et</button>
-</section>
+@if (_hata is not null)
+{
+    <p class="hata" role="alert">@_hata</p>
+    <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yeniden dene</button>
+}
+else if (_ozet is null)
+{
+    <p class="soluk">Yükleniyor…</p>
+}
+else
+{
+    <div class="ozet-kutulari">
+        <a class="ozet-kutusu" href="servis-kayitlari">
+            <span class="sayi">@_ozet.BekleyenKayit</span>
+            <span class="etiket-metni">Bekleyen servis kaydı</span>
+        </a>
+        <a class="ozet-kutusu" href="servis-kayitlari">
+            <span class="sayi">@_ozet.DevamEdenKayit</span>
+            <span class="etiket-metni">Devam eden iş</span>
+        </a>
+        <a class="ozet-kutusu" href="randevular">
+            <span class="sayi">@_ozet.BugunkuRandevu</span>
+            <span class="etiket-metni">Bugünkü randevu</span>
+        </a>
+        <a class="ozet-kutusu" href="servis-kayitlari">
+            <span class="sayi">@Bicim.Para(_ozet.OdenmemisTutar)</span>
+            <span class="etiket-metni">@_ozet.OdenmemisFatura ödenmemiş fatura</span>
+        </a>
+        <div class="ozet-kutusu">
+            <span class="sayi">@Bicim.Para(_ozet.BuAyTahsilat)</span>
+            <span class="etiket-metni">Bu ay tahsil edilen</span>
+        </div>
+    </div>
+
+    <div class="ozet-listeleri">
+        <section class="kart">
+            <h2>Yaklaşan randevular</h2>
+            @if (_ozet.YaklasanRandevular.Count == 0)
+            {
+                <p class="soluk">Planlanmış randevu yok.</p>
+            }
+            else
+            {
+                <ul class="ozet-listesi">
+                    @foreach (var randevu in _ozet.YaklasanRandevular)
+                    {
+                        <li @key="randevu.Id">
+                            <span class="dar">@Bicim.Tarih(randevu.RandevuTarihi)</span>
+                            <span>@randevu.MusteriAdi</span>
+                            <span class="soluk">@(randevu.TeknisyenAdi ?? "Teknisyen atanmadı")</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="kart">
+            <h2>En uzun süredir açık kayıtlar</h2>
+            @if (_ozet.AcikKayitlar.Count == 0)
+            {
+                <p class="soluk">Açık servis kaydı yok.</p>
+            }
+            else
+            {
+                <ul class="ozet-listesi">
+                    @foreach (var kayit in _ozet.AcikKayitlar)
+                    {
+                        <li @key="kayit.Id">
+                            <span class="dar">@Bicim.Tarih(kayit.OlusturmaTarihi)</span>
+                            <span>@kayit.MusteriAdi – @kayit.CihazBilgisi</span>
+                            <span class="@Bicim.DurumSinifi(kayit.Durum)">@Bicim.Durum(kayit.Durum)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+}
 
 @code {
-    private bool? _apiErisilebilir;
-    private bool? _veritabaniErisilebilir;
-    private bool _kontrolEdiliyor;
+    private OzetYaniti? _ozet;
+    private string? _hata;
+    private bool _yukleniyor;
 
-    protected override Task OnInitializedAsync() => KontrolEt();
+    protected override Task OnInitializedAsync() => Yukle();
 
-    private async Task KontrolEt()
+    private async Task Yukle()
     {
-        _kontrolEdiliyor = true;
-        _apiErisilebilir = null;
-        _veritabaniErisilebilir = null;
+        // "Bugün" ve "bu ay" bu bilgisayarın saat dilimine göre hesaplanır.
+        var bugun = DateTime.Today;
+        var ayBasi = new DateTime(bugun.Year, bugun.Month, 1);
 
-        try
-        {
-            // 503 de gövde taşıdığı için durum koduna bakmadan okunuyor.
-            using var yanit = await Http.GetAsync("api/saglik");
-            var saglik = await yanit.Content.ReadFromJsonAsync<SaglikYaniti>();
-            _apiErisilebilir = true;
-            _veritabaniErisilebilir = saglik?.VeritabaniErisilebilir ?? false;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
-        {
-            _apiErisilebilir = false;
-            _veritabaniErisilebilir = false;
-        }
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<OzetYaniti>(
+            $"api/ozet?gunBaslangici={Bicim.SorguTarihi(bugun)}&ayBaslangici={Bicim.SorguTarihi(ayBasi)}");
+        _yukleniyor = false;
 
-        _kontrolEdiliyor = false;
+        _hata = sonuc.Hata;
+        if (sonuc.Basarili) _ozet = sonuc.Deger;
     }
-
-    private static string Metin(bool? durum) => durum switch
-    {
-        true => "bağlı",
-        false => "ulaşılamıyor",
-        null => "kontrol ediliyor…"
-    };
-
-    private static string Sinif(bool? durum) => durum switch
-    {
-        true => "durum iyi",
-        false => "durum kotu",
-        null => "durum"
-    };
 }

@@ -24,7 +24,7 @@ public record FaturaIstegi(
     decimal Tutar,
     bool OdendiMi);
 
-public record FaturaYaniti(decimal Tutar, bool OdendiMi, DateTime OlusturmaTarihi, DateTime? OdemeTarihi);
+public record FaturaYaniti(string No, decimal Tutar, bool OdendiMi, DateTime OlusturmaTarihi, DateTime? OdemeTarihi);
 
 public record ServisKaydiYaniti(
     string Id,

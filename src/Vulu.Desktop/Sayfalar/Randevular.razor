@@ -5,7 +5,12 @@
 <h1>Randevular</h1>
 
 <div class="arac-cubugu">
-    <button @onclick="YeniAc">Yeni randevu</button>
+    <button @onclick="() => YeniAc(null)">Yeni randevu</button>
+
+    <div class="gorunum-secimi" role="group" aria-label="Görünüm">
+        <button class="@(_takvim ? "ikincil" : "")" aria-pressed="@(_takvim ? "false" : "true")" @onclick="() => GorunumSec(false)">Liste</button>
+        <button class="@(_takvim ? "" : "ikincil")" aria-pressed="@(_takvim ? "true" : "false")" @onclick="() => GorunumSec(true)">Takvim</button>
+    </div>
 
     <select class="suzgec" aria-label="Duruma göre süz" @bind="_durum" @bind:after="SuzgecDegisti">
         <option value="">Tüm durumlar</option>
@@ -23,7 +28,49 @@
     <p class="hata" role="alert">@_listeHatasi</p>
 }
 
-@if (_sayfa is null)
+@if (_takvim)
+{
+    <div class="hafta-cubugu">
+        <button class="ikincil" @onclick="() => HaftayaGit(_haftaBasi.AddDays(-7))">‹ Önceki hafta</button>
+        <button class="ikincil" @onclick="() => HaftayaGit(Bicim.HaftaBasi(DateTime.Today))">Bu hafta</button>
+        <button class="ikincil" @onclick="() => HaftayaGit(_haftaBasi.AddDays(7))">Sonraki hafta ›</button>
+        <strong>@Bicim.HaftaAraligi(_haftaBasi)</strong>
+    </div>
+
+    <div class="takvim">
+        @for (var i = 0; i < 7; i++)
+        {
+            var gun = _haftaBasi.AddDays(i);
+            var gununRandevulari = (_sayfa?.Ogeler ?? []).Where(r => r.RandevuTarihi.ToLocalTime().Date == gun).ToList();
+
+            <section class="takvim-gunu @(gun == DateTime.Today ? "bugun" : "")" @key="gun">
+                <header>
+                    <span>@Bicim.GunBasligi(gun)</span>
+                    <button class="ikincil" title="Bu güne randevu ekle" aria-label="@Bicim.GunBasligi(gun) gününe randevu ekle"
+                            @onclick="() => YeniAc(gun)">+</button>
+                </header>
+
+                @foreach (var randevu in gununRandevulari)
+                {
+                    <button class="takvim-randevusu @Bicim.TakvimSinifi(randevu.Durum)" @key="randevu.Id" @onclick="() => DuzenleAc(randevu)">
+                        <span class="saat">@Bicim.SaatAraligi(randevu.RandevuTarihi, randevu.SureDakika)</span>
+                        <span>@randevu.MusteriAdi</span>
+                        @if (randevu.TeknisyenAdi is not null)
+                        {
+                            <span class="soluk">@randevu.TeknisyenAdi</span>
+                        }
+                    </button>
+                }
+
+                @if (gununRandevulari.Count == 0)
+                {
+                    <p class="soluk">—</p>
+                }
+            </section>
+        }
+    </div>
+}
+else if (_sayfa is null)
 {
     <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
 }
@@ -48,7 +95,7 @@ else
             @foreach (var randevu in _sayfa.Ogeler)
             {
                 <tr @key="randevu.Id">
-                    <td class="dar">@Bicim.Tarih(randevu.RandevuTarihi)</td>
+                    <td class="dar">@Bicim.Tarih(randevu.RandevuTarihi)<br /><span class="soluk">@randevu.SureDakika dk</span></td>
                     <td>@randevu.MusteriAdi<br /><span class="soluk">@randevu.MusteriTelefonu</span></td>
                     <td>@(randevu.TeknisyenAdi ?? "—")</td>
                     <td class="uzun-metin">@(randevu.Aciklama ?? "—")</td>
@@ -92,8 +139,21 @@ else
             <label>Müşteri</label>
             <MusteriSecici Secili="_musteri" SeciliChanged="MusteriSecildi" />
 
-            <label for="r-tarih">Tarih ve saat</label>
-            <input id="r-tarih" type="datetime-local" @bind="_tarih" />
+            <div class="yan-yana">
+                <div>
+                    <label for="r-tarih">Tarih ve saat</label>
+                    <input id="r-tarih" type="datetime-local" @bind="_tarih" />
+                </div>
+                <div>
+                    <label for="r-sure">Süre</label>
+                    <select id="r-sure" @bind="_sure">
+                        @foreach (var sure in SureSecenekleri)
+                        {
+                            <option value="@sure">@Bicim.Sure(sure)</option>
+                        }
+                    </select>
+                </div>
+            </div>
 
             <label for="r-teknisyen">Teknisyen (isteğe bağlı)</label>
             <select id="r-teknisyen" @bind="_teknisyenId">
@@ -131,6 +191,8 @@ else
 
 @code {
     private const int SayfaBoyutu = 20;
+    private const int TakvimBoyutu = 200;
+    private static readonly int[] StandartSureler = [30, 60, 90, 120, 180, 240];
 
     private Sayfa<RandevuYaniti>? _sayfa;
     private int _sayfaNo = 1;
@@ -140,10 +202,14 @@ else
     private string? _listeHatasi;
     private bool _yukleniyor;
 
+    private bool _takvim;
+    private DateTime _haftaBasi = Bicim.HaftaBasi(DateTime.Today);
+
     private bool _formAcik;
     private RandevuYaniti? _duzenlenen;
     private MusteriYaniti? _musteri;
     private DateTime? _tarih;
+    private int _sure = RandevuKurallari.VarsayilanSure;
     private string _teknisyenId = "";
     private string _servisKaydiId = "";
     private string _aciklama = "";
@@ -157,6 +223,9 @@ else
 
     private int SayfaSayisi => _sayfa is null ? 1 : (int)Math.Max(1, Math.Ceiling(_sayfa.Toplam / (double)_sayfa.Boyut));
 
+    // Düzenlenen randevunun süresi standart seçeneklerden biri değilse listeye eklenir ki kaybolmasın.
+    private IEnumerable<int> SureSecenekleri => StandartSureler.Append(_sure).Distinct().Order();
+
     private string BosListeMetni =>
         _arama.Length > 0 ? "Aramayla eşleşen randevu yok."
         : _durum == RandevuDurumu.Planlandi.ToString() ? "Planlanmış randevu yok."
@@ -167,8 +236,13 @@ else
 
     private async Task Yukle()
     {
-        var sorgu = $"arama={Uri.EscapeDataString(_arama)}&sayfa={_sayfaNo}&boyut={SayfaBoyutu}";
+        var sorgu = $"arama={Uri.EscapeDataString(_arama)}";
         if (_durum.Length > 0) sorgu += $"&durum={_durum}";
+
+        // Takvim seçili haftanın tamamını tek seferde ister; liste sayfalanır.
+        sorgu += _takvim
+            ? $"&baslangic={Bicim.SorguTarihi(_haftaBasi)}&bitis={Bicim.SorguTarihi(_haftaBasi.AddDays(7))}&boyut={TakvimBoyutu}"
+            : $"&sayfa={_sayfaNo}&boyut={SayfaBoyutu}";
 
         _yukleniyor = true;
         var sonuc = await Api.Getir<Sayfa<RandevuYaniti>>($"api/randevular?{sorgu}");
@@ -180,11 +254,27 @@ else
         _sayfa = sonuc.Deger;
 
         // Son sayfadaki tek kayıt listeden çıktıysa boş sayfada kalmamak için geri dön.
-        if (_sayfa.Ogeler.Count == 0 && _sayfaNo > 1)
+        if (!_takvim && _sayfa.Ogeler.Count == 0 && _sayfaNo > 1)
         {
             _sayfaNo = SayfaSayisi;
             await Yukle();
         }
+    }
+
+    private Task GorunumSec(bool takvim)
+    {
+        if (_takvim == takvim) return Task.CompletedTask;
+
+        _takvim = takvim;
+        _sayfa = null;
+        _sayfaNo = 1;
+        return Yukle();
+    }
+
+    private Task HaftayaGit(DateTime haftaBasi)
+    {
+        _haftaBasi = haftaBasi;
+        return Yukle();
     }
 
     private Task Ara(string arama)
@@ -212,18 +302,20 @@ else
         if (sonuc.Basarili) await Yukle();
     }
 
-    private Task YeniAc() => FormuAc(null);
+    // gun verilirse (takvimdeki + düğmesi) form o günün sabahına ayarlı açılır.
+    private Task YeniAc(DateTime? gun) => FormuAc(null, gun?.AddHours(9));
 
-    private Task DuzenleAc(RandevuYaniti randevu) => FormuAc(randevu);
+    private Task DuzenleAc(RandevuYaniti randevu) => FormuAc(randevu, null);
 
-    private async Task FormuAc(RandevuYaniti? randevu)
+    private async Task FormuAc(RandevuYaniti? randevu, DateTime? onerilenTarih)
     {
         _duzenlenen = randevu;
         // Seçici yalnızca ad ve telefonu gösterir; randevudaki kopya bunun için yeterlidir.
         _musteri = randevu is null
             ? null
             : new MusteriYaniti(randevu.MusteriId, randevu.MusteriAdi, randevu.MusteriTelefonu, null, null, default);
-        _tarih = randevu?.RandevuTarihi.ToLocalTime();
+        _tarih = randevu?.RandevuTarihi.ToLocalTime() ?? onerilenTarih;
+        _sure = randevu?.SureDakika ?? RandevuKurallari.VarsayilanSure;
         _teknisyenId = randevu?.TeknisyenId ?? "";
         _servisKaydiId = randevu?.ServisKaydiId ?? "";
         _aciklama = randevu?.Aciklama ?? "";
@@ -279,6 +371,7 @@ else
             _teknisyenId.Length > 0 ? _teknisyenId : null,
             _servisKaydiId.Length > 0 ? _servisKaydiId : null,
             tarih,
+            _sure,
             string.IsNullOrWhiteSpace(_aciklama) ? null : _aciklama.Trim());
 
         _kaydediliyor = true;

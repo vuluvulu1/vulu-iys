@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
 using Vulu.Api.Controllers;
+using Vulu.Api.Faturalar;
 using Vulu.Api.Kimlik;
 using Vulu.Api.Veri;
 
@@ -38,6 +39,10 @@ builder.Services.AddSingleton(sp =>
         .GetDatabase(sp.GetRequiredService<IOptions<MongoAyarlari>>().Value.VeritabaniAdi));
 builder.Services.AddSingleton<MongoBaglami>();
 builder.Services.AddHostedService<VeritabaniHazirlamaServisi>();
+
+// Fatura belgesi
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+builder.Services.Configure<FirmaAyarlari>(builder.Configuration.GetSection(FirmaAyarlari.Bolum));
 
 // Kimlik doğrulama
 builder.Services.AddOptions<JwtAyarlari>()

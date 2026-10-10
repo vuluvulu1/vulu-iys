@@ -31,6 +31,22 @@ public class ApiIstemcisi
     public Task<ApiSonucu<object>> Sil(string yol) => Calistir<object>(HttpMethod.Delete, yol, null);
     public Task<ApiSonucu<T>> Sil<T>(string yol) => Calistir<T>(HttpMethod.Delete, yol, null);
 
+    // Dosya yanıtları (örn. fatura PDF'i) için: gövdeyi olduğu gibi döner.
+    public async Task<ApiSonucu<byte[]>> Indir(string yol)
+    {
+        try
+        {
+            using var yanit = await Yolla(HttpMethod.Get, yol, null);
+            return yanit.IsSuccessStatusCode
+                ? ApiSonucu<byte[]>.Tamam(await yanit.Content.ReadAsByteArrayAsync())
+                : ApiSonucu<byte[]>.Basarisiz(await ApiHatasi.Oku(yanit));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return ApiSonucu<byte[]>.Basarisiz(ApiHatasi.SunucuyaUlasilamadi);
+        }
+    }
+
     private async Task<ApiSonucu<T>> Calistir<T>(HttpMethod yontem, string yol, object? govde)
     {
         try
