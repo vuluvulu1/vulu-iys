@@ -29,6 +29,7 @@ public class ApiIstemcisi
     public Task<ApiSonucu<T>> Ekle<T>(string yol, object govde) => Calistir<T>(HttpMethod.Post, yol, govde);
     public Task<ApiSonucu<T>> Guncelle<T>(string yol, object govde) => Calistir<T>(HttpMethod.Put, yol, govde);
     public Task<ApiSonucu<object>> Sil(string yol) => Calistir<object>(HttpMethod.Delete, yol, null);
+    public Task<ApiSonucu<T>> Sil<T>(string yol) => Calistir<T>(HttpMethod.Delete, yol, null);
 
     private async Task<ApiSonucu<T>> Calistir<T>(HttpMethod yontem, string yol, object? govde)
     {

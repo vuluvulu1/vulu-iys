@@ -1,7 +1,8 @@
 @* Sayfanın üzerinde açılan iletişim penceresi. *@
 
 <div class="perde" @onclick="Kapat">
-    <div class="pencere" role="dialog" aria-modal="true" aria-label="@Baslik" @onclick:stopPropagation="true">
+    <div class="pencere @(Genis ? "genis" : "")" role="dialog" aria-modal="true" aria-label="@Baslik"
+         @onclick:stopPropagation="true">
         <header>
             <h2>@Baslik</h2>
             <button type="button" class="kapat" aria-label="Kapat" @onclick="Kapat">×</button>
@@ -12,6 +13,7 @@
 
 @code {
     [Parameter, EditorRequired] public string Baslik { get; set; } = "";
+    [Parameter] public bool Genis { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback KapatIstendi { get; set; }
 

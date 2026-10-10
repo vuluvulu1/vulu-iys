@@ -1,0 +1,90 @@
+@* Servis kaydı açma ve düzenleme penceresi. Durum ve fatura burada değil, kayıt ayrıntısında değiştirilir. *@
+@inject ApiIstemcisi Api
+
+<Pencere Baslik="@(Kayit is null ? "Yeni servis kaydı" : "Servis kaydını düzenle")" Genis="true" KapatIstendi="Vazgec">
+    <form @onsubmit="Kaydet">
+        <label>Müşteri</label>
+        <MusteriSecici Secili="_musteri" SeciliChanged="MusteriSecildi" />
+
+        <label for="s-teknisyen">Teknisyen (isteğe bağlı)</label>
+        <select id="s-teknisyen" @bind="_teknisyenId">
+            <option value="">— Atanmadı —</option>
+            @foreach (var teknisyen in _teknisyenler)
+            {
+                <option value="@teknisyen.Id">@teknisyen.AdSoyad@(teknisyen.Uzmanlik is null ? "" : $" ({teknisyen.Uzmanlik})")</option>
+            }
+        </select>
+
+        <label for="s-cihaz">Cihaz</label>
+        <input id="s-cihaz" @bind="_cihaz" @bind:event="oninput" placeholder="Örn. Laptop – Dell XPS 13" autocomplete="off" />
+
+        <label for="s-sorun">Sorun</label>
+        <textarea id="s-sorun" rows="4" @bind="_sorun" @bind:event="oninput"></textarea>
+
+        <FormAltligi Hata="@_hata" Mesgul="_kaydediliyor" Vazgec="Vazgec" />
+    </form>
+</Pencere>
+
+@code {
+    [Parameter] public ServisKaydiYaniti? Kayit { get; set; }
+    [Parameter] public EventCallback Vazgec { get; set; }
+    [Parameter] public EventCallback<ServisKaydiYaniti> Kaydedildi { get; set; }
+
+    private List<TeknisyenYaniti> _teknisyenler = [];
+    private MusteriYaniti? _musteri;
+    private string _teknisyenId = "";
+    private string _cihaz = "";
+    private string _sorun = "";
+    private string? _hata;
+    private bool _kaydediliyor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Kayit is not null)
+        {
+            // Seçici yalnızca ad ve telefonu gösterir; kayıttaki kopya bunun için yeterlidir.
+            _musteri = new MusteriYaniti(Kayit.MusteriId, Kayit.MusteriAdi, Kayit.MusteriTelefonu, null, null, default);
+            _teknisyenId = Kayit.TeknisyenId ?? "";
+            _cihaz = Kayit.CihazBilgisi;
+            _sorun = Kayit.Sorun;
+        }
+
+        var sonuc = await Api.Getir<List<TeknisyenYaniti>>("api/teknisyenler");
+        _teknisyenler = sonuc.Deger ?? [];
+        _hata = sonuc.Hata;
+    }
+
+    private void MusteriSecildi(MusteriYaniti? musteri)
+    {
+        _musteri = musteri;
+        _hata = null;
+    }
+
+    private async Task Kaydet()
+    {
+        if (_kaydediliyor) return;
+
+        if (_musteri is null)
+        {
+            _hata = "Müşteri seçilmeli.";
+            return;
+        }
+
+        var istek = new ServisKaydiIstegi(_musteri.Id, _teknisyenId.Length > 0 ? _teknisyenId : null,
+            _cihaz.Trim(), _sorun.Trim());
+
+        _kaydediliyor = true;
+        var sonuc = Kayit is null
+            ? await Api.Ekle<ServisKaydiYaniti>("api/servis-kayitlari", istek)
+            : await Api.Guncelle<ServisKaydiYaniti>($"api/servis-kayitlari/{Kayit.Id}", istek);
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili || sonuc.Deger is null)
+        {
+            _hata = sonuc.Hata;
+            return;
+        }
+
+        await Kaydedildi.InvokeAsync(sonuc.Deger);
+    }
+}

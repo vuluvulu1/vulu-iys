@@ -1,0 +1,204 @@
+@* Servis kaydının ayrıntı penceresi: bilgiler, durum değişikliği ve fatura işlemleri. *@
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<Pencere Baslik="Servis kaydı" Genis="true" KapatIstendi="Kapat">
+    <dl class="ayrinti">
+        <dt>Müşteri</dt>
+        <dd>@Kayit.MusteriAdi <span class="soluk">@Kayit.MusteriTelefonu</span></dd>
+        <dt>Cihaz</dt>
+        <dd>@Kayit.CihazBilgisi</dd>
+        <dt>Sorun</dt>
+        <dd class="cok-satirli">@Kayit.Sorun</dd>
+        <dt>Teknisyen</dt>
+        <dd>@(Kayit.TeknisyenAdi ?? "Atanmadı")</dd>
+        <dt>Açılış</dt>
+        <dd>@Bicim.Tarih(Kayit.OlusturmaTarihi)</dd>
+        @if (Kayit.TamamlanmaTarihi is { } tamamlanma)
+        {
+            <dt>Tamamlanma</dt>
+            <dd>@Bicim.Tarih(tamamlanma)</dd>
+        }
+    </dl>
+
+    <section class="bolum">
+        <h3>Durum</h3>
+        <div class="durum-secimi">
+            @foreach (var durum in Enum.GetValues<ServisDurumu>())
+            {
+                <button type="button" class="@(durum == Kayit.Durum ? "" : "ikincil")" aria-pressed="@(durum == Kayit.Durum ? "true" : "false")"
+                        disabled="@(_mesgul || Kayit.Fatura is not null)" @onclick="() => DurumuDegistir(durum)">
+                    @Bicim.Durum(durum)
+                </button>
+            }
+        </div>
+        @if (Kayit.Fatura is not null)
+        {
+            <p class="soluk aciklama">Faturası olan kaydın durumu değiştirilemez.</p>
+        }
+    </section>
+
+    <section class="bolum">
+        <h3>Fatura</h3>
+
+        @if (Kayit.Fatura is null && Kayit.Durum != ServisDurumu.Tamamlandi)
+        {
+            <p class="soluk aciklama">Fatura kesmek için kaydı önce “Tamamlandı” olarak işaretleyin.</p>
+        }
+        else
+        {
+            @if (Kayit.Fatura is { } fatura)
+            {
+                <dl class="ayrinti">
+                    <dt>Tutar</dt>
+                    <dd><strong>@Bicim.Para(fatura.Tutar)</strong></dd>
+                    <dt>Ödeme</dt>
+                    <dd>
+                        @if (fatura.OdemeTarihi is { } odeme)
+                        {
+                            <span class="durum iyi">Ödendi</span> <span class="soluk">@Bicim.Tarih(odeme)</span>
+                        }
+                        else
+                        {
+                            <span class="durum kotu">Ödenmedi</span>
+                        }
+                    </dd>
+                    <dt>Kesildi</dt>
+                    <dd>@Bicim.Tarih(fatura.OlusturmaTarihi)</dd>
+                </dl>
+            }
+
+            <div class="fatura-formu">
+                <label for="d-tutar">Tutar (₺)</label>
+                <input id="d-tutar" @bind="_tutar" @bind:event="oninput" inputmode="decimal" placeholder="750,50" autocomplete="off" />
+                <label class="onay-kutusu">
+                    <input id="d-odendi" type="checkbox" @bind="_odendi" />
+                    Ödendi
+                </label>
+                <button type="button" disabled="@_mesgul" @onclick="FaturayiKaydet">
+                    @(Kayit.Fatura is null ? "Fatura kes" : "Faturayı güncelle")
+                </button>
+                @if (Kayit.Fatura is not null && Oturum.AdminMi)
+                {
+                    <button type="button" class="tehlike" disabled="@_mesgul" @onclick="FaturayiSil">
+                        @(_faturaSilmeOnayi ? "Silmeyi onayla" : "Faturayı sil")
+                    </button>
+                }
+            </div>
+        }
+    </section>
+
+    @if (_hata is not null)
+    {
+        <p class="hata" role="alert">@_hata</p>
+    }
+
+    <footer>
+        @if (Oturum.AdminMi)
+        {
+            <button type="button" class="tehlike sola" disabled="@_mesgul" @onclick="KaydiSil">
+                @(_kayitSilmeOnayi ? "Silmeyi onayla" : "Kaydı sil")
+            </button>
+        }
+        <button type="button" class="ikincil" disabled="@_mesgul" @onclick="DuzenleIstendi">Düzenle</button>
+        <button type="button" class="ikincil" @onclick="Kapat">Kapat</button>
+    </footer>
+</Pencere>
+
+@code {
+    [Parameter, EditorRequired] public ServisKaydiYaniti Kayit { get; set; } = null!;
+    [Parameter] public EventCallback<ServisKaydiYaniti> Degisti { get; set; }
+    [Parameter] public EventCallback Silindi { get; set; }
+    [Parameter] public EventCallback DuzenleIstendi { get; set; }
+    [Parameter] public EventCallback Kapat { get; set; }
+
+    private string _tutar = "";
+    private bool _odendi;
+    private string? _hata;
+    private bool _mesgul;
+    private bool _faturaSilmeOnayi;
+    private bool _kayitSilmeOnayi;
+    private ServisKaydiYaniti? _alanlarinKaydi;
+
+    private string Yol => $"api/servis-kayitlari/{Kayit.Id}";
+
+    protected override void OnParametersSet()
+    {
+        // Fatura alanları yalnızca kayıt değiştiğinde (başka kayıt açıldığında ya da bir işlem sonrası yenilendiğinde)
+        // doldurulur; sayfanın araya giren yeniden çizimleri kullanıcının yazdığını silmez.
+        if (ReferenceEquals(_alanlarinKaydi, Kayit)) return;
+        _alanlarinKaydi = Kayit;
+
+        _tutar = Kayit.Fatura is { } fatura ? Bicim.ParaGirdisi(fatura.Tutar) : "";
+        _odendi = Kayit.Fatura?.OdendiMi ?? false;
+    }
+
+    private Task DurumuDegistir(ServisDurumu durum) =>
+        durum == Kayit.Durum
+            ? Task.CompletedTask
+            : Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/durum", new ServisDurumuIstegi(durum)));
+
+    private async Task FaturayiKaydet()
+    {
+        if (!Bicim.ParaOku(_tutar, out var tutar) || tutar <= 0)
+        {
+            _hata = "Geçerli bir tutar girin (örn. 750,50).";
+            return;
+        }
+
+        await Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/fatura", new FaturaIstegi(tutar, _odendi)));
+    }
+
+    // Silme düğmeleri iki adımlıdır: ilk tıklama onay ister, ikincisi siler.
+    private async Task FaturayiSil()
+    {
+        if (!_faturaSilmeOnayi)
+        {
+            _faturaSilmeOnayi = true;
+            return;
+        }
+
+        await Calistir(() => Api.Sil<ServisKaydiYaniti>($"{Yol}/fatura"));
+    }
+
+    private async Task KaydiSil()
+    {
+        if (!_kayitSilmeOnayi)
+        {
+            _kayitSilmeOnayi = true;
+            return;
+        }
+
+        _mesgul = true;
+        var sonuc = await Api.Sil(Yol);
+        _mesgul = false;
+        _kayitSilmeOnayi = false;
+
+        if (!sonuc.Basarili)
+        {
+            _hata = sonuc.Hata;
+            return;
+        }
+
+        await Silindi.InvokeAsync();
+    }
+
+    private async Task Calistir(Func<Task<ApiSonucu<ServisKaydiYaniti>>> istek)
+    {
+        _mesgul = true;
+        _hata = null;
+        var sonuc = await istek();
+        _mesgul = false;
+        _faturaSilmeOnayi = false;
+        _kayitSilmeOnayi = false;
+
+        if (!sonuc.Basarili || sonuc.Deger is null)
+        {
+            _hata = sonuc.Hata;
+            return;
+        }
+
+        // Sayfa güncel kaydı parametre olarak geri verir; alanlar OnParametersSet içinde yenilenir.
+        await Degisti.InvokeAsync(sonuc.Deger);
+    }
+}

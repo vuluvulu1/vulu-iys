@@ -84,7 +84,8 @@ public class TeknisyenlerController : ControllerBase
 
         // Servis kayıtları ve randevular teknisyenin adının kopyasını taşır; onlar da güncellenir.
         await _db.ServisKayitlari.UpdateManyAsync(s => s.TeknisyenId == id,
-            Builders<ServisKaydi>.Update.Set(s => s.TeknisyenAdi, teknisyen.AdSoyad), cancellationToken: iptal);
+            Builders<ServisKaydi>.Update.Set(s => s.TeknisyenAdi, teknisyen.AdSoyad).Inc(s => s.Surum, 1),
+            cancellationToken: iptal);
         await _db.Randevular.UpdateManyAsync(r => r.TeknisyenId == id,
             Builders<Randevu>.Update.Set(r => r.TeknisyenAdi, teknisyen.AdSoyad), cancellationToken: iptal);
 
