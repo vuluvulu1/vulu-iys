@@ -100,7 +100,7 @@ yoksa `mongodb://localhost:27017` kullanılır. Her test kendi geçici veritaban
 - [x] 4. Müşteriler (uç noktalar + ekran)
 - [x] 5. Teknisyenler (uç noktalar + ekran)
 - [x] 6. Servis kayıtları ve fatura (uç noktalar + ekran)
-- [ ] 7. Randevular (uç noktalar + ekran)
+- [x] 7. Randevular (uç noktalar + ekran)
 - [ ] 8. Dağıtım paketi
 
 Logo `assets/logo.svg` dosyasındadır. Değiştirilirse pencere ve exe simgesi

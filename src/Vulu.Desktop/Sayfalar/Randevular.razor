@@ -1,0 +1,323 @@
+@page "/randevular"
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<h1>Randevular</h1>
+
+<div class="arac-cubugu">
+    <button @onclick="YeniAc">Yeni randevu</button>
+
+    <select class="suzgec" aria-label="Duruma göre süz" @bind="_durum" @bind:after="SuzgecDegisti">
+        <option value="">Tüm durumlar</option>
+        @foreach (var durum in Enum.GetValues<RandevuDurumu>())
+        {
+            <option value="@durum">@Bicim.Durum(durum)</option>
+        }
+    </select>
+
+    <AramaKutusu YerTutucu="Müşteri adı veya telefonu ara" Etiket="Randevu ara" Arandi="Ara" />
+</div>
+
+@if (_listeHatasi is not null)
+{
+    <p class="hata" role="alert">@_listeHatasi</p>
+}
+
+@if (_sayfa is null)
+{
+    <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
+}
+else if (_sayfa.Ogeler.Count == 0)
+{
+    <p class="soluk">@BosListeMetni</p>
+}
+else
+{
+    <table class="tablo">
+        <thead>
+            <tr>
+                <th>Tarih</th>
+                <th>Müşteri</th>
+                <th>Teknisyen</th>
+                <th>Açıklama</th>
+                <th>Durum</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var randevu in _sayfa.Ogeler)
+            {
+                <tr @key="randevu.Id">
+                    <td class="dar">@Bicim.Tarih(randevu.RandevuTarihi)</td>
+                    <td>@randevu.MusteriAdi<br /><span class="soluk">@randevu.MusteriTelefonu</span></td>
+                    <td>@(randevu.TeknisyenAdi ?? "—")</td>
+                    <td class="uzun-metin">@(randevu.Aciklama ?? "—")</td>
+                    <td><span class="@Bicim.DurumSinifi(randevu.Durum)">@Bicim.Durum(randevu.Durum)</span></td>
+                    <td class="islemler">
+                        @if (randevu.Durum == RandevuDurumu.Planlandi)
+                        {
+                            <button class="ikincil" @onclick="() => DurumuDegistir(randevu, RandevuDurumu.Tamamlandi)">Tamamla</button>
+                            <button class="ikincil" @onclick="() => DurumuDegistir(randevu, RandevuDurumu.IptalEdildi)">İptal et</button>
+                        }
+                        else
+                        {
+                            <button class="ikincil" @onclick="() => DurumuDegistir(randevu, RandevuDurumu.Planlandi)">Yeniden planla</button>
+                        }
+                        <button class="ikincil" @onclick="() => DuzenleAc(randevu)">Düzenle</button>
+                        @if (Oturum.AdminMi)
+                        {
+                            <button class="tehlike" @onclick="() => _silinecek = randevu">Sil</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="sayfalama">
+        <span class="soluk">@_sayfa.Toplam kayıt</span>
+        @if (SayfaSayisi > 1)
+        {
+            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo - 1)" disabled="@(_sayfaNo <= 1)">Önceki</button>
+            <span>@_sayfaNo / @SayfaSayisi</span>
+            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo + 1)" disabled="@(_sayfaNo >= SayfaSayisi)">Sonraki</button>
+        }
+    </div>
+}
+
+@if (_formAcik)
+{
+    <Pencere Baslik="@(_duzenlenen is null ? "Yeni randevu" : "Randevuyu düzenle")" Genis="true" KapatIstendi="FormuKapat">
+        <form @onsubmit="Kaydet">
+            <label>Müşteri</label>
+            <MusteriSecici Secili="_musteri" SeciliChanged="MusteriSecildi" />
+
+            <label for="r-tarih">Tarih ve saat</label>
+            <input id="r-tarih" type="datetime-local" @bind="_tarih" />
+
+            <label for="r-teknisyen">Teknisyen (isteğe bağlı)</label>
+            <select id="r-teknisyen" @bind="_teknisyenId">
+                <option value="">— Atanmadı —</option>
+                @foreach (var teknisyen in _teknisyenler)
+                {
+                    <option value="@teknisyen.Id">@teknisyen.AdSoyad</option>
+                }
+            </select>
+
+            <label for="r-kayit">İlgili servis kaydı (isteğe bağlı)</label>
+            <select id="r-kayit" @bind="_servisKaydiId" disabled="@(_musteri is null)">
+                <option value="">— Yok —</option>
+                @foreach (var kayit in _musterininKayitlari)
+                {
+                    <option value="@kayit.Id">@Bicim.Tarih(kayit.OlusturmaTarihi) – @kayit.CihazBilgisi</option>
+                }
+            </select>
+
+            <label for="r-aciklama">Açıklama (isteğe bağlı)</label>
+            <textarea id="r-aciklama" rows="3" @bind="_aciklama" @bind:event="oninput"></textarea>
+
+            <FormAltligi Hata="@_formHatasi" Mesgul="_kaydediliyor" Vazgec="FormuKapat" />
+        </form>
+    </Pencere>
+}
+
+@if (_silinecek is not null)
+{
+    <SilmeOnayi Baslik="Randevuyu sil" Hata="@_silmeHatasi" Mesgul="_kaydediliyor" Onayla="Sil" Vazgec="SilmeyiKapat">
+        <strong>@_silinecek.MusteriAdi</strong> için @Bicim.Tarih(_silinecek.RandevuTarihi) randevusu kalıcı olarak silinecek.
+        Randevu gerçekleşmeyecekse silmek yerine iptal edin.
+    </SilmeOnayi>
+}
+
+@code {
+    private const int SayfaBoyutu = 20;
+
+    private Sayfa<RandevuYaniti>? _sayfa;
+    private int _sayfaNo = 1;
+    private string _arama = "";
+    // Sayfa, yaklaşan işleri göstermek için planlanmış randevularla açılır.
+    private string _durum = RandevuDurumu.Planlandi.ToString();
+    private string? _listeHatasi;
+    private bool _yukleniyor;
+
+    private bool _formAcik;
+    private RandevuYaniti? _duzenlenen;
+    private MusteriYaniti? _musteri;
+    private DateTime? _tarih;
+    private string _teknisyenId = "";
+    private string _servisKaydiId = "";
+    private string _aciklama = "";
+    private List<TeknisyenYaniti> _teknisyenler = [];
+    private IReadOnlyList<ServisKaydiYaniti> _musterininKayitlari = [];
+    private string? _formHatasi;
+    private bool _kaydediliyor;
+
+    private RandevuYaniti? _silinecek;
+    private string? _silmeHatasi;
+
+    private int SayfaSayisi => _sayfa is null ? 1 : (int)Math.Max(1, Math.Ceiling(_sayfa.Toplam / (double)_sayfa.Boyut));
+
+    private string BosListeMetni =>
+        _arama.Length > 0 ? "Aramayla eşleşen randevu yok."
+        : _durum == RandevuDurumu.Planlandi.ToString() ? "Planlanmış randevu yok."
+        : _durum.Length > 0 ? "Bu durumda randevu yok."
+        : "Henüz randevu yok.";
+
+    protected override Task OnInitializedAsync() => Yukle();
+
+    private async Task Yukle()
+    {
+        var sorgu = $"arama={Uri.EscapeDataString(_arama)}&sayfa={_sayfaNo}&boyut={SayfaBoyutu}";
+        if (_durum.Length > 0) sorgu += $"&durum={_durum}";
+
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<Sayfa<RandevuYaniti>>($"api/randevular?{sorgu}");
+        _yukleniyor = false;
+
+        _listeHatasi = sonuc.Hata;
+        if (!sonuc.Basarili || sonuc.Deger is null) return;
+
+        _sayfa = sonuc.Deger;
+
+        // Son sayfadaki tek kayıt listeden çıktıysa boş sayfada kalmamak için geri dön.
+        if (_sayfa.Ogeler.Count == 0 && _sayfaNo > 1)
+        {
+            _sayfaNo = SayfaSayisi;
+            await Yukle();
+        }
+    }
+
+    private Task Ara(string arama)
+    {
+        _arama = arama;
+        return SuzgecDegisti();
+    }
+
+    private Task SuzgecDegisti()
+    {
+        _sayfaNo = 1;
+        return Yukle();
+    }
+
+    private Task SayfayaGit(int sayfaNo)
+    {
+        _sayfaNo = Math.Clamp(sayfaNo, 1, SayfaSayisi);
+        return Yukle();
+    }
+
+    private async Task DurumuDegistir(RandevuYaniti randevu, RandevuDurumu durum)
+    {
+        var sonuc = await Api.Guncelle<RandevuYaniti>($"api/randevular/{randevu.Id}/durum", new RandevuDurumuIstegi(durum));
+        _listeHatasi = sonuc.Hata;
+        if (sonuc.Basarili) await Yukle();
+    }
+
+    private Task YeniAc() => FormuAc(null);
+
+    private Task DuzenleAc(RandevuYaniti randevu) => FormuAc(randevu);
+
+    private async Task FormuAc(RandevuYaniti? randevu)
+    {
+        _duzenlenen = randevu;
+        // Seçici yalnızca ad ve telefonu gösterir; randevudaki kopya bunun için yeterlidir.
+        _musteri = randevu is null
+            ? null
+            : new MusteriYaniti(randevu.MusteriId, randevu.MusteriAdi, randevu.MusteriTelefonu, null, null, default);
+        _tarih = randevu?.RandevuTarihi.ToLocalTime();
+        _teknisyenId = randevu?.TeknisyenId ?? "";
+        _servisKaydiId = randevu?.ServisKaydiId ?? "";
+        _aciklama = randevu?.Aciklama ?? "";
+        _formHatasi = null;
+        _musterininKayitlari = [];
+        _formAcik = true;
+
+        var teknisyenler = await Api.Getir<List<TeknisyenYaniti>>("api/teknisyenler");
+        _teknisyenler = teknisyenler.Deger ?? [];
+        _formHatasi = teknisyenler.Hata;
+
+        await MusterininKayitlariniYukle();
+    }
+
+    private async Task MusteriSecildi(MusteriYaniti? musteri)
+    {
+        _musteri = musteri;
+        _servisKaydiId = "";
+        _formHatasi = null;
+        await MusterininKayitlariniYukle();
+    }
+
+    private async Task MusterininKayitlariniYukle()
+    {
+        _musterininKayitlari = [];
+        if (_musteri is null) return;
+
+        var sonuc = await Api.Getir<Sayfa<ServisKaydiYaniti>>($"api/servis-kayitlari?musteriId={_musteri.Id}&boyut=50");
+        _musterininKayitlari = sonuc.Deger?.Ogeler ?? [];
+    }
+
+    private void FormuKapat() => _formAcik = false;
+
+    private async Task Kaydet()
+    {
+        if (_kaydediliyor) return;
+
+        if (_musteri is null)
+        {
+            _formHatasi = "Müşteri seçilmeli.";
+            return;
+        }
+
+        if (_tarih is null)
+        {
+            _formHatasi = "Tarih ve saat seçilmeli.";
+            return;
+        }
+
+        // Formdaki saat bilgisayarın saat dilimindedir; API'ye UTC gönderilir.
+        var tarih = DateTime.SpecifyKind(_tarih.Value, DateTimeKind.Local).ToUniversalTime();
+        var istek = new RandevuIstegi(_musteri.Id,
+            _teknisyenId.Length > 0 ? _teknisyenId : null,
+            _servisKaydiId.Length > 0 ? _servisKaydiId : null,
+            tarih,
+            string.IsNullOrWhiteSpace(_aciklama) ? null : _aciklama.Trim());
+
+        _kaydediliyor = true;
+        var sonuc = _duzenlenen is null
+            ? await Api.Ekle<RandevuYaniti>("api/randevular", istek)
+            : await Api.Guncelle<RandevuYaniti>($"api/randevular/{_duzenlenen.Id}", istek);
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _formHatasi = sonuc.Hata;
+            return;
+        }
+
+        _formAcik = false;
+        await Yukle();
+    }
+
+    private void SilmeyiKapat()
+    {
+        _silinecek = null;
+        _silmeHatasi = null;
+    }
+
+    private async Task Sil()
+    {
+        if (_silinecek is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Sil($"api/randevular/{_silinecek.Id}");
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _silmeHatasi = sonuc.Hata;
+            return;
+        }
+
+        SilmeyiKapat();
+        await Yukle();
+    }
+}

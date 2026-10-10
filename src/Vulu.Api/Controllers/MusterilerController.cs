@@ -74,6 +74,8 @@ public class MusterilerController : ControllerBase
             Builders<ServisKaydi>.Update.Set(s => s.Musteri, ozet).Inc(s => s.Surum, 1), cancellationToken: iptal);
         await _db.Randevular.UpdateManyAsync(r => r.MusteriId == id,
             Builders<Randevu>.Update.Set(r => r.Musteri, ozet), cancellationToken: iptal);
+        // Not: randevu güncellemesi belgeyi bütün olarak yazdığı için bu kopya, aynı anda düzenlenen bir randevuda
+        // eski haline dönebilir; bir sonraki müşteri güncellemesi düzeltir.
 
         return musteri.YanitaCevir();
     }
