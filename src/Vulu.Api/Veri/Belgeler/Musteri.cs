@@ -15,6 +15,9 @@ public class Musteri
     public string? Adres { get; set; }
     public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
 
+    // Ad, telefon ve e-postanın arama için küçültülmüş hali; bkz. Altyapi.AramaMetni.
+    public string AramaMetni { get; set; } = string.Empty;
+
     // Dolu ise kayıt silinmiş sayılır; geçmiş servis kayıtları bozulmasın diye belge tutulur.
     public DateTime? SilinmeTarihi { get; set; }
 }

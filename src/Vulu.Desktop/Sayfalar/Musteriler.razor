@@ -1,0 +1,260 @@
+@page "/musteriler"
+@implements IDisposable
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<h1>Müşteriler</h1>
+
+<div class="arac-cubugu">
+    <button @onclick="YeniAc">Yeni müşteri</button>
+    <input class="arama" type="search" placeholder="Ad, telefon veya e-posta ara" aria-label="Müşteri ara"
+           @bind="_arama" @bind:event="oninput" @bind:after="AramaDegisti" />
+</div>
+
+@if (_listeHatasi is not null)
+{
+    <p class="hata" role="alert">@_listeHatasi</p>
+}
+
+@if (_sayfa is null)
+{
+    <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
+}
+else if (_sayfa.Ogeler.Count == 0)
+{
+    <p class="soluk">@(string.IsNullOrWhiteSpace(_arama) ? "Henüz müşteri yok." : "Aramayla eşleşen müşteri yok.")</p>
+}
+else
+{
+    <table class="tablo">
+        <thead>
+            <tr>
+                <th>Ad soyad</th>
+                <th>Telefon</th>
+                <th>E-posta</th>
+                <th>Adres</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var musteri in _sayfa.Ogeler)
+            {
+                <tr @key="musteri.Id">
+                    <td>@musteri.AdSoyad</td>
+                    <td>@musteri.Telefon</td>
+                    <td>@(musteri.Email ?? "—")</td>
+                    <td class="uzun-metin">@(musteri.Adres ?? "—")</td>
+                    <td class="islemler">
+                        <button class="ikincil" @onclick="() => DuzenleAc(musteri)">Düzenle</button>
+                        @if (Oturum.AdminMi)
+                        {
+                            <button class="tehlike" @onclick="() => _silinecek = musteri">Sil</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="sayfalama">
+        <span class="soluk">@_sayfa.Toplam kayıt</span>
+        @if (SayfaSayisi > 1)
+        {
+            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo - 1)" disabled="@(_sayfaNo <= 1)">Önceki</button>
+            <span>@_sayfaNo / @SayfaSayisi</span>
+            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo + 1)" disabled="@(_sayfaNo >= SayfaSayisi)">Sonraki</button>
+        }
+    </div>
+}
+
+@if (_form is not null)
+{
+    <Pencere Baslik="@(_duzenlenen is null ? "Yeni müşteri" : "Müşteriyi düzenle")" KapatIstendi="FormuKapat">
+        <form @onsubmit="Kaydet">
+            <label for="m-ad">Ad soyad</label>
+            <input id="m-ad" @bind="_form.AdSoyad" @bind:event="oninput" autocomplete="off" />
+
+            <label for="m-telefon">Telefon</label>
+            <input id="m-telefon" @bind="_form.Telefon" @bind:event="oninput" inputmode="numeric" maxlength="11"
+                   placeholder="05551234567" autocomplete="off" />
+
+            <label for="m-email">E-posta (isteğe bağlı)</label>
+            <input id="m-email" type="email" @bind="_form.Email" @bind:event="oninput" autocomplete="off" />
+
+            <label for="m-adres">Adres (isteğe bağlı)</label>
+            <textarea id="m-adres" rows="3" @bind="_form.Adres" @bind:event="oninput"></textarea>
+
+            @if (_formHatasi is not null)
+            {
+                <p class="hata" role="alert">@_formHatasi</p>
+            }
+
+            <footer>
+                <button type="button" class="ikincil" @onclick="FormuKapat">Vazgeç</button>
+                <button type="submit" disabled="@_kaydediliyor">@(_kaydediliyor ? "Kaydediliyor…" : "Kaydet")</button>
+            </footer>
+        </form>
+    </Pencere>
+}
+
+@if (_silinecek is not null)
+{
+    <Pencere Baslik="Müşteriyi sil" KapatIstendi="SilmeyiKapat">
+        <p><strong>@_silinecek.AdSoyad</strong> müşteri listesinden kaldırılacak. Geçmiş servis kayıtları korunur.</p>
+
+        @if (_silmeHatasi is not null)
+        {
+            <p class="hata" role="alert">@_silmeHatasi</p>
+        }
+
+        <footer>
+            <button type="button" class="ikincil" @onclick="SilmeyiKapat">Vazgeç</button>
+            <button type="button" class="tehlike" @onclick="Sil" disabled="@_kaydediliyor">Sil</button>
+        </footer>
+    </Pencere>
+}
+
+@code {
+    private const int SayfaBoyutu = 20;
+    private static readonly TimeSpan AramaGecikmesi = TimeSpan.FromMilliseconds(300);
+
+    private class MusteriFormu
+    {
+        public string AdSoyad { get; set; } = "";
+        public string Telefon { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Adres { get; set; } = "";
+    }
+
+    private Sayfa<MusteriYaniti>? _sayfa;
+    private int _sayfaNo = 1;
+    private string _arama = "";
+    private string? _listeHatasi;
+    private bool _yukleniyor;
+    private CancellationTokenSource? _aramaBekleme;
+
+    private MusteriFormu? _form;
+    private MusteriYaniti? _duzenlenen;
+    private string? _formHatasi;
+    private bool _kaydediliyor;
+
+    private MusteriYaniti? _silinecek;
+    private string? _silmeHatasi;
+
+    private int SayfaSayisi => _sayfa is null ? 1 : (int)Math.Max(1, Math.Ceiling(_sayfa.Toplam / (double)_sayfa.Boyut));
+
+    protected override Task OnInitializedAsync() => Yukle();
+
+    private async Task Yukle()
+    {
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<Sayfa<MusteriYaniti>>(
+            $"api/musteriler?arama={Uri.EscapeDataString(_arama.Trim())}&sayfa={_sayfaNo}&boyut={SayfaBoyutu}");
+        _yukleniyor = false;
+
+        _listeHatasi = sonuc.Hata;
+        if (!sonuc.Basarili || sonuc.Deger is null) return;
+
+        _sayfa = sonuc.Deger;
+
+        // Son sayfadaki tek kayıt silindiyse boş sayfada kalmamak için bir önceki sayfaya dön.
+        if (_sayfa.Ogeler.Count == 0 && _sayfaNo > 1)
+        {
+            _sayfaNo = SayfaSayisi;
+            await Yukle();
+        }
+    }
+
+    // Her tuşta istek atmamak için yazma durunca aranır.
+    private async Task AramaDegisti()
+    {
+        _aramaBekleme?.Cancel();
+        var bekleme = _aramaBekleme = new CancellationTokenSource();
+
+        try { await Task.Delay(AramaGecikmesi, bekleme.Token); }
+        catch (TaskCanceledException) { return; }
+
+        _sayfaNo = 1;
+        await Yukle();
+    }
+
+    private Task SayfayaGit(int sayfaNo)
+    {
+        _sayfaNo = Math.Clamp(sayfaNo, 1, SayfaSayisi);
+        return Yukle();
+    }
+
+    private void YeniAc()
+    {
+        _duzenlenen = null;
+        _formHatasi = null;
+        _form = new MusteriFormu();
+    }
+
+    private void DuzenleAc(MusteriYaniti musteri)
+    {
+        _duzenlenen = musteri;
+        _formHatasi = null;
+        _form = new MusteriFormu
+        {
+            AdSoyad = musteri.AdSoyad,
+            Telefon = musteri.Telefon ?? "",
+            Email = musteri.Email ?? "",
+            Adres = musteri.Adres ?? ""
+        };
+    }
+
+    private void FormuKapat() => _form = null;
+
+    private async Task Kaydet()
+    {
+        if (_form is null || _kaydediliyor) return;
+
+        var istek = new MusteriIstegi(
+            _form.AdSoyad.Trim(),
+            _form.Telefon.Trim(),
+            string.IsNullOrWhiteSpace(_form.Email) ? null : _form.Email.Trim(),
+            string.IsNullOrWhiteSpace(_form.Adres) ? null : _form.Adres.Trim());
+
+        _kaydediliyor = true;
+        var sonuc = _duzenlenen is null
+            ? await Api.Ekle<MusteriYaniti>("api/musteriler", istek)
+            : await Api.Guncelle<MusteriYaniti>($"api/musteriler/{_duzenlenen.Id}", istek);
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _formHatasi = sonuc.Hata;
+            return;
+        }
+
+        _form = null;
+        await Yukle();
+    }
+
+    private void SilmeyiKapat()
+    {
+        _silinecek = null;
+        _silmeHatasi = null;
+    }
+
+    private async Task Sil()
+    {
+        if (_silinecek is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Sil($"api/musteriler/{_silinecek.Id}");
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _silmeHatasi = sonuc.Hata;
+            return;
+        }
+
+        SilmeyiKapat();
+        await Yukle();
+    }
+
+    public void Dispose() => _aramaBekleme?.Cancel();
+}
