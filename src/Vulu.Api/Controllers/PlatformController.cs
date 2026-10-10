@@ -30,10 +30,10 @@ public class PlatformController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<IsletmeYaniti>>> Listele(CancellationToken iptal)
     {
-        // Liste için logo içerikleri ve ödeme geçmişi taşınmaz.
+        // Liste için logo içerikleri taşınmaz.
         var isletmeler = await _platform.Isletmeler
             .Find(FilterDefinition<Isletme>.Empty, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
-            .Project<Isletme>(Builders<Isletme>.Projection.Exclude(i => i.Logo).Exclude(i => i.Odemeler))
+            .Project<Isletme>(Builders<Isletme>.Projection.Exclude(i => i.Logo))
             .SortBy(i => i.Ad)
             .ToListAsync(iptal);
 
@@ -91,7 +91,7 @@ public class PlatformController : ControllerBase
         return CreatedAtAction(nameof(Listele), isletme.YanitaCevir(personelSayisi: 1));
     }
 
-    // Ad düzeltmesi, askıya alma / yeniden açma ve paket. İşletmenin verisi silinmez.
+    // Ad düzeltmesi, askıya alma / yeniden açma ve personel sınırı. İşletmenin verisi silinmez.
     [HttpPut("{id:oid}")]
     public async Task<ActionResult<IsletmeYaniti>> Guncelle(string id, IsletmeDurumIstegi istek, CancellationToken iptal)
     {
@@ -99,9 +99,6 @@ public class PlatformController : ControllerBase
             .Set(i => i.Ad, istek.Ad.Trim())
             .Set(i => i.AktifMi, istek.AktifMi)
             .Set(i => i.PersonelSiniri, istek.PersonelSiniri);
-        guncelleme = istek.AbonelikBitisi is { } bitis
-            ? guncelleme.Set(i => i.AbonelikBitisi, GunBasi(bitis))
-            : guncelleme.Unset(i => i.AbonelikBitisi);
 
         var isletme = await _platform.Isletmeler.FindOneAndUpdateAsync<Isletme>(i => i.Id == id, guncelleme,
             new FindOneAndUpdateOptions<Isletme> { ReturnDocument = ReturnDocument.After }, iptal);
@@ -175,46 +172,8 @@ public class PlatformController : ControllerBase
         return NoContent();
     }
 
-    // --- Abonelik ödemeleri ---
-
-    [HttpGet("{id:oid}/odemeler")]
-    public async Task<ActionResult<List<OdemeYaniti>>> Odemeler(string id, CancellationToken iptal)
-    {
-        var isletme = await _platform.Isletmeler.Find(i => i.Id == id).FirstOrDefaultAsync(iptal);
-        if (isletme is null) return Bulunamadi();
-
-        return isletme.Odemeler.OrderByDescending(o => o.Tarih)
-            .Select(o => new OdemeYaniti(o.Tarih, o.Tutar, o.Aciklama)).ToList();
-    }
-
-    [HttpPost("{id:oid}/odemeler")]
-    public async Task<ActionResult<IsletmeYaniti>> OdemeEkle(string id, OdemeIstegi istek, CancellationToken iptal)
-    {
-        if (decimal.Round(istek.Tutar, 2) != istek.Tutar)
-            return Problem(detail: "Tutar en fazla iki ondalık hane içermeli.", statusCode: StatusCodes.Status400BadRequest);
-
-        var guncelleme = Builders<Isletme>.Update.Push(i => i.Odemeler, new Odeme
-        {
-            Tarih = Zaman.UtcYap(istek.Tarih),
-            Tutar = istek.Tutar,
-            Aciklama = Metin.BosIseNull(istek.Aciklama)
-        });
-        if (istek.YeniAbonelikBitisi is { } bitis)
-            guncelleme = guncelleme.Set(i => i.AbonelikBitisi, GunBasi(bitis));
-
-        var isletme = await _platform.Isletmeler.FindOneAndUpdateAsync<Isletme>(i => i.Id == id, guncelleme,
-            new FindOneAndUpdateOptions<Isletme> { ReturnDocument = ReturnDocument.After }, iptal);
-        if (isletme is null) return Bulunamadi();
-
-        IsletmeCozucu.OnbellektenCikar(_onbellek, id);
-        return isletme.YanitaCevir(await AktifPersonelSayisi(isletme, iptal));
-    }
-
     private Task<long> AktifPersonelSayisi(Isletme isletme, CancellationToken iptal) =>
         _platform.IsletmeBaglami(isletme).Kullanicilar.CountDocumentsAsync(k => k.AktifMi, cancellationToken: iptal);
-
-    // Abonelik bitişi saat değil gündür; saat dilimi kaymasın diye UTC gün başı olarak saklanır.
-    private static DateTime GunBasi(DateTime tarih) => DateTime.SpecifyKind(tarih.Date, DateTimeKind.Utc);
 
     private ObjectResult Bulunamadi() =>
         Problem(detail: "İşletme bulunamadı.", statusCode: StatusCodes.Status404NotFound);

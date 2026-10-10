@@ -19,11 +19,10 @@ fatura. Tek bir API birden çok işletmeye hizmet verir; her işletmenin verisi 
 
 ### Vulu yöneticisinin işlemleri
 
-- **Paket:** her işletmenin bir personel sınırı vardır (aynı anda aktif hesap sayısı; devre dışı hesaplar
+- **Personel sınırı:** her işletmenin aynı anda aktif olabilecek hesap sayısı sınırlıdır (devre dışı hesaplar
   sayılmaz). Sınır dolunca işletme yöneticisi yeni hesap açamaz.
-- **Abonelik ve ödemeler:** işletmeden alınan ödemeler kaydedilir ve aboneliğin bitiş günü tutulur. Bitiş günü
-  bilgi amaçlıdır: süresi dolan işletme kendiliğinden kapanmaz, vulu yöneticisi askıya alır. İşletme yöneticisi
-  bitişe 7 gün kala ana sayfada uyarı görür.
+- Anlaşma süresi ve ödemeler sistemde tutulmaz; işletmelerle kâğıt üzerinde, uzun dönemli anlaşılır. Anlaşması
+  biten işletme askıya alınır.
 - **Yönetici şifresi sıfırlama:** yalnızca işletmenin yönetici hesapları için. Bu, vulu yöneticisinin o hesapla
   giriş yapıp işletmenin verisini görebileceği anlamına gelir; her sıfırlama API günlüğüne yazılır.
 - **Kalıcı silme:** işletme önce askıya alınmış olmalı ve işletme kodu yeniden yazılmalıdır. İşletmenin

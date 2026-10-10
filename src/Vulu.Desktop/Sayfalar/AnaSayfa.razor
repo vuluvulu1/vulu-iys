@@ -4,21 +4,6 @@
 
 <h1>Hoş geldiniz, @Oturum.Kullanici?.AdSoyad</h1>
 
-@* Abonelik bilgisi yalnızca işletme yöneticisine gösterilir. *@
-@if (Oturum.AdminMi && Bicim.AbonelikKalanGun(Oturum.Isletme?.AbonelikBitisi) is { } kalan && kalan <= AbonelikUyariGunu)
-{
-    <p class="uyari-seridi @(kalan < 0 ? "" : "yaklasan")" role="status">
-        @if (kalan < 0)
-        {
-            <text>Aboneliğinizin süresi @Bicim.Gun(Oturum.Isletme!.AbonelikBitisi!.Value) tarihinde doldu. Lütfen vulu ile iletişime geçin.</text>
-        }
-        else
-        {
-            <text>Aboneliğiniz @Bicim.Gun(Oturum.Isletme!.AbonelikBitisi!.Value) tarihinde sona eriyor (@kalan gün kaldı).</text>
-        }
-    </p>
-}
-
 @if (_hata is not null)
 {
     <p class="hata" role="alert">@_hata</p>
@@ -99,8 +84,6 @@ else
 }
 
 @code {
-    private const int AbonelikUyariGunu = 7;
-
     private OzetYaniti? _ozet;
     private string? _hata;
     private bool _yukleniyor;

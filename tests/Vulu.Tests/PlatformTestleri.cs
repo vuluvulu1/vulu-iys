@@ -16,8 +16,8 @@ public class PlatformTestleri : IClassFixture<ApiFabrikasi>
     private static string Yol(IsletmeYaniti isletme) => $"api/platform/isletmeler/{isletme.Id}";
 
     private static Task<HttpResponseMessage> Durum(HttpClient yonetici, IsletmeYaniti isletme, bool aktif,
-        int personelSiniri = 1000, DateTime? abonelikBitisi = null) =>
-        yonetici.PutAsJsonAsync(Yol(isletme), new IsletmeDurumIstegi(isletme.Ad, aktif, personelSiniri, abonelikBitisi));
+        int personelSiniri = 1000) =>
+        yonetici.PutAsJsonAsync(Yol(isletme), new IsletmeDurumIstegi(isletme.Ad, aktif, personelSiniri));
 
     private static Task<HttpResponseMessage> PersonelAc(HttpClient admin, string kullaniciAdi) =>
         admin.PostAsJsonAsync("api/kullanicilar",
@@ -102,7 +102,7 @@ public class PlatformTestleri : IClassFixture<ApiFabrikasi>
         Assert.Contains(liste!, i => i.Kod == ApiFabrikasi.IsletmeKodu);
     }
 
-    // --- Paket: personel sınırı ve abonelik ---
+    // --- Personel sınırı ---
 
     [Fact]
     public async Task Personel_siniri_dolunca_yeni_hesap_acilamaz_devre_disi_hesaplar_sayilmaz()
@@ -148,39 +148,6 @@ public class PlatformTestleri : IClassFixture<ApiFabrikasi>
             new IsletmeOlusturIstegi(YeniKod(), "Geçersiz Paket", "admin", "Gecerli-Sifre-1", "Ad Soyad", sinir));
 
         Assert.Equal(HttpStatusCode.BadRequest, yanit.StatusCode);
-    }
-
-    [Fact]
-    public async Task Odeme_kaydedilir_abonelik_bitisi_guncellenir_ve_isletme_kendi_bitisini_gorur()
-    {
-        using var yonetici = await _api.YoneticiIstemcisi();
-        var kod = YeniKod();
-        var isletme = await ApiFabrikasi.IsletmeAc(yonetici, kod, "Abone İşletme");
-        var bitis = new DateTime(2027, 1, 15, 0, 0, 0, DateTimeKind.Utc);
-
-        using var ilk = await yonetici.PostAsJsonAsync($"{Yol(isletme)}/odemeler",
-            new OdemeIstegi(1500.50m, new DateTime(2026, 10, 1, 9, 0, 0, DateTimeKind.Utc), " Ekim ayı ", bitis));
-        using var ikinci = await yonetici.PostAsJsonAsync($"{Yol(isletme)}/odemeler",
-            new OdemeIstegi(1500.50m, new DateTime(2026, 11, 1, 9, 0, 0, DateTimeKind.Utc), null, null));
-        using var gecersiz = await yonetici.PostAsJsonAsync($"{Yol(isletme)}/odemeler", new OdemeIstegi(0, DateTime.UtcNow, null, null));
-        var odemeler = await yonetici.GetFromJsonAsync<List<OdemeYaniti>>($"{Yol(isletme)}/odemeler");
-        using var admin = await _api.YetkiliIstemci(isletmeKodu: kod);
-        var isletmeninGordugu = await admin.GetFromJsonAsync<IsletmeYaniti>("api/isletme");
-        using var isletmeOdemeleriGoremez = await admin.GetAsync($"{Yol(isletme)}/odemeler");
-
-        Assert.Equal(HttpStatusCode.OK, ilk.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, ikinci.StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, gecersiz.StatusCode);
-        Assert.Equal(2, odemeler!.Count);
-        Assert.Equal("Ekim ayı", odemeler[1].Aciklama);
-        Assert.Equal(1500.50m, odemeler[0].Tutar);
-        // Bitiş tarihi vermeyen ikinci ödeme aboneliği değiştirmez.
-        Assert.Equal(bitis, isletmeninGordugu!.AbonelikBitisi?.ToUniversalTime());
-        Assert.Equal(HttpStatusCode.Forbidden, isletmeOdemeleriGoremez.StatusCode);
-
-        // Abonelik bitişi kaldırılabilir (süresiz).
-        (await Durum(yonetici, isletme, aktif: true, abonelikBitisi: null)).EnsureSuccessStatusCode();
-        Assert.Null((await admin.GetFromJsonAsync<IsletmeYaniti>("api/isletme"))!.AbonelikBitisi);
     }
 
     // --- Vulu yöneticileri ---

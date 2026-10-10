@@ -300,10 +300,6 @@ button:disabled {
     gap: 12px;
 }
 
-.uc-sutun.esit {
-    grid-template-columns: 1fr 1fr 1fr;
-}
-
 /* Çok bölümlü pencerelerde her bölümün kendi düğmesi ve yanında sonucu. */
 .bolum-dugmesi {
     display: flex;
@@ -317,27 +313,9 @@ button:disabled {
     margin: 0;
 }
 
-.ozet-listesi.odemeler li {
-    grid-template-columns: 100px 1fr auto;
-}
-
 .icerik > .aciklama {
     margin: 14px 0 0;
     font-size: 13px;
-}
-
-/* Paket kullanımı ve abonelik uyarısı */
-.uyari-seridi {
-    margin: 0 0 16px;
-    padding: 10px 14px;
-    border: 1px solid var(--hata);
-    border-radius: var(--kose);
-    color: var(--hata);
-}
-
-.uyari-seridi.yaklasan {
-    border-color: var(--vurgu-acik);
-    color: var(--vurgu-acik);
 }
 
 /* Sayfa içinde duran (pencere olmayan) form: işletme ayarları. */
