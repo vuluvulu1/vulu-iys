@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="vulu Teknik Servis">
+  <defs>
+    <linearGradient id="zemin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5a3923"/>
+      <stop offset="1" stop-color="#3d2616"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Zemin ve çerçeve -->
+  <rect width="512" height="512" fill="#2b1a10"/>
+  <rect x="22" y="22" width="468" height="468" fill="url(#zemin)"/>
+
+  <!-- Harflerin zemine düşen sert gölgesi -->
+  <g transform="translate(14 14)" fill="#1f120a" opacity="0.55">
+    <polygon points="72,110 128,110 192,265 256,110 312,110 192,400"/>
+    <polygon points="308,110 368,110 271.2,344 440,344 440,400 192,400"/>
+    <polygon points="406,182.7 440,202.35 440,241.65 406,261.3 372,241.65 372,202.35"/>
+  </g>
+
+  <!-- L: gövdesi V'nin sağ koluyla aynı açıda ve ona yapışık -->
+  <polygon points="308,110 368,110 271.2,344 440,344 440,400 192,400" fill="#e9c699"/>
+  <!-- L'nin ayağı: gövdeden bir ton koyu -->
+  <polygon points="271.2,344 440,344 440,400 248,400" fill="#cfa575"/>
+  <!-- V'nin L üzerine düşen gölgesi -->
+  <polygon points="312,110 326,110 206,400 192,400" fill="#2b1a10" opacity="0.28"/>
+
+  <!-- V: sol kol açık, sağ kol koyu -->
+  <polygon points="72,110 128,110 192,265 192,400" fill="#b5804f"/>
+  <polygon points="192,265 256,110 312,110 192,400" fill="#8a5c36"/>
+
+  <!-- Altıgen somun: sol yarı açık, sağ yarı koyu -->
+  <path fill="#b5804f" fill-rule="evenodd"
+        d="M406,182.7 L440,202.35 L440,241.65 L406,261.3 L372,241.65 L372,202.35 Z
+           M406,205 L420.7,213.5 L420.7,230.5 L406,239 L391.3,230.5 L391.3,213.5 Z"/>
+  <path fill="#8a5c36"
+        d="M406,182.7 L440,202.35 L440,241.65 L406,261.3 L406,239 L420.7,230.5 L420.7,213.5 L406,205 Z"/>
+</svg>
