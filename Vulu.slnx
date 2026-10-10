@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Vulu.Api/Vulu.Api.csproj" />
+    <Project Path="src/Vulu.Desktop/Vulu.Desktop.csproj" />
+    <Project Path="src/Vulu.Shared/Vulu.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Vulu.Tests/Vulu.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,10 @@
+<Router AppAssembly="typeof(App).Assembly">
+    <Found Context="rota">
+        <RouteView RouteData="rota" DefaultLayout="typeof(AnaDuzen)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(AnaDuzen)">
+            <p>Sayfa bulunamadı.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
