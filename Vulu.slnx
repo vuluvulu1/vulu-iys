@@ -7,4 +7,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Vulu.Tests/Vulu.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Vulu.Baslatici/Vulu.Baslatici.csproj" />
+  </Folder>
 </Solution>

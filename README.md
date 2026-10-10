@@ -26,19 +26,8 @@ tests/
 Yerelde `mongodb://localhost:27017` adresinde bir MongoDB gerekir
 (`src/Vulu.Api/appsettings.Development.json`).
 
-Gizli ayarlar repoda tutulmaz; ilk kurulumda user-secrets ile verilir:
-
-```bash
-dotnet user-secrets set "Jwt:Anahtar" "<en az 32 karakterlik rastgele dize>" --project src/Vulu.Api
-```
-
-```bash
-dotnet user-secrets set "IlkAdmin:KullaniciAdi" "admin" --project src/Vulu.Api
-```
-
-```bash
-dotnet user-secrets set "IlkAdmin:Sifre" "<en az 8 karakter>" --project src/Vulu.Api
-```
+Gizli ayarlar repoda tutulmaz. `src/Vulu.Api/appsettings.Local.ornek.json` dosyasını aynı klasöre
+`appsettings.Local.json` adıyla kopyalayıp değerleri doldurun; bu dosya git'e girmez.
 
 `IlkAdmin` hesabı yalnızca veritabanında hiç kullanıcı yokken oluşturulur. Canlı ortamda aynı ayarlar
 ortam değişkeniyle verilir (`Jwt__Anahtar`, `Mongo__BaglantiDizesi`, ...).
@@ -52,6 +41,19 @@ dotnet run --project src/Vulu.Desktop
 ```
 
 Masaüstü uygulamasının bağlandığı API adresi `src/Vulu.Desktop/appsettings.json` içindedir.
+
+## Test paketi
+
+Tek tıkla denemek için:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\paketle.ps1
+```
+
+`dist\Vulu\Vulu.exe` çift tıklanınca API'yi arka planda başlatır, masaüstü uygulamasını açar ve pencere
+kapanınca API'yi kapatır. API çıktısı `dist\Vulu\api.log` dosyasına yazılır. Paket bu makinedeki .NET 10,
+yerel MongoDB ile çalışır ve `appsettings.Local.json` içindeki gizli ayarları taşır; dağıtım paketi değildir,
+paylaşılmamalıdır.
 
 ## Testler
 
