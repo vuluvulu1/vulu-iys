@@ -125,7 +125,7 @@ public class IsletmeTestleri : IClassFixture<ApiFabrikasi>
         using var anonim = _api.CreateClient();
         (await personel.GetAsync("api/musteriler")).EnsureSuccessStatusCode();
 
-        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Askıya Alınacak", false))).EnsureSuccessStatusCode();
+        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Askıya Alınacak", false, 1000, null))).EnsureSuccessStatusCode();
 
         using var acikOturum = await personel.GetAsync("api/musteriler");
         using var yeniGiris = await anonim.PostAsJsonAsync("api/kimlik/giris", new GirisIstegi(kod, ApiFabrikasi.AdminAdi, ApiFabrikasi.AdminSifresi));
@@ -134,7 +134,7 @@ public class IsletmeTestleri : IClassFixture<ApiFabrikasi>
         Assert.Equal(HttpStatusCode.Forbidden, yeniGiris.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, yenileme.StatusCode);
 
-        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Yeniden Açıldı", true))).EnsureSuccessStatusCode();
+        (await yonetici.PutAsJsonAsync($"api/platform/isletmeler/{isletme.Id}", new IsletmeDurumIstegi("Yeniden Açıldı", true, 1000, null))).EnsureSuccessStatusCode();
 
         using var yenidenAcik = await personel.GetAsync("api/musteriler");
         Assert.Equal(HttpStatusCode.OK, yenidenAcik.StatusCode);

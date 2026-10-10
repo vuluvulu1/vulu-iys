@@ -1,0 +1,300 @@
+@* Vulu yöneticisinin tek bir işletme üzerindeki işlemleri: ad ve paket, ödemeler, yönetici şifresi, kalıcı silme. *@
+@inject ApiIstemcisi Api
+
+<Pencere Baslik="@Isletme.Ad" Genis="true" KapatIstendi="Kapat">
+    <form @onsubmit="GeneliKaydet">
+        <label for="y-ad">İşletme adı</label>
+        <input id="y-ad" @bind="_ad" @bind:event="oninput" autocomplete="off" />
+
+        <div class="iki-sutun">
+            <div>
+                <label for="y-sinir">Personel sınırı (şu an @Isletme.PersonelSayisi aktif)</label>
+                <input id="y-sinir" type="number" min="@IsletmeKurallari.EnAzPersonelSiniri"
+                       max="@IsletmeKurallari.EnFazlaPersonelSiniri" @bind="_personelSiniri" />
+            </div>
+            <div>
+                <label for="y-bitis">Abonelik bitişi (boşsa süresiz)</label>
+                <input id="y-bitis" type="date" @bind="_abonelikBitisi" />
+            </div>
+        </div>
+
+        <label class="onay-kutusu">
+            <input id="y-aktif" type="checkbox" @bind="_aktif" />
+            İşletme açık
+        </label>
+        <p class="soluk aciklama">
+            Askıya alınan işletmenin personeli giriş yapamaz ve açık oturumları kapanır; verisi silinmez.
+            Aboneliğin süresi dolunca işletme kendiliğinden kapanmaz, burada askıya alınır.
+        </p>
+
+        <div class="bolum-dugmesi">
+            @Bildirim(Bolum.Genel)
+            <button type="submit" disabled="@_mesgul">Kaydet</button>
+        </div>
+    </form>
+
+    <section class="bolum">
+        <h3>Ödemeler</h3>
+
+        @if (_odemeler is { Count: > 0 })
+        {
+            <ul class="ozet-listesi odemeler">
+                @foreach (var odeme in _odemeler)
+                {
+                    <li>
+                        <span class="dar">@Bicim.Gun(odeme.Tarih)</span>
+                        <span>@(odeme.Aciklama ?? "—")</span>
+                        <strong>@Bicim.Para(odeme.Tutar)</strong>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="soluk aciklama">@(_odemeler is null ? "Yükleniyor…" : "Kayıtlı ödeme yok.")</p>
+        }
+
+        <form @onsubmit="OdemeEkle">
+            <div class="uc-sutun esit">
+                <div>
+                    <label for="y-odeme-tutar">Tutar (₺)</label>
+                    <input id="y-odeme-tutar" @bind="_odemeTutari" @bind:event="oninput" inputmode="decimal" placeholder="1.500,00" autocomplete="off" />
+                </div>
+                <div>
+                    <label for="y-odeme-tarih">Ödeme günü</label>
+                    <input id="y-odeme-tarih" type="date" @bind="_odemeTarihi" />
+                </div>
+                <div>
+                    <label for="y-odeme-bitis">Aboneliği şu güne uzat</label>
+                    <input id="y-odeme-bitis" type="date" @bind="_odemeYeniBitis" />
+                </div>
+            </div>
+            <label for="y-odeme-aciklama">Açıklama (isteğe bağlı)</label>
+            <input id="y-odeme-aciklama" @bind="_odemeAciklamasi" @bind:event="oninput" autocomplete="off" />
+
+            <div class="bolum-dugmesi">
+                @Bildirim(Bolum.Odeme)
+                <button type="submit" disabled="@_mesgul">Ödeme ekle</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="bolum">
+        <h3>Yönetici şifresini sıfırla</h3>
+        <p class="soluk aciklama">
+            İşletme yöneticisi şifresini unuttuğunda yenisini buradan verirsiniz. Diğer personelin şifresini
+            işletmenin kendi yöneticisi değiştirir.
+        </p>
+
+        <form @onsubmit="SifreyiSifirla">
+            <div class="iki-sutun">
+                <div>
+                    <label for="y-yonetici">Yönetici hesabı</label>
+                    <select id="y-yonetici" @bind="_sifirlanacakId">
+                        @foreach (var yonetici in _yoneticiler)
+                        {
+                            <option value="@yonetici.Id">
+                                @yonetici.AdSoyad (@yonetici.KullaniciAdi)@(yonetici.AktifMi ? "" : " – devre dışı")
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="y-yeni-sifre">Yeni şifre</label>
+                    <input id="y-yeni-sifre" type="password" @bind="_yeniSifre" @bind:event="oninput" autocomplete="new-password" />
+                </div>
+            </div>
+
+            <div class="bolum-dugmesi">
+                @Bildirim(Bolum.Sifre)
+                <button type="submit" disabled="@(_mesgul || _yoneticiler.Count == 0)">Şifreyi sıfırla</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="bolum">
+        <h3>İşletmeyi kalıcı olarak sil</h3>
+
+        @if (Isletme.AktifMi)
+        {
+            <p class="soluk aciklama">Silmek için önce işletmeyi askıya alın (yukarıdan “İşletme açık” işaretini kaldırıp kaydedin).</p>
+        }
+        else
+        {
+            <p class="aciklama">
+                İşletmenin personeli, müşterileri, servis kayıtları, randevuları ve faturaları <strong>geri getirilemeyecek
+                şekilde</strong> silinir. Onaylamak için işletme kodunu (<code>@Isletme.Kod</code>) yazın.
+            </p>
+
+            <form @onsubmit="KaliciSil">
+                <label for="y-sil-kod">İşletme kodu</label>
+                <input id="y-sil-kod" @bind="_silmeKodu" @bind:event="oninput" autocomplete="off" autocapitalize="none" spellcheck="false" />
+
+                <div class="bolum-dugmesi">
+                    @Bildirim(Bolum.Silme)
+                    <button type="submit" class="tehlike" disabled="@(_mesgul || _silmeKodu.Trim() != Isletme.Kod)">Kalıcı olarak sil</button>
+                </div>
+            </form>
+        }
+    </section>
+
+    <footer>
+        <button type="button" class="ikincil" @onclick="Kapat">Kapat</button>
+    </footer>
+</Pencere>
+
+@code {
+    private enum Bolum { Genel, Odeme, Sifre, Silme }
+
+    [Parameter, EditorRequired] public IsletmeYaniti Isletme { get; set; } = null!;
+    [Parameter] public EventCallback<IsletmeYaniti> Degisti { get; set; }
+    [Parameter] public EventCallback Silindi { get; set; }
+    [Parameter] public EventCallback Kapat { get; set; }
+
+    private string _ad = "";
+    private bool _aktif;
+    private int _personelSiniri;
+    private DateTime? _abonelikBitisi;
+
+    private List<OdemeYaniti>? _odemeler;
+    private string _odemeTutari = "";
+    private DateTime? _odemeTarihi = DateTime.Today;
+    private DateTime? _odemeYeniBitis;
+    private string _odemeAciklamasi = "";
+
+    private List<IsletmeYoneticisiOzeti> _yoneticiler = [];
+    private string _sifirlanacakId = "";
+    private string _yeniSifre = "";
+
+    private string _silmeKodu = "";
+
+    private bool _mesgul;
+    private Bolum? _bildirimBolumu;
+    private string? _hata;
+    private string? _basari;
+    private IsletmeYaniti? _alanlarinKaydi;
+
+    private string Yol => $"api/platform/isletmeler/{Isletme.Id}";
+
+    // Her bölümün sonucu kendi düğmesinin yanında gösterilir.
+    private RenderFragment Bildirim(Bolum bolum) => __builder =>
+    {
+        if (_bildirimBolumu != bolum) return;
+
+        if (_hata is not null)
+        {
+            <span class="hata satir-ici" role="alert">@_hata</span>
+        }
+        else if (_basari is not null)
+        {
+            <span class="durum iyi satir-ici" role="status">@_basari</span>
+        }
+    };
+
+    protected override void OnParametersSet()
+    {
+        // Alanlar yalnızca kayıt değiştiğinde (bir işlem sonrası yenilendiğinde) doldurulur.
+        if (ReferenceEquals(_alanlarinKaydi, Isletme)) return;
+        _alanlarinKaydi = Isletme;
+
+        _ad = Isletme.Ad;
+        _aktif = Isletme.AktifMi;
+        _personelSiniri = Isletme.PersonelSiniri;
+        _abonelikBitisi = Isletme.AbonelikBitisi?.ToUniversalTime().Date;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var odemeler = await Api.Getir<List<OdemeYaniti>>($"{Yol}/odemeler");
+        _odemeler = odemeler.Deger ?? [];
+
+        var yoneticiler = await Api.Getir<List<IsletmeYoneticisiOzeti>>($"{Yol}/yoneticiler");
+        _yoneticiler = yoneticiler.Deger ?? [];
+        _sifirlanacakId = _yoneticiler.FirstOrDefault()?.Id ?? "";
+
+        if ((odemeler.Hata ?? yoneticiler.Hata) is { } hata)
+            Bildir(Bolum.Genel, hata, null);
+    }
+
+    private void Bildir(Bolum bolum, string? hata, string? basari)
+    {
+        _bildirimBolumu = bolum;
+        _hata = hata;
+        _basari = basari;
+    }
+
+    private async Task GeneliKaydet()
+    {
+        if (_mesgul) return;
+
+        _mesgul = true;
+        var sonuc = await Api.Guncelle<IsletmeYaniti>(Yol,
+            new IsletmeDurumIstegi(_ad.Trim(), _aktif, _personelSiniri, Bicim.UtcGun(_abonelikBitisi)));
+        _mesgul = false;
+
+        Bildir(Bolum.Genel, sonuc.Hata, sonuc.Basarili ? "Kaydedildi." : null);
+        if (sonuc is { Basarili: true, Deger: not null })
+            await Degisti.InvokeAsync(sonuc.Deger);
+    }
+
+    private async Task OdemeEkle()
+    {
+        if (_mesgul) return;
+
+        if (!Bicim.ParaOku(_odemeTutari, out var tutar) || tutar <= 0)
+        {
+            Bildir(Bolum.Odeme, "Geçerli bir tutar girin (örn. 1.500,00).", null);
+            return;
+        }
+        if (_odemeTarihi is null)
+        {
+            Bildir(Bolum.Odeme, "Ödeme günü seçilmeli.", null);
+            return;
+        }
+
+        _mesgul = true;
+        var sonuc = await Api.Ekle<IsletmeYaniti>($"{Yol}/odemeler", new OdemeIstegi(tutar,
+            Bicim.UtcGun(_odemeTarihi)!.Value, string.IsNullOrWhiteSpace(_odemeAciklamasi) ? null : _odemeAciklamasi.Trim(),
+            Bicim.UtcGun(_odemeYeniBitis)));
+        if (sonuc.Basarili)
+            _odemeler = (await Api.Getir<List<OdemeYaniti>>($"{Yol}/odemeler")).Deger ?? _odemeler;
+        _mesgul = false;
+
+        Bildir(Bolum.Odeme, sonuc.Hata, sonuc.Basarili ? "Ödeme eklendi." : null);
+        if (sonuc is not { Basarili: true, Deger: not null }) return;
+
+        _odemeTutari = "";
+        _odemeAciklamasi = "";
+        _odemeYeniBitis = null;
+        await Degisti.InvokeAsync(sonuc.Deger);
+    }
+
+    private async Task SifreyiSifirla()
+    {
+        if (_mesgul || _sifirlanacakId.Length == 0) return;
+
+        _mesgul = true;
+        var sonuc = await Api.Guncelle<object>($"{Yol}/yoneticiler/{_sifirlanacakId}/sifre", new SifreSifirlamaIstegi(_yeniSifre));
+        _mesgul = false;
+
+        Bildir(Bolum.Sifre, sonuc.Hata, sonuc.Basarili ? "Şifre değiştirildi; yeni şifreyi işletmeye iletin." : null);
+        if (sonuc.Basarili) _yeniSifre = "";
+    }
+
+    private async Task KaliciSil()
+    {
+        if (_mesgul || _silmeKodu.Trim() != Isletme.Kod) return;
+
+        _mesgul = true;
+        var sonuc = await Api.Sil($"{Yol}?kod={Uri.EscapeDataString(_silmeKodu.Trim())}");
+        _mesgul = false;
+
+        if (!sonuc.Basarili)
+        {
+            Bildir(Bolum.Silme, sonuc.Hata, null);
+            return;
+        }
+
+        await Silindi.InvokeAsync();
+    }
+}

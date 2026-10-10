@@ -19,7 +19,12 @@ public record IsletmeYaniti(
     DateTime OlusturmaTarihi,
     // Logo varsa base64 kodlu içeriği ve türü (image/png ya da image/jpeg).
     string? LogoVerisi,
-    string? LogoTuru);
+    string? LogoTuru,
+    // Paket: aynı anda aktif olabilecek personel hesabı sayısı ve aboneliğin ödendiği son gün (boşsa süresiz).
+    int PersonelSiniri,
+    DateTime? AbonelikBitisi,
+    // Aktif personel sayısı; yalnızca vulu yöneticisinin işletme listesinde doldurulur.
+    long? PersonelSayisi);
 
 // Vulu yöneticisinin işletme kaydı açarken verdiği bilgiler: işletme ve onun ilk yöneticisi.
 public record IsletmeOlusturIstegi(
@@ -38,14 +43,38 @@ public record IsletmeOlusturIstegi(
     string YoneticiSifre,
     [Required(ErrorMessage = "Yönetici ad soyadı gerekli.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
-    string YoneticiAdSoyad);
+    string YoneticiAdSoyad,
+    [Range(IsletmeKurallari.EnAzPersonelSiniri, IsletmeKurallari.EnFazlaPersonelSiniri, ErrorMessage = IsletmeKurallari.PersonelSiniriMesaji)]
+    int PersonelSiniri = IsletmeKurallari.VarsayilanPersonelSiniri);
 
-// Vulu yöneticisinin sonradan değiştirebildikleri: ad ve işletmenin açık/askıda olması.
+// Vulu yöneticisinin sonradan değiştirebildikleri: ad, açık/askıda durumu ve paket.
 public record IsletmeDurumIstegi(
     [Required(ErrorMessage = "İşletme adı gerekli.")]
     [StringLength(120, MinimumLength = 2, ErrorMessage = "İşletme adı 2-120 karakter olmalı.")]
     string Ad,
-    bool AktifMi);
+    bool AktifMi,
+    [Range(IsletmeKurallari.EnAzPersonelSiniri, IsletmeKurallari.EnFazlaPersonelSiniri, ErrorMessage = IsletmeKurallari.PersonelSiniriMesaji)]
+    int PersonelSiniri,
+    DateTime? AbonelikBitisi);
+
+// İşletmeden alınan bir abonelik ödemesi. YeniAbonelikBitisi verilirse aboneliğin bitiş günü de güncellenir.
+public record OdemeIstegi(
+    [Range(typeof(decimal), "0.01", "10000000", ParseLimitsInInvariantCulture = true, ErrorMessage = "Tutar 0,01 ile 10.000.000 arasında olmalı.")]
+    decimal Tutar,
+    DateTime Tarih,
+    [StringLength(200, ErrorMessage = "Açıklama en fazla 200 karakter olabilir.")]
+    string? Aciklama,
+    DateTime? YeniAbonelikBitisi);
+
+public record OdemeYaniti(DateTime Tarih, decimal Tutar, string? Aciklama);
+
+// Vulu yöneticisinin şifre sıfırlamak için gördüğü, bir işletmenin yönetici hesapları.
+public record IsletmeYoneticisiOzeti(string Id, string KullaniciAdi, string AdSoyad, bool AktifMi);
+
+public record SifreSifirlamaIstegi(
+    [Required(ErrorMessage = "Yeni şifre gerekli.")]
+    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    string YeniSifre);
 
 // İşletme yöneticisinin kendi işletmesi için düzenlediği bilgiler.
 public record IsletmeProfilIstegi(
@@ -70,6 +99,29 @@ public record IsletmeProfilIstegi(
     string? LogoTuru,
     bool LogoyuKaldir);
 
+// Vulu yöneticisi hesapları (işletme kaydı açan kişiler).
+public record VuluYoneticisiYaniti(string Id, string KullaniciAdi, string AdSoyad, bool AktifMi);
+
+public record VuluYoneticisiOlusturIstegi(
+    [Required(ErrorMessage = "Kullanıcı adı gerekli.")]
+    [StringLength(32, MinimumLength = 3, ErrorMessage = "Kullanıcı adı 3-32 karakter olmalı.")]
+    [RegularExpression(KullaniciKurallari.AdDeseni, ErrorMessage = KullaniciKurallari.AdDeseniMesaji)]
+    string KullaniciAdi,
+    [Required(ErrorMessage = "Şifre gerekli.")]
+    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    string Sifre,
+    [Required(ErrorMessage = "Ad soyad gerekli.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
+    string AdSoyad);
+
+public record VuluYoneticisiGuncelleIstegi(
+    [Required(ErrorMessage = "Ad soyad gerekli.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
+    string AdSoyad,
+    bool AktifMi,
+    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    string? YeniSifre);
+
 public static class IsletmeKurallari
 {
     // Giriş ekranında yazılan kısa ad; adreslerde ve veritabanı adında kullanıldığı için dar bir alfabeyle sınırlıdır.
@@ -81,4 +133,9 @@ public static class IsletmeKurallari
 
     public const int EnFazlaLogoBayt = 256 * 1024;
     public static readonly string[] LogoTurleri = ["image/png", "image/jpeg"];
+
+    public const int EnAzPersonelSiniri = 1;
+    public const int EnFazlaPersonelSiniri = 1000;
+    public const int VarsayilanPersonelSiniri = 5;
+    public const string PersonelSiniriMesaji = "Personel sınırı 1 ile 1000 arasında olmalı.";
 }

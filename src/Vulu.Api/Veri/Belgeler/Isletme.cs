@@ -33,6 +33,26 @@ public class Isletme
     public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
 
     public string VeritabaniAdi { get; set; } = string.Empty;
+
+    // Paket: aynı anda aktif olabilecek personel hesabı sayısı.
+    public int PersonelSiniri { get; set; } = Shared.IsletmeKurallari.VarsayilanPersonelSiniri;
+
+    // Aboneliğin ödendiği son gün (UTC gün başı). Boşsa süresizdir. Bilgi amaçlıdır: süresi dolan işletme
+    // kendiliğinden kapanmaz, vulu yöneticisi askıya alır.
+    public DateTime? AbonelikBitisi { get; set; }
+
+    public List<Odeme> Odemeler { get; set; } = [];
+}
+
+// İşletmeden alınan bir abonelik ödemesinin kaydı.
+public class Odeme
+{
+    public DateTime Tarih { get; set; }
+
+    [BsonRepresentation(BsonType.Decimal128)]
+    public decimal Tutar { get; set; }
+
+    public string? Aciklama { get; set; }
 }
 
 // Vulu yöneticisi: işletme kaydı açar ve askıya alır. Hiçbir işletmenin personeli değildir.

@@ -17,6 +17,20 @@ fatura. Tek bir API birden çok işletmeye hizmet verir; her işletmenin verisi 
   veritabanına bağlanır (`Altyapi/IsletmeCozucu.cs`); askıya alınan işletmenin açık oturumları da reddedilir.
 - Veri geçişleri ve indexler açılışta her işletme veritabanına ayrı ayrı uygulanır.
 
+### Vulu yöneticisinin işlemleri
+
+- **Paket:** her işletmenin bir personel sınırı vardır (aynı anda aktif hesap sayısı; devre dışı hesaplar
+  sayılmaz). Sınır dolunca işletme yöneticisi yeni hesap açamaz.
+- **Abonelik ve ödemeler:** işletmeden alınan ödemeler kaydedilir ve aboneliğin bitiş günü tutulur. Bitiş günü
+  bilgi amaçlıdır: süresi dolan işletme kendiliğinden kapanmaz, vulu yöneticisi askıya alır. İşletme yöneticisi
+  bitişe 7 gün kala ana sayfada uyarı görür.
+- **Yönetici şifresi sıfırlama:** yalnızca işletmenin yönetici hesapları için. Bu, vulu yöneticisinin o hesapla
+  giriş yapıp işletmenin verisini görebileceği anlamına gelir; her sıfırlama API günlüğüne yazılır.
+- **Kalıcı silme:** işletme önce askıya alınmış olmalı ve işletme kodu yeniden yazılmalıdır. İşletmenin
+  veritabanı geri dönüşsüz silinir.
+- **Vulu yöneticileri:** birden fazla olabilir; her biri diğerlerini yönetir. Kendi hesabını silemez ve en az
+  bir aktif yönetici kalmalıdır.
+
 ## Teknolojiler
 
 - .NET 10
