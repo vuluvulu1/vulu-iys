@@ -12,8 +12,6 @@ namespace Vulu.Api.Controllers;
 [Route("api/teknisyenler")]
 public class TeknisyenlerController : ControllerBase
 {
-    private static readonly Collation TurkceSiralama = new("tr");
-
     private readonly MongoBaglami _db;
 
     public TeknisyenlerController(MongoBaglami db) => _db = db;
@@ -27,7 +25,7 @@ public class TeknisyenlerController : ControllerBase
             filtre &= Builders<Teknisyen>.Filter.Regex(t => t.AramaMetni, AramaMetni.Desen(arama));
 
         var teknisyenler = await _db.Teknisyenler
-            .Find(filtre, new FindOptions { Collation = TurkceSiralama })
+            .Find(filtre, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
             .SortBy(t => t.AdSoyad)
             .ToListAsync(iptal);
 
@@ -123,8 +121,8 @@ public class TeknisyenlerController : ControllerBase
     {
         teknisyen.AdSoyad = istek.AdSoyad.Trim();
         teknisyen.Telefon = istek.Telefon.Trim();
-        teknisyen.Uzmanlik = string.IsNullOrWhiteSpace(istek.Uzmanlik) ? null : istek.Uzmanlik.Trim();
-        teknisyen.KullaniciId = string.IsNullOrWhiteSpace(istek.KullaniciId) ? null : istek.KullaniciId;
+        teknisyen.Uzmanlik = Metin.BosIseNull(istek.Uzmanlik);
+        teknisyen.KullaniciId = Metin.BosIseNull(istek.KullaniciId);
         teknisyen.AramaMetni = AramaMetni.Olustur(teknisyen.AdSoyad, teknisyen.Telefon, teknisyen.Uzmanlik);
     }
 

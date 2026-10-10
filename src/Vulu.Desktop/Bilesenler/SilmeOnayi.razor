@@ -1,0 +1,24 @@
+@* Silmeden önce onay isteyen pencere. İçerik, neyin silineceğini anlatan metindir. *@
+
+<Pencere Baslik="@Baslik" KapatIstendi="Vazgec">
+    <p>@ChildContent</p>
+
+    @if (Hata is not null)
+    {
+        <p class="hata" role="alert">@Hata</p>
+    }
+
+    <footer>
+        <button type="button" class="ikincil" @onclick="Vazgec">Vazgeç</button>
+        <button type="button" class="tehlike" @onclick="Onayla" disabled="@Mesgul">Sil</button>
+    </footer>
+</Pencere>
+
+@code {
+    [Parameter, EditorRequired] public string Baslik { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? Hata { get; set; }
+    [Parameter] public bool Mesgul { get; set; }
+    [Parameter] public EventCallback Onayla { get; set; }
+    [Parameter] public EventCallback Vazgec { get; set; }
+}

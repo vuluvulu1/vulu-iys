@@ -1,5 +1,4 @@
 @page "/musteriler"
-@implements IDisposable
 @inject ApiIstemcisi Api
 @inject OturumServisi Oturum
 
@@ -7,8 +6,7 @@
 
 <div class="arac-cubugu">
     <button @onclick="YeniAc">Yeni müşteri</button>
-    <input class="arama" type="search" placeholder="Ad, telefon veya e-posta ara" aria-label="Müşteri ara"
-           @bind="_arama" @bind:event="oninput" @bind:after="AramaDegisti" />
+    <AramaKutusu YerTutucu="Ad, telefon veya e-posta ara" Etiket="Müşteri ara" Arandi="Ara" />
 </div>
 
 @if (_listeHatasi is not null)
@@ -84,39 +82,20 @@ else
             <label for="m-adres">Adres (isteğe bağlı)</label>
             <textarea id="m-adres" rows="3" @bind="_form.Adres" @bind:event="oninput"></textarea>
 
-            @if (_formHatasi is not null)
-            {
-                <p class="hata" role="alert">@_formHatasi</p>
-            }
-
-            <footer>
-                <button type="button" class="ikincil" @onclick="FormuKapat">Vazgeç</button>
-                <button type="submit" disabled="@_kaydediliyor">@(_kaydediliyor ? "Kaydediliyor…" : "Kaydet")</button>
-            </footer>
+            <FormAltligi Hata="@_formHatasi" Mesgul="_kaydediliyor" Vazgec="FormuKapat" />
         </form>
     </Pencere>
 }
 
 @if (_silinecek is not null)
 {
-    <Pencere Baslik="Müşteriyi sil" KapatIstendi="SilmeyiKapat">
-        <p><strong>@_silinecek.AdSoyad</strong> müşteri listesinden kaldırılacak. Geçmiş servis kayıtları korunur.</p>
-
-        @if (_silmeHatasi is not null)
-        {
-            <p class="hata" role="alert">@_silmeHatasi</p>
-        }
-
-        <footer>
-            <button type="button" class="ikincil" @onclick="SilmeyiKapat">Vazgeç</button>
-            <button type="button" class="tehlike" @onclick="Sil" disabled="@_kaydediliyor">Sil</button>
-        </footer>
-    </Pencere>
+    <SilmeOnayi Baslik="Müşteriyi sil" Hata="@_silmeHatasi" Mesgul="_kaydediliyor" Onayla="Sil" Vazgec="SilmeyiKapat">
+        <strong>@_silinecek.AdSoyad</strong> müşteri listesinden kaldırılacak. Geçmiş servis kayıtları korunur.
+    </SilmeOnayi>
 }
 
 @code {
     private const int SayfaBoyutu = 20;
-    private static readonly TimeSpan AramaGecikmesi = TimeSpan.FromMilliseconds(300);
 
     private class MusteriFormu
     {
@@ -131,7 +110,6 @@ else
     private string _arama = "";
     private string? _listeHatasi;
     private bool _yukleniyor;
-    private CancellationTokenSource? _aramaBekleme;
 
     private MusteriFormu? _form;
     private MusteriYaniti? _duzenlenen;
@@ -149,7 +127,7 @@ else
     {
         _yukleniyor = true;
         var sonuc = await Api.Getir<Sayfa<MusteriYaniti>>(
-            $"api/musteriler?arama={Uri.EscapeDataString(_arama.Trim())}&sayfa={_sayfaNo}&boyut={SayfaBoyutu}");
+            $"api/musteriler?arama={Uri.EscapeDataString(_arama)}&sayfa={_sayfaNo}&boyut={SayfaBoyutu}");
         _yukleniyor = false;
 
         _listeHatasi = sonuc.Hata;
@@ -165,17 +143,11 @@ else
         }
     }
 
-    // Her tuşta istek atmamak için yazma durunca aranır.
-    private async Task AramaDegisti()
+    private Task Ara(string arama)
     {
-        _aramaBekleme?.Cancel();
-        var bekleme = _aramaBekleme = new CancellationTokenSource();
-
-        try { await Task.Delay(AramaGecikmesi, bekleme.Token); }
-        catch (TaskCanceledException) { return; }
-
+        _arama = arama;
         _sayfaNo = 1;
-        await Yukle();
+        return Yukle();
     }
 
     private Task SayfayaGit(int sayfaNo)
@@ -255,6 +227,4 @@ else
         SilmeyiKapat();
         await Yukle();
     }
-
-    public void Dispose() => _aramaBekleme?.Cancel();
 }

@@ -88,34 +88,16 @@ else
                 </label>
             }
 
-            @if (_formHatasi is not null)
-            {
-                <p class="hata" role="alert">@_formHatasi</p>
-            }
-
-            <footer>
-                <button type="button" class="ikincil" @onclick="FormuKapat">Vazgeç</button>
-                <button type="submit" disabled="@_kaydediliyor">@(_kaydediliyor ? "Kaydediliyor…" : "Kaydet")</button>
-            </footer>
+            <FormAltligi Hata="@_formHatasi" Mesgul="_kaydediliyor" Vazgec="FormuKapat" />
         </form>
     </Pencere>
 }
 
 @if (_silinecek is not null)
 {
-    <Pencere Baslik="Kullanıcıyı sil" KapatIstendi="SilmeyiKapat">
-        <p><strong>@_silinecek.KullaniciAdi</strong> hesabı kalıcı olarak silinecek. Bu işlem geri alınamaz.</p>
-
-        @if (_silmeHatasi is not null)
-        {
-            <p class="hata" role="alert">@_silmeHatasi</p>
-        }
-
-        <footer>
-            <button type="button" class="ikincil" @onclick="SilmeyiKapat">Vazgeç</button>
-            <button type="button" class="tehlike" @onclick="Sil" disabled="@_kaydediliyor">Sil</button>
-        </footer>
-    </Pencere>
+    <SilmeOnayi Baslik="Kullanıcıyı sil" Hata="@_silmeHatasi" Mesgul="_kaydediliyor" Onayla="Sil" Vazgec="SilmeyiKapat">
+        <strong>@_silinecek.KullaniciAdi</strong> hesabı kalıcı olarak silinecek. Bu işlem geri alınamaz.
+    </SilmeOnayi>
 }
 
 @code {
