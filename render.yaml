@@ -1,0 +1,18 @@
+# Render Blueprint: API'yi Dockerfile'dan kurar. "sync: false" olan değerler Render panelinden elle girilir.
+services:
+  - type: web
+    name: vulu-tsys-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/saglik/canli
+    envVars:
+      - key: Mongo__BaglantiDizesi
+        sync: false
+      - key: Mongo__VeritabaniAdi
+        value: vulu_tsys
+      - key: Jwt__Anahtar
+        generateValue: true
+      - key: IlkAdmin__KullaniciAdi
+        value: admin
+      - key: IlkAdmin__Sifre
+        sync: false

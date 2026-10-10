@@ -1,28 +1,52 @@
 @inject OturumServisi Oturum
+@inject HttpClient Http
 
 <div class="giris-kabugu">
     <form class="giris-karti" @onsubmit="GirisYap">
         <img class="giris-logo" src="img/logo.svg" alt="vulu" />
         <h1>Teknik Servis Yönetim Sistemi</h1>
 
-        <label for="kullanici-adi">Kullanıcı adı</label>
-        <input id="kullanici-adi" @bind="_kullaniciAdi" @bind:event="oninput" autocomplete="username" autofocus />
-
-        <label for="sifre">Şifre</label>
-        <input id="sifre" type="password" @bind="_sifre" @bind:event="oninput" autocomplete="current-password" />
-
-        @if (_hata is not null)
+        @switch (_sunucu)
         {
-            <p class="hata" role="alert">@_hata</p>
-        }
+            case SunucuDurumu.Kontrol:
+                <p class="soluk bilgi">Sunucuya bağlanılıyor… Sunucu uykudaysa bu bir dakika kadar sürebilir.</p>
+                break;
 
-        <button type="submit" disabled="@(_bekliyor || !Dolu)">
-            @(_bekliyor ? "Giriş yapılıyor…" : "Giriş yap")
-        </button>
+            case SunucuDurumu.Ulasilamiyor:
+                <p class="hata bilgi" role="alert">Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.</p>
+                <button type="button" @onclick="SunucuyuKontrolEt">Yeniden dene</button>
+                break;
+
+            case SunucuDurumu.SurumUyumsuz:
+                <p class="hata bilgi" role="alert">
+                    Bu uygulama sürümü sunucuyla uyumlu değil. Lütfen uygulamanın güncel sürümünü kurun.
+                </p>
+                break;
+
+            case SunucuDurumu.Hazir:
+                <label for="kullanici-adi">Kullanıcı adı</label>
+                <input id="kullanici-adi" @bind="_kullaniciAdi" @bind:event="oninput" autocomplete="username" autofocus />
+
+                <label for="sifre">Şifre</label>
+                <input id="sifre" type="password" @bind="_sifre" @bind:event="oninput" autocomplete="current-password" />
+
+                @if (_hata is not null)
+                {
+                    <p class="hata" role="alert">@_hata</p>
+                }
+
+                <button type="submit" disabled="@(_bekliyor || !Dolu)">
+                    @(_bekliyor ? "Giriş yapılıyor…" : "Giriş yap")
+                </button>
+                break;
+        }
     </form>
 </div>
 
 @code {
+    private enum SunucuDurumu { Kontrol, Hazir, Ulasilamiyor, SurumUyumsuz }
+
+    private SunucuDurumu _sunucu = SunucuDurumu.Kontrol;
     private string _kullaniciAdi = "";
     private string _sifre = "";
     private string? _hata;
@@ -30,9 +54,29 @@
 
     private bool Dolu => !string.IsNullOrWhiteSpace(_kullaniciAdi) && _sifre.Length > 0;
 
+    protected override Task OnInitializedAsync() => SunucuyuKontrolEt();
+
+    // Giriş formu, sunucuya ulaşılıp sürümün uyumlu olduğu görülmeden açılmaz.
+    private async Task SunucuyuKontrolEt()
+    {
+        _sunucu = SunucuDurumu.Kontrol;
+
+        try
+        {
+            // Veritabanı kapalıyken dönen 503 de sürüm bilgisini taşır; durum koduna bakılmaz.
+            using var yanit = await Http.GetAsync("api/saglik");
+            var saglik = await yanit.Content.ReadFromJsonAsync<SaglikYaniti>();
+            _sunucu = saglik?.SozlesmeSurumu == ApiSozlesmesi.Surum ? SunucuDurumu.Hazir : SunucuDurumu.SurumUyumsuz;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            _sunucu = SunucuDurumu.Ulasilamiyor;
+        }
+    }
+
     private async Task GirisYap()
     {
-        if (_bekliyor || !Dolu) return;
+        if (_sunucu != SunucuDurumu.Hazir || _bekliyor || !Dolu) return;
 
         _bekliyor = true;
         _hata = null;

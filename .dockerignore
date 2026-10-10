@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.git/
+.vs/
+dist/
+tests/
+tools/
+assets/
+src/Vulu.Desktop/
+
+# Gizli ayarlar imaja girmez; barındırma ortamında ortam değişkeniyle verilir.
+**/appsettings.Local.json
+**/appsettings.Development.json

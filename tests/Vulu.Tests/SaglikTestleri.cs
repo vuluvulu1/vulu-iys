@@ -25,5 +25,10 @@ public class SaglikTestleri
         var govde = await yanit.Content.ReadFromJsonAsync<SaglikYaniti>();
         Assert.NotNull(govde);
         Assert.False(govde.VeritabaniErisilebilir);
+        Assert.Equal(ApiSozlesmesi.Surum, govde.SozlesmeSurumu);
+
+        // Barındırma platformunun kontrolü veritabanından bağımsızdır.
+        using var canli = await istemci.GetAsync("api/saglik/canli");
+        Assert.Equal(HttpStatusCode.OK, canli.StatusCode);
     }
 }

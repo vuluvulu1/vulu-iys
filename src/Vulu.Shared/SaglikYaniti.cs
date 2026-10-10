@@ -1,3 +1,10 @@
 namespace Vulu.Shared;
 
-public record SaglikYaniti(bool VeritabaniErisilebilir, string? Hata = null);
+public record SaglikYaniti(bool VeritabaniErisilebilir, string? Hata, int SozlesmeSurumu);
+
+public static class ApiSozlesmesi
+{
+    // API ile masaüstü arasındaki istek/yanıt biçimi geriye uyumsuz değiştiğinde artırılır.
+    // Masaüstü, sunucudaki sürüm kendisininkinden farklıysa girişe izin vermez.
+    public const int Surum = 1;
+}
