@@ -18,7 +18,7 @@ public class KimlikTestleri : IClassFixture<ApiFabrikasi>
     private async Task<KullaniciOzeti> KullaniciOlustur(HttpClient admin, KullaniciRol rol, string? ad = null)
     {
         using var yanit = await admin.PostAsJsonAsync("api/kullanicilar",
-            new KullaniciOlusturIstegi(ad ?? YeniAd(), Sifre, rol));
+            new KullaniciOlusturIstegi(ad ?? YeniAd(), Sifre, rol, "Test Personeli"));
         Assert.Equal(HttpStatusCode.Created, yanit.StatusCode);
         return (await yanit.Content.ReadFromJsonAsync<KullaniciOzeti>())!;
     }
@@ -48,9 +48,9 @@ public class KimlikTestleri : IClassFixture<ApiFabrikasi>
         using var istemci = _api.CreateClient();
 
         using var yanlisSifre = await istemci.PostAsJsonAsync("api/kimlik/giris",
-            new GirisIstegi(ApiFabrikasi.AdminAdi, "yanlis-sifre"));
+            new GirisIstegi(ApiFabrikasi.IsletmeKodu, ApiFabrikasi.AdminAdi, "yanlis-sifre"));
         using var olmayan = await istemci.PostAsJsonAsync("api/kimlik/giris",
-            new GirisIstegi("boyle-biri-yok", "yanlis-sifre"));
+            new GirisIstegi(ApiFabrikasi.IsletmeKodu, "boyle-biri-yok", "yanlis-sifre"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, yanlisSifre.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, olmayan.StatusCode);
@@ -62,7 +62,7 @@ public class KimlikTestleri : IClassFixture<ApiFabrikasi>
     {
         using var istemci = _api.CreateClient();
 
-        using var yanit = await istemci.PostAsJsonAsync("api/kimlik/giris", new GirisIstegi("", ""));
+        using var yanit = await istemci.PostAsJsonAsync("api/kimlik/giris", new GirisIstegi(ApiFabrikasi.IsletmeKodu, "", ""));
 
         Assert.Equal(HttpStatusCode.BadRequest, yanit.StatusCode);
     }
@@ -125,12 +125,12 @@ public class KimlikTestleri : IClassFixture<ApiFabrikasi>
         var oturum = await _api.GirisYap(kullanici.KullaniciAdi, Sifre);
 
         using var guncelle = await admin.PutAsJsonAsync($"api/kullanicilar/{kullanici.Id}",
-            new KullaniciGuncelleIstegi(kullanici.KullaniciAdi, KullaniciRol.Teknisyen, AktifMi: false, YeniSifre: null));
+            new KullaniciGuncelleIstegi(kullanici.KullaniciAdi, KullaniciRol.Teknisyen, AktifMi: false, YeniSifre: null, AdSoyad: "Test Personeli"));
         Assert.Equal(HttpStatusCode.OK, guncelle.StatusCode);
 
         using var istemci = _api.CreateClient();
         using var yenile = await istemci.PostAsJsonAsync("api/kimlik/yenile", new YenilemeIstegi(oturum.YenilemeTokeni));
-        using var giris = await istemci.PostAsJsonAsync("api/kimlik/giris", new GirisIstegi(kullanici.KullaniciAdi, Sifre));
+        using var giris = await istemci.PostAsJsonAsync("api/kimlik/giris", new GirisIstegi(ApiFabrikasi.IsletmeKodu, kullanici.KullaniciAdi, Sifre));
 
         Assert.Equal(HttpStatusCode.Unauthorized, yenile.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, giris.StatusCode);
@@ -144,7 +144,7 @@ public class KimlikTestleri : IClassFixture<ApiFabrikasi>
         await KullaniciOlustur(admin, KullaniciRol.Teknisyen, ad);
 
         using var yanit = await admin.PostAsJsonAsync("api/kullanicilar",
-            new KullaniciOlusturIstegi(ad.ToUpperInvariant(), Sifre, KullaniciRol.Teknisyen));
+            new KullaniciOlusturIstegi(ad.ToUpperInvariant(), Sifre, KullaniciRol.Teknisyen, "Test Personeli"));
 
         Assert.Equal(HttpStatusCode.Conflict, yanit.StatusCode);
     }
@@ -158,7 +158,7 @@ public class KimlikTestleri : IClassFixture<ApiFabrikasi>
         using var admin = await _api.YetkiliIstemci();
 
         using var yanit = await admin.PostAsJsonAsync("api/kullanicilar",
-            new KullaniciOlusturIstegi(ad, sifre, KullaniciRol.Teknisyen));
+            new KullaniciOlusturIstegi(ad, sifre, KullaniciRol.Teknisyen, "Test Personeli"));
 
         Assert.Equal(HttpStatusCode.BadRequest, yanit.StatusCode);
     }
@@ -212,9 +212,9 @@ public class SonYoneticiTestleri : IClassFixture<ApiFabrikasi>
         var ben = await admin.GetFromJsonAsync<KullaniciOzeti>("api/kimlik/ben");
 
         using var rolDusur = await admin.PutAsJsonAsync($"api/kullanicilar/{ben!.Id}",
-            new KullaniciGuncelleIstegi(ben.KullaniciAdi, KullaniciRol.Teknisyen, AktifMi: true, YeniSifre: null));
+            new KullaniciGuncelleIstegi(ben.KullaniciAdi, KullaniciRol.Teknisyen, AktifMi: true, YeniSifre: null, AdSoyad: "Test Personeli"));
         using var devreDisi = await admin.PutAsJsonAsync($"api/kullanicilar/{ben.Id}",
-            new KullaniciGuncelleIstegi(ben.KullaniciAdi, KullaniciRol.Admin, AktifMi: false, YeniSifre: null));
+            new KullaniciGuncelleIstegi(ben.KullaniciAdi, KullaniciRol.Admin, AktifMi: false, YeniSifre: null, AdSoyad: "Test Personeli"));
 
         Assert.Equal(HttpStatusCode.Conflict, rolDusur.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, devreDisi.StatusCode);
@@ -225,8 +225,12 @@ public class GirisSiniriTestleri : IClassFixture<GirisSiniriTestleri.SinirliApi>
 {
     public class SinirliApi : ApiFabrikasi
     {
-        protected override int DakikadaGirisDenemesi => 3;
+        // Test ortamı kurulurken vulu yöneticisi bir kez giriş yapar; o da bu sınırdan düşer.
+        protected override int DakikadaGirisDenemesi => KurulumGirisi + SerbestDeneme;
     }
+
+    private const int KurulumGirisi = 1;
+    private const int SerbestDeneme = 3;
 
     private readonly SinirliApi _api;
 
@@ -236,9 +240,9 @@ public class GirisSiniriTestleri : IClassFixture<GirisSiniriTestleri.SinirliApi>
     public async Task Cok_fazla_giris_denemesi_429_doner()
     {
         using var istemci = _api.CreateClient();
-        var istek = new GirisIstegi(ApiFabrikasi.AdminAdi, "yanlis-sifre");
+        var istek = new GirisIstegi(ApiFabrikasi.IsletmeKodu, ApiFabrikasi.AdminAdi, "yanlis-sifre");
 
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < SerbestDeneme; i++)
         {
             using var deneme = await istemci.PostAsJsonAsync("api/kimlik/giris", istek);
             Assert.Equal(HttpStatusCode.Unauthorized, deneme.StatusCode);

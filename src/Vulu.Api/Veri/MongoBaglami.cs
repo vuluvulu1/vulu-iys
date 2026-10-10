@@ -5,6 +5,8 @@ using Vulu.Api.Veri.Belgeler;
 
 namespace Vulu.Api.Veri;
 
+// Tek bir işletmenin veritabanı. Her istek, oturumdaki işletmenin bağlamıyla çalışır; bir işletmenin isteği
+// başka bir işletmenin koleksiyonlarına ulaşamaz. Platform düzeyindeki veriler için bkz. PlatformBaglami.
 public class MongoBaglami
 {
     // Ad sıralaması Türkçe alfabeye göre yapılır; sorgu ve index aynı kuralı kullanmazsa index devreye girmez.
@@ -12,21 +14,19 @@ public class MongoBaglami
 
     public MongoBaglami(IMongoDatabase db)
     {
+        Veritabani = db;
         Kullanicilar = db.GetCollection<Kullanici>("kullanicilar");
         Musteriler = db.GetCollection<Musteri>("musteriler");
-        Teknisyenler = db.GetCollection<Teknisyen>("teknisyenler");
         ServisKayitlari = db.GetCollection<ServisKaydi>("servisKayitlari");
         Randevular = db.GetCollection<Randevu>("randevular");
-        YenilemeTokenlari = db.GetCollection<YenilemeTokeni>("yenilemeTokenlari");
         Sayaclar = db.GetCollection<BsonDocument>("sayaclar");
     }
 
+    public IMongoDatabase Veritabani { get; }
     public IMongoCollection<Kullanici> Kullanicilar { get; }
     public IMongoCollection<Musteri> Musteriler { get; }
-    public IMongoCollection<Teknisyen> Teknisyenler { get; }
     public IMongoCollection<ServisKaydi> ServisKayitlari { get; }
     public IMongoCollection<Randevu> Randevular { get; }
-    public IMongoCollection<YenilemeTokeni> YenilemeTokenlari { get; }
     private IMongoCollection<BsonDocument> Sayaclar { get; }
 
     // Adı verilen sayacı bir artırıp yeni değerini döner. Tek belgede tek işlem olduğu için aynı anda gelen
@@ -64,37 +64,9 @@ public class MongoBaglami
                 new CreateIndexOptions { Unique = true }),
             cancellationToken: iptal);
 
-        await YenilemeTokenlari.Indexes.CreateManyAsync(
-            [
-                new(Builders<YenilemeTokeni>.IndexKeys.Ascending(t => t.TokenHash),
-                    new CreateIndexOptions { Unique = true }),
-                new(Builders<YenilemeTokeni>.IndexKeys.Ascending(t => t.KullaniciId)),
-                // Süresi dolan tokenları MongoDB kendisi siler.
-                new(Builders<YenilemeTokeni>.IndexKeys.Ascending(t => t.SonGecerlilik),
-                    new CreateIndexOptions { ExpireAfter = TimeSpan.Zero })
-            ],
-            iptal);
-
-        // Bir kullanıcı hesabı en fazla bir teknisyene bağlanabilir; hesabı olmayanlar kısıta girmez.
-        await Teknisyenler.Indexes.CreateOneAsync(
-            new CreateIndexModel<Teknisyen>(
-                Builders<Teknisyen>.IndexKeys.Ascending(t => t.KullaniciId),
-                new CreateIndexOptions<Teknisyen>
-                {
-                    Unique = true,
-                    PartialFilterExpression = Builders<Teknisyen>.Filter.Type(t => t.KullaniciId, BsonType.ObjectId)
-                }),
-            cancellationToken: iptal);
-
         await Musteriler.Indexes.CreateOneAsync(
             new CreateIndexModel<Musteri>(
                 Builders<Musteri>.IndexKeys.Ascending(m => m.AdSoyad),
-                new CreateIndexOptions { Collation = TurkceSiralama }),
-            cancellationToken: iptal);
-
-        await Teknisyenler.Indexes.CreateOneAsync(
-            new CreateIndexModel<Teknisyen>(
-                Builders<Teknisyen>.IndexKeys.Ascending(t => t.AdSoyad),
                 new CreateIndexOptions { Collation = TurkceSiralama }),
             cancellationToken: iptal);
 

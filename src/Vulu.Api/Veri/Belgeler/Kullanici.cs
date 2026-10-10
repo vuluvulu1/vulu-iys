@@ -4,6 +4,7 @@ using Vulu.Shared;
 
 namespace Vulu.Api.Veri.Belgeler;
 
+// Personel kaydı: sisteme giriş yapan hesap ile servis kaydı ve randevuların atandığı kişi aynı belgedir.
 public class Kullanici
 {
     [BsonId]
@@ -15,4 +16,8 @@ public class Kullanici
     public KullaniciRol Rol { get; set; } = KullaniciRol.Teknisyen;
     public bool AktifMi { get; set; } = true;
     public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
+
+    public string AdSoyad { get; set; } = string.Empty;
+    public string? Telefon { get; set; }
+    public string? Uzmanlik { get; set; }
 }

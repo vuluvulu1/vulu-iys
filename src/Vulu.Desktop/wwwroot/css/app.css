@@ -78,6 +78,15 @@ h2 {
 .marka img {
     width: 36px;
     height: 36px;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+/* İşletme adları uzun olabilir. */
+.marka span {
+    font-size: 16px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
 }
 
 .yan-menu nav {
@@ -278,6 +287,86 @@ button:disabled {
 .gorunum-secimi button:last-child {
     margin-left: -1px;
     border-radius: 0 var(--kose) var(--kose) 0;
+}
+
+.uc-sutun {
+    display: grid;
+    grid-template-columns: 1fr 1fr 120px;
+    gap: 12px;
+}
+
+/* Sayfa içinde duran (pencere olmayan) form: işletme ayarları. */
+.kart.genis {
+    max-width: 720px;
+}
+
+.kart.genis footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.kart.genis .form-basligi {
+    margin: 20px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--kenar);
+    color: var(--soluk-metin);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.kart .aciklama {
+    margin: 8px 0 0;
+    font-size: 13px;
+}
+
+.logo-satiri {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+
+.logo-satiri img {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    background: var(--arka-plan);
+    border: 1px solid var(--kenar);
+    border-radius: var(--kose);
+}
+
+.logo-satiri label {
+    margin-top: 0;
+}
+
+.logo-satiri input[type="file"] {
+    width: auto;
+    margin-right: 8px;
+    padding: 6px;
+}
+
+input:disabled {
+    opacity: 0.6;
+}
+
+code {
+    font-family: Consolas, monospace;
+    color: var(--vurgu-acik);
+}
+
+.iki-sutun {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.pencere .form-basligi {
+    margin: 20px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--kenar);
 }
 
 .yan-yana {

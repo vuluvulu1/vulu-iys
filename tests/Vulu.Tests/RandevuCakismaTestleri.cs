@@ -26,8 +26,7 @@ public class RandevuCakismaTestleri : IClassFixture<ApiFabrikasi>
 
     private static async Task<string> TeknisyenEkle(HttpClient admin, string ad = "Çakışma Ustası")
     {
-        using var yanit = await admin.PostAsJsonAsync("api/teknisyenler", new TeknisyenIstegi(ad, "05447778899", null, null));
-        return (await yanit.Content.ReadFromJsonAsync<TeknisyenYaniti>())!.Id;
+        return (await ApiFabrikasi.PersonelEkle(admin, ad)).Id;
     }
 
     private static Task<HttpResponseMessage> Ekle(HttpClient admin, string musteriId, string? teknisyenId, DateTime tarih, int sure = 60) =>

@@ -1,0 +1,236 @@
+@* Vulu yöneticisinin ekranı: hizmeti kullanan işletmeleri açar, adını düzeltir, askıya alır. *@
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<div class="kabuk">
+    <aside class="yan-menu">
+        <div class="marka">
+            <img src="img/logo.svg" alt="" />
+            <span>vulu</span>
+        </div>
+
+        <nav>
+            <a class="active" aria-current="page">İşletmeler</a>
+        </nav>
+
+        <div class="oturum">
+            <div class="oturum-adi">@Oturum.Kullanici?.AdSoyad</div>
+            <div class="oturum-rol">Vulu yöneticisi</div>
+            <button class="ikincil" @onclick="Oturum.CikisYap">Çıkış yap</button>
+        </div>
+    </aside>
+
+    <main class="icerik">
+        <h1>İşletmeler</h1>
+
+        <div class="arac-cubugu">
+            <button @onclick="YeniAc">Yeni işletme</button>
+            <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
+        </div>
+
+        @if (_listeHatasi is not null)
+        {
+            <p class="hata" role="alert">@_listeHatasi</p>
+        }
+
+        @if (_isletmeler is null)
+        {
+            <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
+        }
+        else if (_isletmeler.Count == 0)
+        {
+            <p class="soluk">Henüz işletme yok. İlk işletmeyi “Yeni işletme” ile açın.</p>
+        }
+        else
+        {
+            <table class="tablo">
+                <thead>
+                    <tr>
+                        <th>İşletme</th>
+                        <th>Kod</th>
+                        <th>Telefon</th>
+                        <th>Açılış</th>
+                        <th>Durum</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var isletme in _isletmeler)
+                    {
+                        <tr @key="isletme.Id">
+                            <td>@isletme.Ad</td>
+                            <td><code>@isletme.Kod</code></td>
+                            <td>@(isletme.Telefon ?? "—")</td>
+                            <td class="dar">@Bicim.Tarih(isletme.OlusturmaTarihi)</td>
+                            <td>
+                                <span class="@(isletme.AktifMi ? "durum iyi" : "durum kotu")">
+                                    @(isletme.AktifMi ? "Açık" : "Askıda")
+                                </span>
+                            </td>
+                            <td class="islemler">
+                                <button class="ikincil" @onclick="() => DuzenleAc(isletme)">Düzenle</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="sayfalama">
+                <span class="soluk">@_isletmeler.Count işletme</span>
+            </div>
+        }
+    </main>
+</div>
+
+@if (_yeni is not null)
+{
+    <Pencere Baslik="Yeni işletme" Genis="true" KapatIstendi="Kapat">
+        <form @onsubmit="Olustur">
+            <label for="i-ad">İşletme adı</label>
+            <input id="i-ad" @bind="_yeni.Ad" @bind:event="oninput" autocomplete="off" />
+
+            <label for="i-kod">İşletme kodu</label>
+            <input id="i-kod" @bind="_yeni.Kod" @bind:event="oninput" autocomplete="off" autocapitalize="none"
+                   spellcheck="false" placeholder="ornek-servis" />
+            <p class="soluk aciklama">
+                Personel giriş ekranında bu kodu yazar. Küçük harf, rakam ve tire; açıldıktan sonra değiştirilemez.
+            </p>
+
+            <h3 class="form-basligi">İşletmenin ilk yöneticisi</h3>
+
+            <label for="i-yonetici-ad">Ad soyad</label>
+            <input id="i-yonetici-ad" @bind="_yeni.YoneticiAdSoyad" @bind:event="oninput" autocomplete="off" />
+
+            <div class="iki-sutun">
+                <div>
+                    <label for="i-yonetici-kullanici">Kullanıcı adı</label>
+                    <input id="i-yonetici-kullanici" @bind="_yeni.YoneticiKullaniciAdi" @bind:event="oninput" autocomplete="off" />
+                </div>
+                <div>
+                    <label for="i-yonetici-sifre">Şifre</label>
+                    <input id="i-yonetici-sifre" type="password" @bind="_yeni.YoneticiSifre" @bind:event="oninput" autocomplete="new-password" />
+                </div>
+            </div>
+            <p class="soluk aciklama">
+                Bu bilgileri işletmeye siz iletirsiniz. Yönetici giriş yaptıktan sonra kendi personelini ekler.
+            </p>
+
+            <FormAltligi Hata="@_formHatasi" Mesgul="_kaydediliyor" Vazgec="Kapat" />
+        </form>
+    </Pencere>
+}
+
+@if (_duzenlenen is not null)
+{
+    <Pencere Baslik="İşletmeyi düzenle" KapatIstendi="Kapat">
+        <form @onsubmit="Guncelle">
+            <label for="i-duzen-ad">İşletme adı</label>
+            <input id="i-duzen-ad" @bind="_duzenAd" @bind:event="oninput" autocomplete="off" />
+
+            <label class="onay-kutusu">
+                <input id="i-duzen-aktif" type="checkbox" @bind="_duzenAktif" />
+                İşletme açık
+            </label>
+            <p class="soluk aciklama">
+                Askıya alınan işletmenin personeli giriş yapamaz ve açık oturumları kapanır. Verisi silinmez;
+                işletme yeniden açıldığında kaldığı yerden devam eder.
+            </p>
+
+            <FormAltligi Hata="@_formHatasi" Mesgul="_kaydediliyor" Vazgec="Kapat" />
+        </form>
+    </Pencere>
+}
+
+@code {
+    private class YeniIsletme
+    {
+        public string Ad { get; set; } = "";
+        public string Kod { get; set; } = "";
+        public string YoneticiAdSoyad { get; set; } = "";
+        public string YoneticiKullaniciAdi { get; set; } = "";
+        public string YoneticiSifre { get; set; } = "";
+    }
+
+    private List<IsletmeYaniti>? _isletmeler;
+    private string? _listeHatasi;
+    private bool _yukleniyor;
+
+    private YeniIsletme? _yeni;
+    private IsletmeYaniti? _duzenlenen;
+    private string _duzenAd = "";
+    private bool _duzenAktif;
+    private string? _formHatasi;
+    private bool _kaydediliyor;
+
+    protected override Task OnInitializedAsync() => Yukle();
+
+    private async Task Yukle()
+    {
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<List<IsletmeYaniti>>("api/platform/isletmeler");
+        _yukleniyor = false;
+
+        _listeHatasi = sonuc.Hata;
+        if (sonuc.Basarili)
+            _isletmeler = sonuc.Deger ?? [];
+    }
+
+    private void YeniAc()
+    {
+        _formHatasi = null;
+        _yeni = new YeniIsletme();
+    }
+
+    private void DuzenleAc(IsletmeYaniti isletme)
+    {
+        _formHatasi = null;
+        _duzenlenen = isletme;
+        _duzenAd = isletme.Ad;
+        _duzenAktif = isletme.AktifMi;
+    }
+
+    private void Kapat()
+    {
+        _yeni = null;
+        _duzenlenen = null;
+    }
+
+    private async Task Olustur()
+    {
+        if (_yeni is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Ekle<IsletmeYaniti>("api/platform/isletmeler",
+            new IsletmeOlusturIstegi(_yeni.Kod.Trim().ToLowerInvariant(), _yeni.Ad.Trim(),
+                _yeni.YoneticiKullaniciAdi.Trim(), _yeni.YoneticiSifre, _yeni.YoneticiAdSoyad.Trim()));
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _formHatasi = sonuc.Hata;
+            return;
+        }
+
+        Kapat();
+        await Yukle();
+    }
+
+    private async Task Guncelle()
+    {
+        if (_duzenlenen is null || _kaydediliyor) return;
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Guncelle<IsletmeYaniti>($"api/platform/isletmeler/{_duzenlenen.Id}",
+            new IsletmeDurumIstegi(_duzenAd.Trim(), _duzenAktif));
+        _kaydediliyor = false;
+
+        if (!sonuc.Basarili)
+        {
+            _formHatasi = sonuc.Hata;
+            return;
+        }
+
+        Kapat();
+        await Yukle();
+    }
+}

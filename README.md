@@ -1,6 +1,21 @@
 # vulu Teknik Servis Yönetim Sistemi
 
-Teknik servis süreçlerini (müşteri, teknisyen, servis kaydı, randevu, fatura) yöneten masaüstü uygulaması.
+Teknik servis işletmelerine hizmet olarak sunulan yönetim paneli: müşteri, personel, servis kaydı, randevu ve
+fatura. Tek bir API birden çok işletmeye hizmet verir; her işletmenin verisi kendi veritabanında durur.
+
+## Çok işletmeli yapı
+
+- **Vulu yöneticisi** işletme kaydını açar ve işletmenin ilk yöneticisinin hesabını oluşturur; gerektiğinde
+  işletmeyi askıya alır. Giriş ekranında işletme kodu olarak `vulu` yazar ve servis ekranları yerine İşletmeler
+  ekranını görür. İşletmelerin müşteri ve servis verisine API üzerinden erişemez.
+- **İşletme yöneticisi** kendi personelini ekler, işletmenin adını, adresini, vergi bilgilerini ve logosunu
+  düzenler.
+- **Giriş** üç alanla yapılır: işletme kodu, kullanıcı adı, şifre. Kullanıcı adları işletme içinde tekildir.
+- **Veri ayrımı:** platform veritabanında (`Mongo:VeritabaniAdi`) yalnızca işletme listesi, vulu yöneticileri ve
+  yenileme tokenları durur. Her işletmenin personeli, müşterileri, servis kayıtları ve randevuları
+  `Mongo:IsletmeVeritabaniOneki` + işletme kodu adlı ayrı bir veritabanındadır. Her istek, oturumdaki işletmenin
+  veritabanına bağlanır (`Altyapi/IsletmeCozucu.cs`); askıya alınan işletmenin açık oturumları da reddedilir.
+- Veri geçişleri ve indexler açılışta her işletme veritabanına ayrı ayrı uygulanır.
 
 ## Teknolojiler
 
@@ -29,8 +44,8 @@ Yerelde `mongodb://localhost:27017` adresinde bir MongoDB gerekir
 Gizli ayarlar repoda tutulmaz. `src/Vulu.Api/appsettings.Local.ornek.json` dosyasını aynı klasöre
 `appsettings.Local.json` adıyla kopyalayıp değerleri doldurun; bu dosya git'e girmez.
 
-`IlkAdmin` hesabı yalnızca veritabanında hiç kullanıcı yokken oluşturulur. Canlı ortamda aynı ayarlar
-ortam değişkeniyle verilir (`Jwt__Anahtar`, `Mongo__BaglantiDizesi`, ...).
+`IlkAdmin` ilk vulu yöneticisinin hesabıdır ve yalnızca hiç vulu yöneticisi yokken oluşturulur; işletmeleri o
+açar. Canlı ortamda aynı ayarlar ortam değişkeniyle verilir (`Jwt__Anahtar`, `Mongo__BaglantiDizesi`, ...).
 
 ```bash
 dotnet run --project src/Vulu.Api --launch-profile http
@@ -42,15 +57,27 @@ dotnet run --project src/Vulu.Desktop
 
 Masaüstü uygulamasının bağlandığı API adresi `src/Vulu.Desktop/appsettings.json` içindedir.
 
+## Personel
+
+Her personel bir kullanıcı hesabıdır: ad soyad, telefon ve uzmanlık hesabın üzerinde durur, servis kayıtları ve
+randevular bu hesaplara atanır. Hesapları yalnızca yönetici yönetir (Personel sayfası). Üzerinde iş geçmişi olan
+hesap silinemez, devre dışı bırakılır; devre dışı hesap giriş yapamaz ve yeni iş atanamaz.
+
+## Veri geçişleri
+
+Veri modeli değiştiğinde mevcut belgeleri yeni biçime taşıyan adımlar `src/Vulu.Api/Veri/Gecisler.cs` içindedir.
+API açılışta uygulanmamış adımları sırayla çalıştırır; son uygulanan adımın numarası `sema` koleksiyonunda durur.
+Yeni bir adım, listenin sonuna bir sonraki numarayla eklenir ve yarıda kesilip yeniden çalıştırılabilecek şekilde
+yazılır.
+
 ## Fatura belgesi
 
-Kesilen her faturaya yıl içinde sıralı bir numara verilir (`VL-2026-000001`) ve panelden PDF olarak açılabilir.
-Belgenin başlığındaki işletme bilgileri ve KDV oranı `src/Vulu.Api/appsettings.json` içindeki `Firma`
-bölümünden gelir (barındırma ortamında `Firma__Ad`, `Firma__VergiNo`, ... ortam değişkenleri). Fatura tutarı KDV
-dahil girilir; belge matrahı ve KDV'yi bu orana göre ayırır.
+Kesilen her faturaya, işletmenin kendi sırasında yıl içinde artan bir numara verilir (ön ek işletme kodundan
+türetilir, örn. `DUZC-2026-000001`) ve panelden PDF olarak açılabilir. Belgenin başlığındaki ad, adres, vergi
+bilgileri, logo ve KDV oranı işletmenin kendi kaydından gelir (İşletme sayfası). Fatura tutarı KDV dahil girilir;
+belge matrahı ve KDV'yi bu orana göre ayırır.
 
-Belge bilgilendirme amaçlıdır: e-Fatura / e-Arşiv Fatura değildir ve resmî fatura yerine geçmez. Alttaki not
-`Firma:BelgeNotu` ile değiştirilebilir.
+Belge bilgilendirme amaçlıdır: e-Fatura / e-Arşiv Fatura değildir ve resmî fatura yerine geçmez.
 
 PDF üretimi QuestPDF ile yapılır; Community lisansı yıllık geliri 1 milyon ABD dolarının altındaki işletmeler
 için ücretsizdir.

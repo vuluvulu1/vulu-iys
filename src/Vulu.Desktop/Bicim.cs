@@ -12,6 +12,10 @@ public static partial class Bicim
     // API tarihleri UTC verir; ekranda bilgisayarın saat dilimine çevrilir.
     public static string Tarih(DateTime utc) => utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm", Turkce);
 
+    // İşletmenin kendi logosu varsa onu, yoksa vulu logosunu gösteren adres.
+    public static string LogoAdresi(IsletmeYaniti? isletme) =>
+        isletme is { LogoVerisi: { Length: > 0 } veri, LogoTuru: { } tur } ? $"data:{tur};base64,{veri}" : "img/logo.svg";
+
     // Yerel tarihi, API sorgu dizgisinde kullanılacak UTC anına çevirir.
     public static string SorguTarihi(DateTime yerel) =>
         Uri.EscapeDataString(DateTime.SpecifyKind(yerel, DateTimeKind.Local).ToUniversalTime().ToString("o"));

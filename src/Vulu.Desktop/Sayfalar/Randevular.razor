@@ -156,13 +156,8 @@ else
             </div>
 
             <label for="r-teknisyen">Teknisyen (isteğe bağlı)</label>
-            <select id="r-teknisyen" @bind="_teknisyenId">
-                <option value="">— Atanmadı —</option>
-                @foreach (var teknisyen in _teknisyenler)
-                {
-                    <option value="@teknisyen.Id">@teknisyen.AdSoyad</option>
-                }
-            </select>
+            <PersonelSecimi ElemanId="r-teknisyen" @bind-Secili="_teknisyenId"
+                            MevcutId="@_duzenlenen?.TeknisyenId" MevcutAd="@_duzenlenen?.TeknisyenAdi" />
 
             <label for="r-kayit">İlgili servis kaydı (isteğe bağlı)</label>
             <select id="r-kayit" @bind="_servisKaydiId" disabled="@(_musteri is null)">
@@ -213,7 +208,6 @@ else
     private string _teknisyenId = "";
     private string _servisKaydiId = "";
     private string _aciklama = "";
-    private List<TeknisyenYaniti> _teknisyenler = [];
     private IReadOnlyList<ServisKaydiYaniti> _musterininKayitlari = [];
     private string? _formHatasi;
     private bool _kaydediliyor;
@@ -322,10 +316,6 @@ else
         _formHatasi = null;
         _musterininKayitlari = [];
         _formAcik = true;
-
-        var teknisyenler = await Api.Getir<List<TeknisyenYaniti>>("api/teknisyenler");
-        _teknisyenler = teknisyenler.Deger ?? [];
-        _formHatasi = teknisyenler.Hata;
 
         await MusterininKayitlariniYukle();
     }

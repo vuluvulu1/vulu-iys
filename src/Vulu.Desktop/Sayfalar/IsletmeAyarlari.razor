@@ -1,0 +1,209 @@
+@page "/isletme"
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<h1>İşletme</h1>
+
+@if (!Oturum.AdminMi)
+{
+    <p class="hata">Bu sayfayı yalnızca işletme yöneticisi görebilir.</p>
+}
+else if (_form is null)
+{
+    <p class="@(_hata is null ? "soluk" : "hata")">@(_hata ?? "Yükleniyor…")</p>
+}
+else
+{
+    <form class="kart genis" @onsubmit="Kaydet">
+        <div class="logo-satiri">
+            <img src="@LogoOnizleme" alt="İşletme logosu" />
+            <div>
+                <label for="i-logo">Logo (PNG ya da JPEG, en fazla @(IsletmeKurallari.EnFazlaLogoBayt / 1024) KB)</label>
+                <InputFile id="i-logo" OnChange="LogoSecildi" accept="image/png,image/jpeg" />
+                @if (_mevcutLogo is not null || _yeniLogo is not null)
+                {
+                    <button type="button" class="ikincil" @onclick="LogoyuKaldir">Logoyu kaldır</button>
+                }
+                <p class="soluk aciklama">Logo yan menüde ve fatura belgesinin başlığında görünür.</p>
+            </div>
+        </div>
+
+        <div class="iki-sutun">
+            <div>
+                <label for="i-ad">İşletme adı</label>
+                <input id="i-ad" @bind="_form.Ad" @bind:event="oninput" autocomplete="off" />
+            </div>
+            <div>
+                <label for="i-kod">İşletme kodu</label>
+                <input id="i-kod" value="@_kod" disabled />
+            </div>
+        </div>
+
+        <label for="i-adres">Adres</label>
+        <textarea id="i-adres" rows="2" @bind="_form.Adres" @bind:event="oninput"></textarea>
+
+        <div class="iki-sutun">
+            <div>
+                <label for="i-telefon">Telefon</label>
+                <input id="i-telefon" @bind="_form.Telefon" @bind:event="oninput" inputmode="numeric" maxlength="11"
+                       placeholder="03801234567" autocomplete="off" />
+            </div>
+            <div>
+                <label for="i-eposta">E-posta</label>
+                <input id="i-eposta" type="email" @bind="_form.Eposta" @bind:event="oninput" autocomplete="off" />
+            </div>
+        </div>
+
+        <h3 class="form-basligi">Fatura bilgileri</h3>
+
+        <div class="uc-sutun">
+            <div>
+                <label for="i-vergi-dairesi">Vergi dairesi</label>
+                <input id="i-vergi-dairesi" @bind="_form.VergiDairesi" @bind:event="oninput" autocomplete="off" />
+            </div>
+            <div>
+                <label for="i-vergi-no">Vergi numarası</label>
+                <input id="i-vergi-no" @bind="_form.VergiNo" @bind:event="oninput" inputmode="numeric" maxlength="11" autocomplete="off" />
+            </div>
+            <div>
+                <label for="i-kdv">KDV oranı (%)</label>
+                <input id="i-kdv" @bind="_form.KdvOrani" @bind:event="oninput" inputmode="decimal" autocomplete="off" />
+            </div>
+        </div>
+        <p class="soluk aciklama">
+            Fatura tutarı KDV dahil girilir; belge matrahı ve KDV'yi bu orana göre ayırır.
+        </p>
+
+        @if (_hata is not null)
+        {
+            <p class="hata" role="alert">@_hata</p>
+        }
+        @if (_kaydedildi)
+        {
+            <p class="durum iyi" role="status">Kaydedildi.</p>
+        }
+
+        <footer>
+            <button type="submit" disabled="@_kaydediliyor">@(_kaydediliyor ? "Kaydediliyor…" : "Kaydet")</button>
+        </footer>
+    </form>
+}
+
+@code {
+    private class IsletmeFormu
+    {
+        public string Ad { get; set; } = "";
+        public string Adres { get; set; } = "";
+        public string Telefon { get; set; } = "";
+        public string Eposta { get; set; } = "";
+        public string VergiDairesi { get; set; } = "";
+        public string VergiNo { get; set; } = "";
+        public string KdvOrani { get; set; } = "20";
+    }
+
+    private IsletmeFormu? _form;
+    private string _kod = "";
+    private (string Veri, string Tur)? _mevcutLogo;
+    private (string Veri, string Tur)? _yeniLogo;
+    private bool _logoKaldirilacak;
+    private string? _hata;
+    private bool _kaydediliyor;
+    private bool _kaydedildi;
+
+    private string LogoOnizleme =>
+        _yeniLogo is { } yeni ? $"data:{yeni.Tur};base64,{yeni.Veri}"
+        : _mevcutLogo is { } mevcut && !_logoKaldirilacak ? $"data:{mevcut.Tur};base64,{mevcut.Veri}"
+        : "img/logo.svg";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Oturum.AdminMi) return;
+
+        var sonuc = await Api.Getir<IsletmeYaniti>("api/isletme");
+        if (!sonuc.Basarili || sonuc.Deger is null)
+        {
+            _hata = sonuc.Hata ?? "İşletme bilgileri okunamadı.";
+            return;
+        }
+
+        Doldur(sonuc.Deger);
+    }
+
+    private void Doldur(IsletmeYaniti isletme)
+    {
+        _kod = isletme.Kod;
+        _mevcutLogo = isletme is { LogoVerisi: { } veri, LogoTuru: { } tur } ? (veri, tur) : null;
+        _yeniLogo = null;
+        _logoKaldirilacak = false;
+        _form = new IsletmeFormu
+        {
+            Ad = isletme.Ad,
+            Adres = isletme.Adres ?? "",
+            Telefon = isletme.Telefon ?? "",
+            Eposta = isletme.Eposta ?? "",
+            VergiDairesi = isletme.VergiDairesi ?? "",
+            VergiNo = isletme.VergiNo ?? "",
+            KdvOrani = isletme.KdvOrani.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("tr-TR"))
+        };
+    }
+
+    private async Task LogoSecildi(InputFileChangeEventArgs olay)
+    {
+        _hata = null;
+        _kaydedildi = false;
+        var dosya = olay.File;
+
+        if (!IsletmeKurallari.LogoTurleri.Contains(dosya.ContentType))
+        {
+            _hata = "Logo PNG ya da JPEG olmalı.";
+            return;
+        }
+        if (dosya.Size > IsletmeKurallari.EnFazlaLogoBayt)
+        {
+            _hata = $"Logo en fazla {IsletmeKurallari.EnFazlaLogoBayt / 1024} KB olabilir; seçilen dosya {dosya.Size / 1024} KB.";
+            return;
+        }
+
+        using var bellek = new MemoryStream();
+        await dosya.OpenReadStream(IsletmeKurallari.EnFazlaLogoBayt).CopyToAsync(bellek);
+        _yeniLogo = (Convert.ToBase64String(bellek.ToArray()), dosya.ContentType);
+        _logoKaldirilacak = false;
+    }
+
+    private void LogoyuKaldir()
+    {
+        _yeniLogo = null;
+        _logoKaldirilacak = true;
+        _kaydedildi = false;
+    }
+
+    private async Task Kaydet()
+    {
+        if (_form is null || _kaydediliyor) return;
+
+        _kaydedildi = false;
+        if (!Bicim.ParaOku(_form.KdvOrani, out var kdv))
+        {
+            _hata = "KDV oranı sayı olmalı (örn. 20).";
+            return;
+        }
+
+        var istek = new IsletmeProfilIstegi(_form.Ad.Trim(), BosIseNull(_form.Adres), BosIseNull(_form.Telefon),
+            BosIseNull(_form.Eposta), BosIseNull(_form.VergiDairesi), BosIseNull(_form.VergiNo), kdv,
+            _yeniLogo?.Veri, _yeniLogo?.Tur, _logoKaldirilacak);
+
+        _kaydediliyor = true;
+        var sonuc = await Api.Guncelle<IsletmeYaniti>("api/isletme", istek);
+        _kaydediliyor = false;
+
+        _hata = sonuc.Hata;
+        if (!sonuc.Basarili || sonuc.Deger is null) return;
+
+        Doldur(sonuc.Deger);
+        _kaydedildi = true;
+        // Yan menüdeki ad ve logo da yenilensin.
+        Oturum.IsletmeyiAyarla(sonuc.Deger);
+    }
+
+    private static string? BosIseNull(string deger) => string.IsNullOrWhiteSpace(deger) ? null : deger.Trim();
+}

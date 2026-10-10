@@ -137,7 +137,7 @@ public class MusteriTestleri : IClassFixture<ApiFabrikasi>
         using var admin = await _api.YetkiliIstemci();
         var ad = "t" + Guid.NewGuid().ToString("N")[..10];
         using var olustur = await admin.PostAsJsonAsync("api/kullanicilar",
-            new KullaniciOlusturIstegi(ad, "Gecerli-Sifre-1", KullaniciRol.Teknisyen));
+            new KullaniciOlusturIstegi(ad, "Gecerli-Sifre-1", KullaniciRol.Teknisyen, "Test Personeli"));
         olustur.EnsureSuccessStatusCode();
 
         using var teknisyen = await _api.YetkiliIstemci(ad, "Gecerli-Sifre-1");

@@ -39,6 +39,7 @@ internal static class Program
 
         builder.Services.AddLogging();
         builder.Services.AddSingleton(new HttpClient { BaseAddress = apiAdresi });
+        builder.Services.AddSingleton<YerelAyarlar>();
         builder.Services.AddSingleton<OturumServisi>();
         builder.Services.AddSingleton<ApiIstemcisi>();
 

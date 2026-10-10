@@ -39,8 +39,7 @@ public class RandevuTestleri : IClassFixture<ApiFabrikasi>
     {
         using var admin = await _api.YetkiliIstemci();
         var musteri = await MusteriEkle(admin, "Ayla Randevu");
-        using var teknisyenYaniti = await admin.PostAsJsonAsync("api/teknisyenler", new TeknisyenIstegi("Usta Randevu", "05446667788", null, null));
-        var teknisyen = await Oku<TeknisyenYaniti>(teknisyenYaniti, HttpStatusCode.Created);
+        var teknisyen = await ApiFabrikasi.PersonelEkle(admin, "Usta Randevu");
         using var kayitYaniti = await admin.PostAsJsonAsync("api/servis-kayitlari", new ServisKaydiIstegi(musteri.Id, null, "Laptop", "Arıza"));
         var kayit = await Oku<ServisKaydiYaniti>(kayitYaniti, HttpStatusCode.Created);
         var tarih = Yarin(14);
@@ -124,7 +123,7 @@ public class RandevuTestleri : IClassFixture<ApiFabrikasi>
     {
         using var admin = await _api.YetkiliIstemci();
         var ad = "t" + Guid.NewGuid().ToString("N")[..10];
-        (await admin.PostAsJsonAsync("api/kullanicilar", new KullaniciOlusturIstegi(ad, Sifre, KullaniciRol.Teknisyen))).EnsureSuccessStatusCode();
+        (await admin.PostAsJsonAsync("api/kullanicilar", new KullaniciOlusturIstegi(ad, Sifre, KullaniciRol.Teknisyen, "Test Personeli"))).EnsureSuccessStatusCode();
         using var teknisyen = await _api.YetkiliIstemci(ad, Sifre);
         var randevu = await RandevuEkle(teknisyen, (await MusteriEkle(teknisyen)).Id, Yarin());
 

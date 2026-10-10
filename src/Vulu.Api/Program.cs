@@ -7,7 +7,6 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
 using Vulu.Api.Controllers;
-using Vulu.Api.Faturalar;
 using Vulu.Api.Kimlik;
 using Vulu.Api.Veri;
 
@@ -37,12 +36,17 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>()
         .GetDatabase(sp.GetRequiredService<IOptions<MongoAyarlari>>().Value.VeritabaniAdi));
-builder.Services.AddSingleton<MongoBaglami>();
+builder.Services.AddSingleton<PlatformBaglami>();
 builder.Services.AddHostedService<VeritabaniHazirlamaServisi>();
+
+// Çok işletmeli yapı: her istek oturumdaki işletmenin veritabanıyla çalışır.
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<GecerliIsletme>();
+builder.Services.AddScoped(sp =>
+    sp.GetRequiredService<PlatformBaglami>().IsletmeBaglami(sp.GetRequiredService<GecerliIsletme>().Zorunlu));
 
 // Fatura belgesi
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
-builder.Services.Configure<FirmaAyarlari>(builder.Configuration.GetSection(FirmaAyarlari.Bolum));
 
 // Kimlik doğrulama
 builder.Services.AddOptions<JwtAyarlari>()
@@ -69,9 +73,13 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
     });
 
-// Açıkça [AllowAnonymous] denmeyen her uç nokta giriş ister.
+// Açıkça [AllowAnonymous] denmeyen her uç nokta bir işletmeye bağlı oturum ister. Vulu yöneticisinin
+// uçları kendi rol şartını taşır; onun tokenında işletme bulunmadığı için işletme uçlarına giremez.
 builder.Services.AddAuthorizationBuilder()
-    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireClaim(TokenServisi.IsletmeTalebi)
+        .Build());
 
 builder.Services.AddRateLimiter(secenekler =>
 {
@@ -103,6 +111,7 @@ else
 }
 
 app.UseAuthentication();
+app.UseMiddleware<IsletmeCozucu>();
 app.UseAuthorization();
 app.UseRateLimiter();
 

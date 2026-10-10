@@ -7,7 +7,6 @@ COPY src/Vulu.Shared/Vulu.Shared.csproj src/Vulu.Shared/
 COPY src/Vulu.Api/Vulu.Api.csproj src/Vulu.Api/
 RUN dotnet restore src/Vulu.Api/Vulu.Api.csproj
 
-COPY assets/logo.svg assets/
 COPY src/Vulu.Shared/ src/Vulu.Shared/
 COPY src/Vulu.Api/ src/Vulu.Api/
 RUN dotnet publish src/Vulu.Api/Vulu.Api.csproj -c Release -o /uygulama --no-restore

@@ -7,13 +7,8 @@
         <MusteriSecici Secili="_musteri" SeciliChanged="MusteriSecildi" />
 
         <label for="s-teknisyen">Teknisyen (isteğe bağlı)</label>
-        <select id="s-teknisyen" @bind="_teknisyenId">
-            <option value="">— Atanmadı —</option>
-            @foreach (var teknisyen in _teknisyenler)
-            {
-                <option value="@teknisyen.Id">@teknisyen.AdSoyad@(teknisyen.Uzmanlik is null ? "" : $" ({teknisyen.Uzmanlik})")</option>
-            }
-        </select>
+        <PersonelSecimi ElemanId="s-teknisyen" @bind-Secili="_teknisyenId"
+                        MevcutId="@Kayit?.TeknisyenId" MevcutAd="@Kayit?.TeknisyenAdi" />
 
         <label for="s-cihaz">Cihaz</label>
         <input id="s-cihaz" @bind="_cihaz" @bind:event="oninput" placeholder="Örn. Laptop – Dell XPS 13" autocomplete="off" />
@@ -30,7 +25,6 @@
     [Parameter] public EventCallback Vazgec { get; set; }
     [Parameter] public EventCallback<ServisKaydiYaniti> Kaydedildi { get; set; }
 
-    private List<TeknisyenYaniti> _teknisyenler = [];
     private MusteriYaniti? _musteri;
     private string _teknisyenId = "";
     private string _cihaz = "";
@@ -38,20 +32,15 @@
     private string? _hata;
     private bool _kaydediliyor;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        if (Kayit is not null)
-        {
-            // Seçici yalnızca ad ve telefonu gösterir; kayıttaki kopya bunun için yeterlidir.
-            _musteri = new MusteriYaniti(Kayit.MusteriId, Kayit.MusteriAdi, Kayit.MusteriTelefonu, null, null, default);
-            _teknisyenId = Kayit.TeknisyenId ?? "";
-            _cihaz = Kayit.CihazBilgisi;
-            _sorun = Kayit.Sorun;
-        }
+        if (Kayit is null) return;
 
-        var sonuc = await Api.Getir<List<TeknisyenYaniti>>("api/teknisyenler");
-        _teknisyenler = sonuc.Deger ?? [];
-        _hata = sonuc.Hata;
+        // Seçici yalnızca ad ve telefonu gösterir; kayıttaki kopya bunun için yeterlidir.
+        _musteri = new MusteriYaniti(Kayit.MusteriId, Kayit.MusteriAdi, Kayit.MusteriTelefonu, null, null, default);
+        _teknisyenId = Kayit.TeknisyenId ?? "";
+        _cihaz = Kayit.CihazBilgisi;
+        _sorun = Kayit.Sorun;
     }
 
     private void MusteriSecildi(MusteriYaniti? musteri)

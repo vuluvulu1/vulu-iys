@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Vulu.Api.Veri.Belgeler;
 
+// Platform veritabanında durur: yenileme isteği geldiğinde tokenın hangi işletmeye ait olduğu buradan öğrenilir.
 public class YenilemeTokeni
 {
     [BsonId]
@@ -11,6 +12,10 @@ public class YenilemeTokeni
 
     [BsonRepresentation(BsonType.ObjectId)]
     public string KullaniciId { get; set; } = null!;
+
+    // Boşsa token bir vulu yöneticisine aittir.
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? IsletmeId { get; set; }
 
     // Tokenin kendisi saklanmaz; veritabanı sızsa bile oturum açılamaz.
     public string TokenHash { get; set; } = string.Empty;

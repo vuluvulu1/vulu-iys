@@ -9,7 +9,7 @@ services:
       - key: Mongo__BaglantiDizesi
         sync: false
       - key: Mongo__VeritabaniAdi
-        value: vulu_tsys
+        value: vulu_platform
       - key: Jwt__Anahtar
         generateValue: true
       - key: IlkAdmin__KullaniciAdi

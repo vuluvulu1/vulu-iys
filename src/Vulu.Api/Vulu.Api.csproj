@@ -15,11 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Fatura belgesinin başlığındaki logo; tek kaynağı assets klasörüdür. -->
-    <EmbeddedResource Include="..\..\assets\logo.svg" LogicalName="Vulu.Api.logo.svg" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Vulu.Shared\Vulu.Shared.csproj" />
   </ItemGroup>
 
