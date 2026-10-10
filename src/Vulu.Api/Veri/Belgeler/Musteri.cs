@@ -20,11 +20,20 @@ public class Musteri
 
     // Dolu ise kayıt silinmiş sayılır; geçmiş servis kayıtları bozulmasın diye belge tutulur.
     public DateTime? SilinmeTarihi { get; set; }
+
+    public MusteriOzeti OzetiniCikar() => new()
+    {
+        AdSoyad = AdSoyad,
+        Telefon = Telefon,
+        AramaMetni = Altyapi.AramaMetni.Olustur(AdSoyad, Telefon)
+    };
 }
 
-// Servis kaydı ve randevuya gömülen kopya; listeler müşteri koleksiyonuna gitmeden gösterilir.
+// Servis kaydı ve randevuya gömülen kopya; listeler müşteri koleksiyonuna gitmeden gösterilir ve aranır.
+// Müşteri güncellenince kopyalar da yenilenir (bkz. MusterilerController.Guncelle).
 public class MusteriOzeti
 {
     public string AdSoyad { get; set; } = string.Empty;
     public string? Telefon { get; set; }
+    public string AramaMetni { get; set; } = string.Empty;
 }

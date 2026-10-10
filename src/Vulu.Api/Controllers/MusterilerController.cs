@@ -68,9 +68,10 @@ public class MusterilerController : ControllerBase
         await _db.Musteriler.ReplaceOneAsync(m => m.Id == id, musteri, cancellationToken: iptal);
 
         // Servis kayıtları ve randevular müşterinin ad ve telefonunun kopyasını taşır; onlar da güncellenir.
-        var ozet = new MusteriOzeti { AdSoyad = musteri.AdSoyad, Telefon = musteri.Telefon };
+        // Servis kaydının sürümü de artar ki o sırada kaydı düzenleyen biri eski kopyayı geri yazamasın.
+        var ozet = musteri.OzetiniCikar();
         await _db.ServisKayitlari.UpdateManyAsync(s => s.MusteriId == id,
-            Builders<ServisKaydi>.Update.Set(s => s.Musteri, ozet), cancellationToken: iptal);
+            Builders<ServisKaydi>.Update.Set(s => s.Musteri, ozet).Inc(s => s.Surum, 1), cancellationToken: iptal);
         await _db.Randevular.UpdateManyAsync(r => r.MusteriId == id,
             Builders<Randevu>.Update.Set(r => r.Musteri, ozet), cancellationToken: iptal);
 

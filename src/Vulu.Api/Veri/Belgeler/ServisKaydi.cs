@@ -28,6 +28,13 @@ public class ServisKaydi
     // Fatura servis kaydıyla bire bir olduğu için ayrı koleksiyon yerine buraya gömülür.
     public Fatura? Fatura { get; set; }
 
+    // Cihaz ve sorunun arama için küçültülmüş hali; müşteri adı Musteri.AramaMetni üzerinden aranır.
+    public string AramaMetni { get; set; } = string.Empty;
+
+    // Her yazmada bir artar. Kayıt, okunduğu sürümle eşleşmiyorsa yazılmaz; böylece iki kişinin aynı anda yaptığı
+    // değişiklikler (örn. biri fatura keserken diğerinin durumu değiştirmesi) birbirini sessizce ezmez.
+    public int Surum { get; set; }
+
     public DateTime? SilinmeTarihi { get; set; }
 }
 

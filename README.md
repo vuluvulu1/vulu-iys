@@ -99,7 +99,7 @@ yoksa `mongodb://localhost:27017` kullanılır. Her test kendi geçici veritaban
 - [x] 3. Giriş ekranı, oturum yönetimi, kullanıcı yönetimi ekranı
 - [x] 4. Müşteriler (uç noktalar + ekran)
 - [x] 5. Teknisyenler (uç noktalar + ekran)
-- [ ] 6. Servis kayıtları ve fatura (uç noktalar + ekran)
+- [x] 6. Servis kayıtları ve fatura (uç noktalar + ekran)
 - [ ] 7. Randevular (uç noktalar + ekran)
 - [ ] 8. Dağıtım paketi
 

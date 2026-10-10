@@ -88,7 +88,8 @@ public class MongoBaglami
             [
                 new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.MusteriId)),
                 new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.TeknisyenId)),
-                new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.Durum).Descending(s => s.OlusturmaTarihi))
+                new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.Durum).Descending(s => s.OlusturmaTarihi)),
+                new(Builders<ServisKaydi>.IndexKeys.Descending(s => s.OlusturmaTarihi))
             ],
             iptal);
 
