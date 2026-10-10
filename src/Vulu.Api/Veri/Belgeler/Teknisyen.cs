@@ -16,5 +16,8 @@ public class Teknisyen
     [BsonRepresentation(BsonType.ObjectId)]
     public string? KullaniciId { get; set; }
 
+    // Ad, telefon ve uzmanlığın arama için küçültülmüş hali; bkz. Altyapi.AramaMetni.
+    public string AramaMetni { get; set; } = string.Empty;
+
     public DateTime? SilinmeTarihi { get; set; }
 }
