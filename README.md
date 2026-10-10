@@ -55,6 +55,33 @@ kapanınca API'yi kapatır. API çıktısı `dist\Vulu\api.log` dosyasına yazı
 yerel MongoDB ile çalışır ve `appsettings.Local.json` içindeki gizli ayarları taşır; dağıtım paketi değildir,
 paylaşılmamalıdır.
 
+## Dağıtım
+
+Hedef: Windows 10 ve 11 (64 bit). API merkezi bir sunucuda (Render) çalışır, veritabanı MongoDB Atlas'tadır;
+masaüstü uygulaması yalnızca API adresini bilir, veritabanına doğrudan bağlanmaz.
+
+### API (Render)
+
+`render.yaml` ve `Dockerfile` API'yi kurar. Render panelinde elle girilecek değerler:
+
+- `Mongo__BaglantiDizesi`: Atlas bağlantı dizesi
+- `IlkAdmin__Sifre`: ilk yönetici şifresi (en az 8 karakter)
+
+`Jwt__Anahtar` Render tarafından rastgele üretilir. Sağlık kontrolü `/api/saglik/canli` adresidir.
+
+### Masaüstü
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\paketle.ps1 -Dagitim -ApiAdresi https://<servis-adi>.onrender.com/
+```
+
+`dist\Vulu-win-x64` klasörünü ve `.zip` dosyasını üretir. Paket .NET kurulumu gerektirmez ve gizli ayar
+içermez. Çalışması için bilgisayarda Microsoft Edge WebView2 Runtime bulunmalıdır (Windows 11'de hazır gelir);
+yoksa uygulama açılışta indirme adresini gösterir. API adresi `https` olmak zorundadır.
+
+API ile masaüstü arasındaki biçim geriye uyumsuz değişirse `Vulu.Shared/SaglikYaniti.cs` içindeki
+`ApiSozlesmesi.Surum` artırılır; eski masaüstü sürümleri girişte güncelleme uyarısı verir.
+
 ## Testler
 
 ```bash

@@ -26,12 +26,17 @@ public class SaglikController : ControllerBase
         try
         {
             await _db.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: sure.Token);
-            return Ok(new SaglikYaniti(true));
+            return Ok(new SaglikYaniti(true, null, ApiSozlesmesi.Surum));
         }
         catch (Exception ex) when (ex is MongoException or TimeoutException or OperationCanceledException)
         {
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                new SaglikYaniti(false, "Veritabanına ulaşılamıyor."));
+                new SaglikYaniti(false, "Veritabanına ulaşılamıyor.", ApiSozlesmesi.Surum));
         }
     }
+
+    // Barındırma platformunun sağlık kontrolü içindir: veritabanı kapalıyken de 200 döner,
+    // çünkü o durumda API'yi yeniden başlatmak sorunu çözmez.
+    [HttpGet("canli")]
+    public IActionResult Canli() => Ok();
 }

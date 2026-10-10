@@ -356,6 +356,11 @@ button:disabled {
     margin-bottom: 10px;
 }
 
+.giris-karti .bilgi {
+    text-align: center;
+    margin: 16px 0 0;
+}
+
 .giris-karti button {
     width: 100%;
     margin-top: 20px;

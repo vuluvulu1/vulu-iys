@@ -10,18 +10,35 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (OperatingSystem.IsWindows() && !WindowsUyumlulugu.WebView2Kurulu())
+        {
+            Hata("Bu uygulama için Microsoft Edge WebView2 Runtime gerekli, ancak bu bilgisayarda kurulu değil.\n\n"
+                + $"Şu adresten ücretsiz kurabilirsiniz:\n{WindowsUyumlulugu.WebView2IndirmeAdresi}");
+            return;
+        }
+
         var ayarlar = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile("appsettings.json", optional: true)
             .Build();
 
-        var apiAdresi = ayarlar["ApiAdresi"]
-            ?? throw new InvalidOperationException("appsettings.json içinde ApiAdresi ayarlanmamış.");
+        if (!Uri.TryCreate(ayarlar["ApiAdresi"], UriKind.Absolute, out var apiAdresi))
+        {
+            Hata("appsettings.json içinde geçerli bir ApiAdresi yok.");
+            return;
+        }
+
+        // Şifre ve tokenlar bu bağlantıdan geçer; aynı makinedeki geliştirme sunucusu dışında şifresiz bağlantı kabul edilmez.
+        if (apiAdresi.Scheme != Uri.UriSchemeHttps && !apiAdresi.IsLoopback)
+        {
+            Hata($"ApiAdresi https ile başlamalı: {apiAdresi}");
+            return;
+        }
 
         var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
 
         builder.Services.AddLogging();
-        builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(apiAdresi) });
+        builder.Services.AddSingleton(new HttpClient { BaseAddress = apiAdresi });
         builder.Services.AddSingleton<OturumServisi>();
         builder.Services.AddSingleton<ApiIstemcisi>();
 
@@ -33,11 +50,27 @@ internal static class Program
             .SetTitle("vulu Teknik Servis Yönetim Sistemi")
             .SetIconFile(Path.Combine(AppContext.BaseDirectory, "logo.ico"))
             .SetSize(1280, 800)
+            .SetMinSize(900, 600)
             .Center();
+
+#if !DEBUG
+        // Dağıtılan sürümde tarayıcı geliştirici araçları ve sağ tık menüsü kapalıdır.
+        app.MainWindow
+            .SetDevToolsEnabled(false)
+            .SetContextMenuEnabled(false);
+#endif
 
         AppDomain.CurrentDomain.UnhandledException += (_, hata) =>
             app.MainWindow.ShowMessage("Beklenmeyen hata", hata.ExceptionObject.ToString());
 
         app.Run();
+    }
+
+    private static void Hata(string mesaj)
+    {
+        if (OperatingSystem.IsWindows())
+            WindowsUyumlulugu.HataGoster(mesaj);
+        else
+            Console.Error.WriteLine(mesaj);
     }
 }
