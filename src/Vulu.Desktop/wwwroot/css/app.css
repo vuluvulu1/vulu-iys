@@ -138,7 +138,7 @@ label {
     font-size: 13px;
 }
 
-input:not([type="checkbox"]), select {
+input:not([type="checkbox"]), select, textarea {
     width: 100%;
     padding: 9px 10px;
     border: 1px solid var(--kenar);
@@ -148,7 +148,16 @@ input:not([type="checkbox"]), select {
     font: inherit;
 }
 
-input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+textarea {
+    resize: vertical;
+}
+
+input::placeholder {
+    color: var(--soluk-metin);
+    opacity: 0.6;
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
     outline: 2px solid var(--vurgu-acik);
     outline-offset: 1px;
 }
@@ -241,6 +250,30 @@ button:disabled {
     display: flex;
     gap: 8px;
     margin-bottom: 16px;
+}
+
+.arac-cubugu .arama {
+    max-width: 320px;
+    margin-left: auto;
+}
+
+.sayfalama {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.sayfalama .soluk {
+    margin-right: auto;
+}
+
+.tablo .uzun-metin {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tablo {

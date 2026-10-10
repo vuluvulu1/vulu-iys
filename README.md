@@ -70,7 +70,7 @@ yoksa `mongodb://localhost:27017` kullanılır. Her test kendi geçici veritaban
 - [x] 1. Veri modeli
 - [x] 2. API çekirdeği (kimlik doğrulama, roller, doğrulama)
 - [x] 3. Giriş ekranı, oturum yönetimi, kullanıcı yönetimi ekranı
-- [ ] 4. Müşteriler (uç noktalar + ekran)
+- [x] 4. Müşteriler (uç noktalar + ekran)
 - [ ] 5. Teknisyenler (uç noktalar + ekran)
 - [ ] 6. Servis kayıtları ve fatura (uç noktalar + ekran)
 - [ ] 7. Randevular (uç noktalar + ekran)
