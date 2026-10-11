@@ -10,6 +10,12 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (OperatingSystem.IsWindows() && args.Contains(KurulumBilgisi.KaldirmaSecenegi))
+        {
+            Kaldirici.Calistir(sessiz: args.Contains(KurulumBilgisi.SessizSecenegi, StringComparer.OrdinalIgnoreCase));
+            return;
+        }
+
         if (OperatingSystem.IsWindows() && !WindowsUyumlulugu.WebView2Kurulu())
         {
             Hata("Bu uygulama için Microsoft Edge WebView2 Runtime gerekli, ancak bu bilgisayarda kurulu değil.\n\n"

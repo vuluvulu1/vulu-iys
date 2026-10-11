@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Vulu-Kurulum</AssemblyName>
+    <RootNamespace>Vulu.Kurulum</RootNamespace>
+    <ApplicationIcon>..\..\assets\logo.ico</ApplicationIcon>
+
+    <!-- Tek dosya olarak dağıtılır ve .NET kurulu olmayan bilgisayarda da çalışır. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Çalışma zamanının kullanılmayan kısımları atılır; kurulum dosyası böylece yaklaşık 25 MB küçülür.
+         Kısayol oluşturmak COM kullandığı için o destek açık bırakılır. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <!-- COM desteği açıkken çalışma zamanının kendi içinden bir kırpma uyarısı gelir (.NET sınıflarını COM'a
+         sunan kısım; burada kullanılmıyor). Uyarı bu projenin kodundan değildir, derlemeyi durdurmasın. -->
+    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);IL2026</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Kısayol, klasör ve kayıt tanımları ile ileti kutuları uygulamayla ortaktır. -->
+    <Compile Include="..\..\src\Vulu.Desktop\KurulumBilgisi.cs" Link="Ortak\KurulumBilgisi.cs" />
+    <Compile Include="..\..\src\Vulu.Desktop\WindowsUyumlulugu.cs" Link="Ortak\WindowsUyumlulugu.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Bu projenin kendi kodu kırpılmaz: COM arayüzündeki (Kisayol.cs) çağrılmayan yöntemler atılırsa kalanların
+         sırası kayar ve kısayol oluşturma yanlış yöntemi çağırır. -->
+    <TrimmerRootAssembly Include="Vulu-Kurulum" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UygulamaZip)' != ''">
+    <!-- Kurulacak uygulama, paketle.ps1 tarafından üretilen zip olarak programın içine gömülür. -->
+    <EmbeddedResource Include="$(UygulamaZip)" LogicalName="uygulama.zip" />
+  </ItemGroup>
+
+</Project>
