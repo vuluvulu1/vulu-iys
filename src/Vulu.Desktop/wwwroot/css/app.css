@@ -694,6 +694,15 @@ a.ozet-kutusu:hover {
     color: var(--hata);
 }
 
+.etiket.onay {
+    color: #e0a94a;
+}
+
+.etiket.teslim {
+    color: var(--basari);
+    background: rgba(125, 187, 108, 0.14);
+}
+
 .sayfalama {
     display: flex;
     align-items: center;
@@ -828,7 +837,16 @@ a.ozet-kutusu:hover {
 }
 
 .pencere.genis {
-    max-width: 620px;
+    max-width: 720px;
+}
+
+.pencere > .tablo {
+    margin-top: 14px;
+}
+
+/* Razor satır içi öğelerin arasındaki boşluğu atar; yan yana duran etiketler bununla ayrılır. */
+.bosluklu {
+    margin-left: 6px;
 }
 
 .pencere h3 {
@@ -895,6 +913,95 @@ a.ozet-kutusu:hover {
 
 .fatura-formu input:not([type="checkbox"]) {
     width: 130px;
+}
+
+.fatura-formu input.genis-girdi,
+.fatura-formu select.genis-girdi,
+.fatura-formu .arama {
+    flex: 1 1 180px;
+    width: auto;
+}
+
+.fatura-formu input.dar-girdi {
+    width: 70px;
+}
+
+/* Ayrıntı penceresinin sekmeleri */
+
+.sekmeler {
+    display: flex;
+    margin-top: 14px;
+}
+
+.sekmeler button {
+    flex: 1;
+    border-radius: 0;
+    margin-left: -1px;
+}
+
+.sekmeler button:first-child {
+    margin-left: 0;
+    border-radius: var(--kose) 0 0 var(--kose);
+}
+
+.sekmeler button:last-child {
+    border-radius: 0 var(--kose) var(--kose) 0;
+}
+
+.pencere .bolum.ilk {
+    border-top: none;
+    padding-top: 0;
+}
+
+.sade-liste {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.gecmis {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gecmis li {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--kenar);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.gecmis li:last-child {
+    border-bottom: none;
+}
+
+/* Pencere ve kart içindeki küçük tablolar */
+
+.tablo.sik th, .tablo.sik td {
+    padding: 6px 8px;
+    font-size: 13px;
+}
+
+.tablo.sik tfoot td {
+    border-top: 1px solid var(--kenar);
+    border-bottom: none;
+    color: var(--soluk-metin);
+}
+
+.cubuk {
+    display: block;
+    height: 4px;
+    margin-top: 4px;
+    min-width: 2px;
+    background: var(--vurgu);
+    border-radius: var(--kose);
 }
 
 /* Müşteri seçici */

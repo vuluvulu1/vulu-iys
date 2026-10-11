@@ -1,0 +1,196 @@
+@page "/raporlar"
+@inject ApiIstemcisi Api
+@inject OturumServisi Oturum
+
+<h1>Raporlar</h1>
+
+@if (!Oturum.AdminMi)
+{
+    <p class="hata">Bu sayfayı yalnızca yöneticiler görebilir.</p>
+}
+else
+{
+    <div class="arac-cubugu">
+        <select class="suzgec" aria-label="Dönem" @bind="_donem" @bind:after="Yukle">
+            <option value="@Donem.BuAy">Bu ay</option>
+            <option value="@Donem.GecenAy">Geçen ay</option>
+            <option value="@Donem.BuYil">Bu yıl</option>
+            <option value="@Donem.SonOnIkiAy">Son 12 ay</option>
+        </select>
+        <span class="soluk kullanim">@AralikMetni</span>
+    </div>
+
+    @if (_hata is not null)
+    {
+        <p class="hata" role="alert">@_hata</p>
+    }
+
+    @if (_rapor is null)
+    {
+        <p class="soluk">@(_yukleniyor ? "Yükleniyor…" : "")</p>
+    }
+    else
+    {
+        <div class="ozet-kutulari">
+            <div class="ozet-kutusu">
+                <span class="sayi">@_rapor.AcilanKayit</span>
+                <span class="etiket-metni">Açılan servis kaydı</span>
+            </div>
+            <div class="ozet-kutusu">
+                <span class="sayi">@_rapor.TamamlananKayit</span>
+                <span class="etiket-metni">Tamamlanan iş</span>
+            </div>
+            <div class="ozet-kutusu">
+                <span class="sayi">@(_rapor.OrtalamaTamirSaati is { } saat ? Bicim.Saat(saat) : "—")</span>
+                <span class="etiket-metni">Ortalama tamir süresi</span>
+            </div>
+            <div class="ozet-kutusu">
+                <span class="sayi">@Bicim.Para(_rapor.TahsilEdilen)</span>
+                <span class="etiket-metni">Tahsil edilen</span>
+            </div>
+            <div class="ozet-kutusu">
+                <span class="sayi">@Bicim.Para(_rapor.KesilenFaturaTutari)</span>
+                <span class="etiket-metni">@_rapor.KesilenFatura kesilen fatura</span>
+            </div>
+            <div class="ozet-kutusu">
+                <span class="sayi">@_rapor.GarantiKapsamindaKayit</span>
+                <span class="etiket-metni">Garanti kapsamındaki iş</span>
+            </div>
+            <div class="ozet-kutusu">
+                <span class="sayi">@_rapor.IptalEdilenKayit</span>
+                <span class="etiket-metni">İptal edilen kayıt</span>
+            </div>
+        </div>
+
+        <div class="ozet-listeleri">
+            <section class="kart">
+                <h2>Teknisyenler</h2>
+                @if (_rapor.Teknisyenler.Count == 0)
+                {
+                    <p class="soluk">Bu dönemde kayıt yok.</p>
+                }
+                else
+                {
+                    <table class="tablo sik">
+                        <thead>
+                            <tr><th>Teknisyen</th><th>Açılan</th><th>Tamamlanan</th><th>Ort. süre</th><th>Fatura</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var teknisyen in _rapor.Teknisyenler)
+                            {
+                                <tr @key="teknisyen.Ad">
+                                    <td>@teknisyen.Ad</td>
+                                    <td class="dar">@teknisyen.AcilanKayit</td>
+                                    <td class="dar">@teknisyen.TamamlananKayit</td>
+                                    <td class="dar">@(teknisyen.OrtalamaTamirSaati is { } sure ? Bicim.Saat(sure) : "—")</td>
+                                    <td class="dar">@Bicim.Para(teknisyen.FaturaTutari)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </section>
+
+            <section class="kart">
+                <h2>Aylara göre</h2>
+                @if (_rapor.Aylar.Count == 0)
+                {
+                    <p class="soluk">Bu dönemde kayıt yok.</p>
+                }
+                else
+                {
+                    <table class="tablo sik">
+                        <thead>
+                            <tr><th>Ay</th><th>Açılan</th><th>Tamamlanan</th><th>Tahsil edilen</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ay in _rapor.Aylar)
+                            {
+                                <tr @key="(ay.Yil, ay.Ay)">
+                                    <td>@Bicim.AyAdi(ay.Yil, ay.Ay)</td>
+                                    <td class="dar">@ay.AcilanKayit</td>
+                                    <td class="dar">@ay.TamamlananKayit</td>
+                                    <td>
+                                        @Bicim.Para(ay.TahsilEdilen)
+                                        <span class="cubuk" style="width: @CubukYuzdesi(ay.TahsilEdilen)%"></span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </section>
+
+            <section class="kart">
+                <h2>En çok kullanılan parçalar</h2>
+                @if (_rapor.Parcalar.Count == 0)
+                {
+                    <p class="soluk">Bu dönemde tamamlanan işlerde parça kullanılmadı.</p>
+                }
+                else
+                {
+                    <table class="tablo sik">
+                        <thead>
+                            <tr><th>Parça</th><th>Adet</th><th>Tutar</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var parca in _rapor.Parcalar)
+                            {
+                                <tr @key="parca.Ad">
+                                    <td>@parca.Ad</td>
+                                    <td class="dar">@parca.Adet</td>
+                                    <td class="dar">@Bicim.Para(parca.Tutar)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </section>
+        </div>
+    }
+}
+
+@code {
+    private enum Donem { BuAy, GecenAy, BuYil, SonOnIkiAy }
+
+    private Donem _donem = Donem.BuAy;
+    private RaporYaniti? _rapor;
+    private string? _hata;
+    private bool _yukleniyor;
+    private DateTime _baslangic;
+    private DateTime _bitis;
+
+    // Bitiş hariç olduğu için ekranda bir önceki gün gösterilir.
+    private string AralikMetni => _bitis == default ? "" : $"{_baslangic:dd.MM.yyyy} – {_bitis.AddDays(-1):dd.MM.yyyy}";
+
+    protected override Task OnInitializedAsync() => Oturum.AdminMi ? Yukle() : Task.CompletedTask;
+
+    private async Task Yukle()
+    {
+        // Dönem sınırları bu bilgisayarın saat dilimine göre hesaplanır.
+        var bugun = DateTime.Today;
+        var ayBasi = new DateTime(bugun.Year, bugun.Month, 1);
+        (_baslangic, _bitis) = _donem switch
+        {
+            Donem.GecenAy => (ayBasi.AddMonths(-1), ayBasi),
+            Donem.BuYil => (new DateTime(bugun.Year, 1, 1), new DateTime(bugun.Year + 1, 1, 1)),
+            Donem.SonOnIkiAy => (ayBasi.AddMonths(-11), ayBasi.AddMonths(1)),
+            _ => (ayBasi, ayBasi.AddMonths(1))
+        };
+
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<RaporYaniti>(
+            $"api/raporlar?baslangic={Bicim.SorguTarihi(_baslangic)}&bitis={Bicim.SorguTarihi(_bitis)}");
+        _yukleniyor = false;
+
+        _hata = sonuc.Hata;
+        if (sonuc.Basarili) _rapor = sonuc.Deger;
+    }
+
+    // Ayın tahsilatının, dönemin en yüksek ayına oranı.
+    private int CubukYuzdesi(decimal tutar)
+    {
+        var enYuksek = _rapor?.Aylar.Max(a => a.TahsilEdilen) ?? 0;
+        return enYuksek <= 0 ? 0 : (int)Math.Round(tutar / enYuksek * 100);
+    }
+}

@@ -78,6 +78,47 @@ Her personel bir kullanıcı hesabıdır: ad soyad, telefon ve uzmanlık hesabı
 randevular bu hesaplara atanır. Hesapları yalnızca yönetici yönetir (Personel sayfası). Üzerinde iş geçmişi olan
 hesap silinemez, devre dışı bırakılır; devre dışı hesap giriş yapamaz ve yeni iş atanamaz.
 
+## Servis kaydı
+
+- **Kayıt numarası ve cihaz bilgisi:** her kayıt işletme içinde yıllık sıralı bir numara alır (`SK-2026-00042`).
+  Cihazın markası, modeli, seri numarası / IMEI'si, garanti durumu, teslim alınan aksesuarlar ve teslim alındığı
+  andaki görünür durumu ayrı alanlardır. Seri numarası girilen cihazın önceki kayıtları ayrıntı penceresinde
+  listelenir.
+- **Durumlar:** Beklemede → Onay bekliyor → Devam ediyor → Tamamlandı → Teslim edildi; ayrıca İptal edildi.
+  Faturası olan kayıt yeniden açılamaz ve iptal edilemez.
+- **Fiyat teklifi:** teklif verilince kayıt “Onay bekliyor” olur. Müşteri onaylarsa iş başlar, reddederse kayıt
+  iptal edilir; onayın nasıl alındığı not olarak yazılır.
+- **Kullanılan parçalar:** kayda eklenen parça stoktan düşer, çıkarılırsa stoğa döner. Parçanın adı ve fiyatı
+  kullanıldığı andaki değeriyle kayda kopyalanır. Fatura tutarı parçaları da kapsar; belgede parçalar ayrı
+  satırlarda, kalan tutar işçilik olarak görünür.
+- **Formlar:** servis kabul formu (cihaz alınırken) ve teslim formu (cihaz verilirken) PDF olarak açılır;
+  ikisinde de imza alanları vardır. Kabul formunun altındaki koşullar İşletme sayfasından değiştirilir.
+- **İşlem geçmişi:** kaydı kimin, ne zaman, nasıl değiştirdiği `islemGecmisi` koleksiyonunda tutulur; satırlar
+  yalnızca eklenir. Personel kayda serbest not da ekleyebilir.
+- **Müşteriyi bilgilendirme:** kaydın durumuna göre hazırlanan mesaj, personelin bilgisayarındaki WhatsApp ya da
+  e-posta programında açılır; uygulama mesajı kendisi göndermez (SMS sağlayıcısı bağlı değildir). Bilgilendirme
+  işlem geçmişine yazılır.
+
+### Cihaz durumu sorgulama sayfası
+
+API, oturum gerektirmeyen `/takip/{işletme kodu}` sayfasını sunar. Müşteri kabul formundaki takip koduyla
+cihazının durumunu görür. Sayfa internete açıktır; bu yüzden yalnızca cihazın adını, kayıt numarasını ve durumu
+gösterir (müşterinin adı, telefonu, adresi yer almaz), takip kodu tahmin edilemeyen 10 karakterdir ve sorgu
+sayısı adres başına dakikada `Takip:DakikadaSorgu` (varsayılan 20) ile sınırlıdır. API başka bir alan adının
+arkasındaysa müşteriye verilen bağlantının kökü `Takip:Adres` ayarıyla belirlenir.
+
+## Stok
+
+Stok kartlarını ve stok girişlerini işletme yöneticisi yönetir; bütün personel stoğu görür ve servis kaydında
+parça kullanır. Stok adedi yalnızca atomik artırma/azaltma ile değişir: aynı anda gelen iki istek stokta olmayan
+parçayı kullanamaz ve stok eksiye düşmez. Her değişiklik `stokHareketleri` koleksiyonuna yazılır. Stoğu kritik
+seviyeye inen parçalar Stok sayfasında işaretlenir ve ana sayfada sayılır.
+
+## Raporlar
+
+Yönetici, seçtiği dönem için açılan/tamamlanan/iptal edilen iş sayısını, ortalama tamir süresini, kesilen ve
+tahsil edilen tutarı, teknisyen ve ay bazında dökümü ve en çok kullanılan parçaları görür.
+
 ## Veri geçişleri
 
 Veri modeli değiştiğinde mevcut belgeleri yeni biçime taşıyan adımlar `src/Vulu.Api/Veri/Gecisler.cs` içindedir.
@@ -156,7 +197,9 @@ yoksa `mongodb://localhost:27017` kullanılır. Her test kendi geçici veritaban
 - [x] 5. Teknisyenler (uç noktalar + ekran)
 - [x] 6. Servis kayıtları ve fatura (uç noktalar + ekran)
 - [x] 7. Randevular (uç noktalar + ekran)
-- [ ] 8. Dağıtım paketi
+- [x] 8. Çok işletmeli yapı, fatura belgesi, takvim
+- [x] 9. Cihaz ayrıntısı, formlar, teklif, stok, işlem geçmişi, raporlar, takip sayfası, bildirim
+- [ ] 10. Canlı ortama dağıtım (Render + Atlas)
 
 Logo `assets/logo.svg` dosyasındadır. Değiştirilirse pencere ve exe simgesi
 `tools/ikon-uret.ps1` ile yeniden üretilir (`assets/logo.ico`).

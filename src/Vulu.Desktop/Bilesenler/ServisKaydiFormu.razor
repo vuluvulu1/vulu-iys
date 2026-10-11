@@ -1,7 +1,7 @@
-@* Servis kaydı açma ve düzenleme penceresi. Durum ve fatura burada değil, kayıt ayrıntısında değiştirilir. *@
+@* Servis kaydı açma ve düzenleme penceresi. Durum, teklif, parça ve fatura burada değil, kayıt ayrıntısında yönetilir. *@
 @inject ApiIstemcisi Api
 
-<Pencere Baslik="@(Kayit is null ? "Yeni servis kaydı" : "Servis kaydını düzenle")" Genis="true" KapatIstendi="Vazgec">
+<Pencere Baslik="@(Kayit is null ? "Yeni servis kaydı" : $"Servis kaydını düzenle – {Kayit.No}")" Genis="true" KapatIstendi="Vazgec">
     <form @onsubmit="Kaydet">
         <label>Müşteri</label>
         <MusteriSecici Secili="_musteri" SeciliChanged="MusteriSecildi" />
@@ -10,11 +10,41 @@
         <PersonelSecimi ElemanId="s-teknisyen" @bind-Secili="_teknisyenId"
                         MevcutId="@Kayit?.TeknisyenId" MevcutAd="@Kayit?.TeknisyenAdi" />
 
-        <label for="s-cihaz">Cihaz</label>
-        <input id="s-cihaz" @bind="_cihaz" @bind:event="oninput" placeholder="Örn. Laptop – Dell XPS 13" autocomplete="off" />
+        <h3 class="form-basligi">Cihaz</h3>
 
-        <label for="s-sorun">Sorun</label>
-        <textarea id="s-sorun" rows="4" @bind="_sorun" @bind:event="oninput"></textarea>
+        <label for="s-cihaz">Cihaz</label>
+        <input id="s-cihaz" @bind="_cihaz" @bind:event="oninput" placeholder="Örn. Laptop, cep telefonu, yazıcı" autocomplete="off" />
+
+        <div class="iki-sutun">
+            <div>
+                <label for="s-marka">Marka (isteğe bağlı)</label>
+                <input id="s-marka" @bind="_marka" @bind:event="oninput" maxlength="60" autocomplete="off" />
+            </div>
+            <div>
+                <label for="s-model">Model (isteğe bağlı)</label>
+                <input id="s-model" @bind="_model" @bind:event="oninput" maxlength="60" autocomplete="off" />
+            </div>
+        </div>
+
+        <label for="s-seri">Seri no / IMEI (isteğe bağlı)</label>
+        <input id="s-seri" @bind="_seriNo" @bind:event="oninput" maxlength="60" autocomplete="off" />
+        <p class="soluk aciklama">Seri no girilirse aynı cihazın önceki kayıtları ayrıntı penceresinde listelenir.</p>
+
+        <label class="onay-kutusu">
+            <input id="s-garanti" type="checkbox" @bind="_garanti" />
+            Garanti kapsamında
+        </label>
+
+        <label for="s-aksesuar">Teslim alınan aksesuarlar (isteğe bağlı)</label>
+        <input id="s-aksesuar" @bind="_aksesuarlar" @bind:event="oninput" maxlength="300"
+               placeholder="Örn. şarj aleti, çanta" autocomplete="off" />
+
+        <label for="s-fiziksel">Cihazın teslim alındığı andaki durumu (isteğe bağlı)</label>
+        <textarea id="s-fiziksel" rows="2" maxlength="500" @bind="_fizikselDurum" @bind:event="oninput"
+                  placeholder="Örn. ekranın sol üstünde çatlak, kasada çizikler"></textarea>
+
+        <label for="s-sorun">Müşterinin bildirdiği sorun</label>
+        <textarea id="s-sorun" rows="3" @bind="_sorun" @bind:event="oninput"></textarea>
 
         <FormAltligi Hata="@_hata" Mesgul="_kaydediliyor" Vazgec="Vazgec" />
     </form>
@@ -28,6 +58,12 @@
     private MusteriYaniti? _musteri;
     private string _teknisyenId = "";
     private string _cihaz = "";
+    private string _marka = "";
+    private string _model = "";
+    private string _seriNo = "";
+    private bool _garanti;
+    private string _aksesuarlar = "";
+    private string _fizikselDurum = "";
     private string _sorun = "";
     private string? _hata;
     private bool _kaydediliyor;
@@ -40,6 +76,12 @@
         _musteri = new MusteriYaniti(Kayit.MusteriId, Kayit.MusteriAdi, Kayit.MusteriTelefonu, null, null, default);
         _teknisyenId = Kayit.TeknisyenId ?? "";
         _cihaz = Kayit.CihazBilgisi;
+        _marka = Kayit.Marka ?? "";
+        _model = Kayit.Model ?? "";
+        _seriNo = Kayit.SeriNo ?? "";
+        _garanti = Kayit.GarantiKapsaminda;
+        _aksesuarlar = Kayit.Aksesuarlar ?? "";
+        _fizikselDurum = Kayit.FizikselDurum ?? "";
         _sorun = Kayit.Sorun;
     }
 
@@ -60,7 +102,8 @@
         }
 
         var istek = new ServisKaydiIstegi(_musteri.Id, _teknisyenId.Length > 0 ? _teknisyenId : null,
-            _cihaz.Trim(), _sorun.Trim());
+            _cihaz.Trim(), _sorun.Trim(), BosIseNull(_marka), BosIseNull(_model), BosIseNull(_seriNo), _garanti,
+            BosIseNull(_aksesuarlar), BosIseNull(_fizikselDurum));
 
         _kaydediliyor = true;
         var sonuc = Kayit is null
@@ -76,4 +119,6 @@
 
         await Kaydedildi.InvokeAsync(sonuc.Deger);
     }
+
+    private static string? BosIseNull(string deger) => string.IsNullOrWhiteSpace(deger) ? null : deger.Trim();
 }

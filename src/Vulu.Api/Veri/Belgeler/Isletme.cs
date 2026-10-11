@@ -25,6 +25,9 @@ public class Isletme
     [BsonRepresentation(BsonType.Decimal128)]
     public decimal KdvOrani { get; set; } = 20;
 
+    // Servis kabul formunun altına yazılan koşullar; boşsa varsayılan metin kullanılır.
+    public string? ServisKosullari { get; set; }
+
     public byte[]? Logo { get; set; }
     public string? LogoTuru { get; set; }
 

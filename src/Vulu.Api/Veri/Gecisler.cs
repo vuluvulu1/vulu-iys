@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Text;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Vulu.Api.Altyapi;
+using Vulu.Api.Kurallar;
 
 namespace Vulu.Api.Veri;
 
@@ -12,7 +14,8 @@ public static class Gecisler
 {
     private static readonly (int Surum, string Ad, Func<IMongoDatabase, CancellationToken, Task> Uygula)[] Adimlar =
     [
-        (1, "Teknisyenleri kullanıcı hesaplarıyla birleştir", TeknisyenleriKullanicilarlaBirlestir)
+        (1, "Teknisyenleri kullanıcı hesaplarıyla birleştir", TeknisyenleriKullanicilarlaBirlestir),
+        (2, "Servis kayıtlarına kayıt numarası ve takip kodu ver", KayitNumaralariniVer)
     ];
 
     public static async Task CalistirAsync(IMongoDatabase db, ILogger log, CancellationToken iptal = default)
@@ -98,6 +101,40 @@ public static class Gecisler
         if (adlar.Contains("teknisyenler"))
             await db.RenameCollectionAsync("teknisyenler", "teknisyenler_eski",
                 new RenameCollectionOptions { DropTarget = true }, iptal);
+    }
+
+    // Kayıt numarası ve takip kodu sonradan eklendi. Eski kayıtlar açılış sırasına göre numaralanır; sayaç yeni
+    // kayıtların kullandığı sayaçtır (bkz. ServisKayitlariController.Ekle), böylece numaralar kaldığı yerden sürer.
+    private static async Task KayitNumaralariniVer(IMongoDatabase db, CancellationToken iptal)
+    {
+        var f = Builders<BsonDocument>.Filter;
+        var u = Builders<BsonDocument>.Update;
+        var kayitlar = db.GetCollection<BsonDocument>("servisKayitlari");
+        var baglam = new MongoBaglami(db);
+
+        var numarasizlar = await kayitlar.Find(f.Exists("no", false) | f.Eq("no", ""))
+            .Sort(Builders<BsonDocument>.Sort.Ascending("olusturmaTarihi"))
+            .Project(Builders<BsonDocument>.Projection.Include("olusturmaTarihi"))
+            .ToListAsync(iptal);
+
+        foreach (var kayit in numarasizlar)
+        {
+            // Açılış tarihi olmayan bozuk bir belge geçişi durdurmasın: kimliğin üretildiği an kullanılır.
+            var acilis = kayit.TryGetValue("olusturmaTarihi", out var tarih) && tarih.IsValidDateTime
+                ? tarih.ToUniversalTime()
+                : kayit["_id"].IsObjectId ? kayit["_id"].AsObjectId.CreationTime : DateTime.UtcNow;
+            var yil = Zaman.TurkiyeSaati(acilis).Year;
+            var sira = await baglam.SiradakiNumaraAsync(MongoBaglami.ServisSayaci(yil), iptal);
+            await kayitlar.UpdateOneAsync(f.Eq("_id", kayit["_id"]),
+                u.Set("no", ServisKaydiKurallari.KayitNo(yil, sira)), cancellationToken: iptal);
+        }
+
+        foreach (var kayit in await kayitlar.Find(f.Exists("takipKodu", false) | f.Eq("takipKodu", ""))
+                     .Project(Builders<BsonDocument>.Projection.Include("_id")).ToListAsync(iptal))
+        {
+            await kayitlar.UpdateOneAsync(f.Eq("_id", kayit["_id"]),
+                u.Set("takipKodu", ServisKaydiKurallari.YeniTakipKodu()), cancellationToken: iptal);
+        }
     }
 
     // "Ayşe Çelik" -> "ayse.celik"; kullanılıyorsa sonuna sayı eklenir.

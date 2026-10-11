@@ -8,5 +8,6 @@ public static class ApiSozlesmesi
     // Masaüstü, sunucudaki sürüm kendisininkinden farklıysa girişe izin vermez.
     // 2: teknisyenler kullanıcı hesaplarıyla birleşti (api/teknisyenler kalktı, api/personel geldi).
     // 3: çok işletmeli yapı (girişte işletme kodu, oturumda işletme bilgisi).
-    public const int Surum = 3;
+    // 4: cihaz ayrıntıları, yeni durumlar (onay bekliyor, teslim edildi), teklif, parça/stok, işlem geçmişi.
+    public const int Surum = 4;
 }

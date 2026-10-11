@@ -43,6 +43,8 @@ public class VeriModeliTestleri : IAsyncLifetime
     {
         var kayit = new ServisKaydi
         {
+            No = Guid.NewGuid().ToString("N"),
+            TakipKodu = Guid.NewGuid().ToString("N"),
             MusteriId = ObjectId.GenerateNewId().ToString(),
             Musteri = new MusteriOzeti { AdSoyad = "Ahmet Yılmaz", Telefon = "05551234567" },
             CihazBilgisi = "Laptop",

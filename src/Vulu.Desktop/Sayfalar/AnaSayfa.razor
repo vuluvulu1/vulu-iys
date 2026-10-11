@@ -21,8 +21,16 @@ else
             <span class="etiket-metni">Bekleyen servis kaydı</span>
         </a>
         <a class="ozet-kutusu" href="servis-kayitlari">
+            <span class="sayi">@_ozet.OnayBekleyenKayit</span>
+            <span class="etiket-metni">Müşteri onayı bekleyen</span>
+        </a>
+        <a class="ozet-kutusu" href="servis-kayitlari">
             <span class="sayi">@_ozet.DevamEdenKayit</span>
             <span class="etiket-metni">Devam eden iş</span>
+        </a>
+        <a class="ozet-kutusu" href="servis-kayitlari">
+            <span class="sayi">@_ozet.TeslimBekleyenKayit</span>
+            <span class="etiket-metni">Teslim bekleyen cihaz</span>
         </a>
         <a class="ozet-kutusu" href="randevular">
             <span class="sayi">@_ozet.BugunkuRandevu</span>
@@ -36,6 +44,13 @@ else
             <span class="sayi">@Bicim.Para(_ozet.BuAyTahsilat)</span>
             <span class="etiket-metni">Bu ay tahsil edilen</span>
         </div>
+        @if (_ozet.AzalanParca > 0)
+        {
+            <a class="ozet-kutusu" href="stok">
+                <span class="sayi">@_ozet.AzalanParca</span>
+                <span class="etiket-metni">Stoğu azalan parça</span>
+            </a>
+        }
     </div>
 
     <div class="ozet-listeleri">
@@ -73,7 +88,7 @@ else
                     {
                         <li @key="kayit.Id">
                             <span class="dar">@Bicim.Tarih(kayit.OlusturmaTarihi)</span>
-                            <span>@kayit.MusteriAdi – @kayit.CihazBilgisi</span>
+                            <span>@kayit.MusteriAdi – @Bicim.Cihaz(kayit)</span>
                             <span class="@Bicim.DurumSinifi(kayit.Durum)">@Bicim.Durum(kayit.Durum)</span>
                         </li>
                     }
