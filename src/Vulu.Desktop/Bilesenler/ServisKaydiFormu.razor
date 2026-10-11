@@ -1,7 +1,7 @@
 @* Servis kaydı açma ve düzenleme penceresi. Durum, teklif, parça ve fatura burada değil, kayıt ayrıntısında yönetilir. *@
 @inject ApiIstemcisi Api
 
-<Pencere Baslik="@(Kayit is null ? "Yeni servis kaydı" : $"Servis kaydını düzenle – {Kayit.No}")" Genis="true" KapatIstendi="Vazgec">
+<Pencere Baslik="@(Kayit is null ? "Servis kaydı" : $"Servis kaydını düzenle – {Kayit.No}")" Genis="true" KapatIstendi="Vazgec">
     <form @onsubmit="Kaydet">
         <label>Müşteri</label>
         <MusteriSecici Secili="_musteri" SeciliChanged="MusteriSecildi" />

@@ -4,7 +4,7 @@
 <h1>Servis Kayıtları</h1>
 
 <div class="arac-cubugu">
-    <button @onclick="YeniAc">Yeni kayıt</button>
+    <button @onclick="YeniAc">Servis kaydı</button>
 
     <select class="suzgec" aria-label="Duruma göre süz" @bind="_durum" @bind:after="SuzgecDegisti">
         <option value="">Tüm durumlar</option>
@@ -35,7 +35,7 @@
 }
 else if (_sayfa.Ogeler.Count == 0)
 {
-    <p class="soluk">@(SuzgecVar ? "Süzgeçle eşleşen servis kaydı yok." : "Henüz servis kaydı yok.")</p>
+    <p class="soluk">@(SuzgecVar ? "Süzgeçle eşleşen servis kaydı bulunamadı." : "Kayıtlı servis kaydı bulunmuyor.")</p>
 }
 else
 {

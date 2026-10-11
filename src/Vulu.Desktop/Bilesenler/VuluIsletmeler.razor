@@ -4,7 +4,7 @@
 <h1>İşletmeler</h1>
 
 <div class="arac-cubugu">
-    <button @onclick="YeniAc">Yeni işletme</button>
+    <button @onclick="YeniAc">İşletme kaydı</button>
     <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
 </div>
 
@@ -19,7 +19,7 @@
 }
 else if (_isletmeler.Count == 0)
 {
-    <p class="soluk">Henüz işletme yok. İlk işletmeyi “Yeni işletme” ile açın.</p>
+    <p class="soluk">Kayıtlı işletme bulunmuyor. “İşletme kaydı” düğmesiyle ilk işletmeyi açabilirsiniz.</p>
 }
 else
 {
@@ -62,7 +62,7 @@ else
 
 @if (_yeni is not null)
 {
-    <Pencere Baslik="Yeni işletme" Genis="true" KapatIstendi="YeniyiKapat">
+    <Pencere Baslik="İşletme kaydı" Genis="true" KapatIstendi="YeniyiKapat">
         <form @onsubmit="Olustur">
             <div class="iki-sutun">
                 <div>

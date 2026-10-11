@@ -11,7 +11,7 @@
 else
 {
     <div class="arac-cubugu">
-        <button @onclick="YeniAc">Yeni personel</button>
+        <button @onclick="YeniAc">Personel kaydı</button>
         <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
     </div>
 
@@ -72,7 +72,7 @@ else
 
 @if (_form is not null)
 {
-    <Pencere Baslik="@(_duzenlenen is null ? "Yeni personel" : "Personeli düzenle")" Genis="true" KapatIstendi="FormuKapat">
+    <Pencere Baslik="@(_duzenlenen is null ? "Personel kaydı" : "Personeli düzenle")" Genis="true" KapatIstendi="FormuKapat">
         <form @onsubmit="Kaydet">
             <label for="f-adsoyad">Ad soyad</label>
             <input id="f-adsoyad" @bind="_form.AdSoyad" @bind:event="oninput" autocomplete="off" />
