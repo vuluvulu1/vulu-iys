@@ -28,7 +28,7 @@ public class PlatformController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<IsletmeYaniti>>> Listele(CancellationToken iptal)
     {
-        // Liste için logo içerikleri taşınmaz.
+        // Liste için logo içerikleri taşınmaz; logosu olan işletmelerin görseli ayrı uçtan istenir (bkz. Logo).
         var isletmeler = await _platform.Isletmeler
             .Find(FilterDefinition<Isletme>.Empty, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
             .Project<Isletme>(Builders<Isletme>.Projection.Exclude(i => i.Logo))
@@ -141,6 +141,19 @@ public class PlatformController : ControllerBase
         _log.LogWarning("İşletme kalıcı olarak silindi: {Kod} ({Ad}), veritabanı {Veritabani}",
             isletme.Kod, isletme.Ad, isletme.VeritabaniAdi);
         return NoContent();
+    }
+
+    // İşletmenin logosu, liste ekranında gösterilmek üzere. Logosu yoksa 404 döner.
+    [HttpGet("{id:oid}/logo")]
+    public async Task<IActionResult> Logo(string id, CancellationToken iptal)
+    {
+        var isletme = await _platform.Isletmeler.Find(i => i.Id == id).FirstOrDefaultAsync(iptal);
+        if (isletme is null) return Bulunamadi();
+
+        // Tür, yüklenirken doğrulanan iki değerden biridir (PNG ya da JPEG).
+        return isletme is { Logo: { Length: > 0 } logo, LogoTuru: { } tur }
+            ? File(logo, tur)
+            : Problem(detail: "İşletmenin logosu yok.", statusCode: StatusCodes.Status404NotFound);
     }
 
     // --- İşletme yöneticisinin unutulan şifresi ---
