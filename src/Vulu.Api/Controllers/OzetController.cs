@@ -34,49 +34,54 @@ public class OzetController : ControllerBase
         var kayitlar = _db.ServisKayitlari;
         var randevular = _db.Randevular;
 
-        var bekleyen = await kayitlar.CountDocumentsAsync(
+        // Sorgular birbirinden bağımsızdır; sırayla beklemek yerine hepsi birlikte gönderilir. API ile veritabanı
+        // arasındaki her gidiş dönüş zaman aldığı için bu, yanıt süresini sorgu sayısı kadar kısaltır.
+        var bekleyen = kayitlar.CountDocumentsAsync(
             s => s.SilinmeTarihi == null && s.Durum == ServisDurumu.Beklemede, cancellationToken: iptal);
-        var devamEden = await kayitlar.CountDocumentsAsync(
+        var devamEden = kayitlar.CountDocumentsAsync(
             s => s.SilinmeTarihi == null && s.Durum == ServisDurumu.DevamEdiyor, cancellationToken: iptal);
 
-        var onayBekleyen = await kayitlar.CountDocumentsAsync(
+        var onayBekleyen = kayitlar.CountDocumentsAsync(
             s => s.SilinmeTarihi == null && s.Durum == ServisDurumu.OnayBekliyor, cancellationToken: iptal);
-        var teslimBekleyen = await kayitlar.CountDocumentsAsync(
+        var teslimBekleyen = kayitlar.CountDocumentsAsync(
             s => s.SilinmeTarihi == null && s.Durum == ServisDurumu.Tamamlandi, cancellationToken: iptal);
-        var azalanParca = await _db.Parcalar.CountDocumentsAsync(
+        var azalanParca = _db.Parcalar.CountDocumentsAsync(
             Builders<Parca>.Filter.Eq(p => p.SilinmeTarihi, null) & ParcalarController.AzalanFiltresi, cancellationToken: iptal);
 
-        var bugunku = await randevular.CountDocumentsAsync(
+        var bugunku = randevular.CountDocumentsAsync(
             r => r.Durum == RandevuDurumu.Planlandi && r.RandevuTarihi >= gun && r.RandevuTarihi < gun.AddDays(1),
             cancellationToken: iptal);
 
         // Tutarlar az sayıda belgeden toplandığı ve Decimal128 hassasiyeti korunmak istendiği için bellekte toplanır.
-        var odenmemisler = await kayitlar
+        var odenmemisler = kayitlar
             .Find(s => s.SilinmeTarihi == null && s.Fatura!.OdendiMi == false)
             .Project(s => s.Fatura!.Tutar)
             .ToListAsync(iptal);
-        var buAyOdenenler = await kayitlar
+        var buAyOdenenler = kayitlar
             .Find(s => s.SilinmeTarihi == null && s.Fatura!.OdendiMi == true && s.Fatura!.OdemeTarihi >= ay)
             .Project(s => s.Fatura!.Tutar)
             .ToListAsync(iptal);
 
-        var yaklasan = await randevular
+        var yaklasan = randevular
             .Find(r => r.Durum == RandevuDurumu.Planlandi && r.RandevuTarihi >= simdi)
             .SortBy(r => r.RandevuTarihi)
             .Limit(ListeBoyutu)
             .ToListAsync(iptal);
 
-        var acik = await kayitlar
+        var acik = kayitlar
             .Find(s => s.SilinmeTarihi == null && ServisKaydiKurallari.AcikDurumlar.Contains(s.Durum))
             .SortBy(s => s.OlusturmaTarihi)
             .Limit(ListeBoyutu)
             .ToListAsync(iptal);
 
+        await Task.WhenAll(bekleyen, devamEden, onayBekleyen, teslimBekleyen, azalanParca,
+            bugunku, odenmemisler, buAyOdenenler, yaklasan, acik);
+
         return new OzetYaniti(
-            bekleyen, devamEden, bugunku,
-            odenmemisler.Count, odenmemisler.Sum(), buAyOdenenler.Sum(),
-            yaklasan.Select(r => r.YanitaCevir()).ToList(),
-            acik.Select(s => s.YanitaCevir()).ToList(),
-            onayBekleyen, teslimBekleyen, azalanParca);
+            bekleyen.Result, devamEden.Result, bugunku.Result,
+            odenmemisler.Result.Count, odenmemisler.Result.Sum(), buAyOdenenler.Result.Sum(),
+            yaklasan.Result.Select(r => r.YanitaCevir()).ToList(),
+            acik.Result.Select(s => s.YanitaCevir()).ToList(),
+            onayBekleyen.Result, teslimBekleyen.Result, azalanParca.Result);
     }
 }
