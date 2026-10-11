@@ -52,7 +52,13 @@ else
                         <td>@kisi.KullaniciAdi</td>
                         <td>@(kisi.Telefon ?? "—")</td>
                         <td>@(kisi.Uzmanlik ?? "—")</td>
-                        <td>@RolAdi(kisi.Rol)</td>
+                        <td>
+                            @RolAdi(kisi.Rol)
+                            @if (kisi.Rol != KullaniciRol.Admin && kisi.StokYetkisi)
+                            {
+                                <span class="rozet">stok</span>
+                            }
+                        </td>
                         <td>
                             <span class="@(kisi.AktifMi ? "durum iyi" : "durum kotu")">
                                 @(kisi.AktifMi ? "Aktif" : "Devre dışı")
@@ -108,6 +114,14 @@ else
                 <option value="@KullaniciRol.Admin">Yönetici</option>
             </select>
 
+            @if (_form.Rol != KullaniciRol.Admin)
+            {
+                <label class="onay-kutusu">
+                    <input id="f-stok" type="checkbox" @bind="_form.StokYetkisi" />
+                    Stok yetkisi (stok kartı açabilir, düzenleyebilir ve stok girişi yapabilir)
+                </label>
+            }
+
             @if (_duzenlenen is not null)
             {
                 <label class="onay-kutusu">
@@ -139,6 +153,7 @@ else
         public string Sifre { get; set; } = "";
         public KullaniciRol Rol { get; set; } = KullaniciRol.Teknisyen;
         public bool AktifMi { get; set; } = true;
+        public bool StokYetkisi { get; set; }
     }
 
     private List<KullaniciOzeti>? _personel;
@@ -186,7 +201,8 @@ else
             Uzmanlik = kisi.Uzmanlik ?? "",
             KullaniciAdi = kisi.KullaniciAdi,
             Rol = kisi.Rol,
-            AktifMi = kisi.AktifMi
+            AktifMi = kisi.AktifMi,
+            StokYetkisi = kisi.StokYetkisi
         };
     }
 
@@ -196,15 +212,18 @@ else
     {
         if (_form is null || _kaydediliyor) return;
 
+        // Yöneticiler stoğu zaten yönetir; işaret yalnızca diğer personel için tutulur.
+        var stokYetkisi = _form.Rol != KullaniciRol.Admin && _form.StokYetkisi;
+
         _kaydediliyor = true;
         var sonuc = _duzenlenen is null
             ? await Api.Ekle<KullaniciOzeti>("api/kullanicilar",
                 new KullaniciOlusturIstegi(_form.KullaniciAdi.Trim(), _form.Sifre, _form.Rol, _form.AdSoyad.Trim(),
-                    Metin.BosIseNull(_form.Telefon), Metin.BosIseNull(_form.Uzmanlik)))
+                    Metin.BosIseNull(_form.Telefon), Metin.BosIseNull(_form.Uzmanlik), stokYetkisi))
             : await Api.Guncelle<KullaniciOzeti>($"api/kullanicilar/{_duzenlenen.Id}",
                 new KullaniciGuncelleIstegi(_form.KullaniciAdi.Trim(), _form.Rol, _form.AktifMi,
                     _form.Sifre.Length > 0 ? _form.Sifre : null, _form.AdSoyad.Trim(),
-                    Metin.BosIseNull(_form.Telefon), Metin.BosIseNull(_form.Uzmanlik)));
+                    Metin.BosIseNull(_form.Telefon), Metin.BosIseNull(_form.Uzmanlik), stokYetkisi));
         _kaydediliyor = false;
 
         if (!sonuc.Basarili)

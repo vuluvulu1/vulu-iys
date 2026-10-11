@@ -21,6 +21,9 @@ public sealed class OturumServisi : IDisposable
     // İşletmenin yöneticisi.
     public bool AdminMi => Oturum is { Isletme: not null, Kullanici.Rol: KullaniciRol.Admin };
 
+    // Stok kartlarını ve stok girişlerini yönetebilir: yöneticiler ve stok yetkisi verilmiş personel.
+    public bool StokYonetebilir => AdminMi || Oturum is { Isletme: not null, Kullanici.StokYetkisi: true };
+
     // İşletmenin adı, logosu ve iletişim bilgileri; girişten sonra yüklenir, ayarlar değişince yenilenir.
     public IsletmeYaniti? Isletme { get; private set; }
 

@@ -16,6 +16,9 @@ public class Kullanici
     public KullaniciRol Rol { get; set; } = KullaniciRol.Teknisyen;
     public bool AktifMi { get; set; } = true;
 
+    // Yönetici olmayan personelin stok kartlarını ve stok girişlerini yönetmesine izin verir.
+    public bool StokYetkisi { get; set; }
+
     // Erişim tokenına da yazılır; şifre, rol ya da aktiflik değişince yenilenir ve eski tokenlar geçersiz kalır
     // (bkz. Altyapi.OturumDogrulayici).
     public string OturumDamgasi { get; set; } = string.Empty;

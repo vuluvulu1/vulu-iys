@@ -88,7 +88,8 @@ builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .RequireClaim(TokenServisi.IsletmeTalebi)
-        .Build());
+        .Build())
+    .YetkileriEkle();
 
 builder.Services.AddRateLimiter(secenekler =>
 {

@@ -20,6 +20,9 @@ public class TokenServisi
     // Hesabın oturum damgası; hesaptaki güncel değerle eşleşmeyen token reddedilir.
     public const string DamgaTalebi = "damga";
 
+    // Stok yönetme izni olan personelin tokenında bulunur (bkz. Yetkiler.StokYonetimi).
+    public const string StokTalebi = "stok";
+
     // Vulu yöneticisinin rolü. İşletme personelinin rolleri (Admin, Teknisyen) ile karışmaz.
     public const string PlatformRolu = "Platform";
 
@@ -27,7 +30,8 @@ public class TokenServisi
 
     public TokenServisi(IOptions<JwtAyarlari> ayarlar) => _ayarlar = ayarlar.Value;
 
-    public (string Token, DateTime Bitis) ErisimTokeniUret(string kimlik, string ad, string rol, string damga, string? isletmeId)
+    public (string Token, DateTime Bitis) ErisimTokeniUret(string kimlik, string ad, string rol, string damga, string? isletmeId,
+        bool stokYetkisi = false)
     {
         var bitis = DateTime.UtcNow.AddMinutes(_ayarlar.ErisimDakika);
 
@@ -40,6 +44,8 @@ public class TokenServisi
         };
         if (isletmeId is not null)
             talepler.Add(new Claim(IsletmeTalebi, isletmeId));
+        if (stokYetkisi)
+            talepler.Add(new Claim(StokTalebi, "1"));
 
         var tanim = new SecurityTokenDescriptor
         {

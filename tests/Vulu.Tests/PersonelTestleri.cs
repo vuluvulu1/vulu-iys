@@ -32,6 +32,42 @@ public class PersonelTestleri : IClassFixture<ApiFabrikasi>
             new KullaniciGuncelleIstegi(kisi.KullaniciAdi, kisi.Rol, aktif, null, adSoyad ?? kisi.AdSoyad, kisi.Telefon, kisi.Uzmanlik));
 
     [Fact]
+    public async Task Stok_yetkisi_verilen_teknisyen_stogu_yonetir_yetki_alininca_yonetemez()
+    {
+        using var admin = await _api.YetkiliIstemci();
+        var yetkisiz = await ApiFabrikasi.PersonelEkle(admin);
+        var depocu = await ApiFabrikasi.PersonelEkle(admin, "Depo Sorumlusu");
+        using var yetkiVerme = await admin.PutAsJsonAsync($"api/kullanicilar/{depocu.Id}",
+            new KullaniciGuncelleIstegi(depocu.KullaniciAdi, depocu.Rol, true, null, depocu.AdSoyad, StokYetkisi: true));
+        var guncel = (await yetkiVerme.Content.ReadFromJsonAsync<KullaniciOzeti>())!;
+        using var yetkisizIstemci = await _api.YetkiliIstemci(yetkisiz.KullaniciAdi, ApiFabrikasi.PersonelSifresi);
+        using var depocuIstemci = await _api.YetkiliIstemci(depocu.KullaniciAdi, ApiFabrikasi.PersonelSifresi);
+        var kart = new ParcaIstegi("Yetki parçası " + Guid.NewGuid().ToString("N")[..8], null, 10m, 0);
+
+        using var yetkisizEkleme = await yetkisizIstemci.PostAsJsonAsync("api/parcalar", kart);
+        using var ekleme = await depocuIstemci.PostAsJsonAsync("api/parcalar", kart);
+        var parca = (await ekleme.Content.ReadFromJsonAsync<ParcaYaniti>())!;
+        using var giris = await depocuIstemci.PostAsJsonAsync($"api/parcalar/{parca.Id}/stok", new StokHareketiIstegi(5, null));
+        // Stok yetkisi yöneticilik vermez.
+        using var personelListesi = await depocuIstemci.GetAsync("api/kullanicilar");
+
+        using var yetkiAlma = await admin.PutAsJsonAsync($"api/kullanicilar/{depocu.Id}",
+            new KullaniciGuncelleIstegi(depocu.KullaniciAdi, depocu.Rol, true, null, depocu.AdSoyad));
+        // Yetkisi değişen hesabın açık oturumu kapanır; eski token yetkiyi taşımaya devam edemez.
+        using var eskiOturumla = await depocuIstemci.PostAsJsonAsync($"api/parcalar/{parca.Id}/stok", new StokHareketiIstegi(1, null));
+        using var yeniOturum = await _api.YetkiliIstemci(depocu.KullaniciAdi, ApiFabrikasi.PersonelSifresi);
+        using var yetkiAlindiktanSonra = await yeniOturum.PostAsJsonAsync($"api/parcalar/{parca.Id}/stok", new StokHareketiIstegi(1, null));
+
+        Assert.True(guncel.StokYetkisi);
+        Assert.Equal(HttpStatusCode.Forbidden, yetkisizEkleme.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, ekleme.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, giris.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, personelListesi.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, eskiOturumla.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, yetkiAlindiktanSonra.StatusCode);
+    }
+
+    [Fact]
     public async Task Personel_hesabi_ad_telefon_ve_uzmanlikla_acilir()
     {
         using var admin = await _api.YetkiliIstemci();

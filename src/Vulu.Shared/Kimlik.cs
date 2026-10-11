@@ -57,7 +57,9 @@ public record KullaniciOzeti(
     bool AktifMi,
     string AdSoyad,
     string? Telefon,
-    string? Uzmanlik);
+    string? Uzmanlik,
+    // Stok kartlarını ve stok girişlerini yönetebilir. Yöneticiler bu işaret olmadan da yönetir.
+    bool StokYetkisi = false);
 
 // Servis kaydı ve randevu formlarındaki "teknisyen" seçimi için; yönetici olmayanlar da görebilir.
 public record PersonelOzeti(string Id, string AdSoyad, string? Uzmanlik);
@@ -77,7 +79,8 @@ public record KullaniciOlusturIstegi(
     [RegularExpression(TelefonKurallari.Desen, ErrorMessage = TelefonKurallari.Mesaj)]
     string? Telefon = null,
     [StringLength(100, ErrorMessage = "Uzmanlık en fazla 100 karakter olabilir.")]
-    string? Uzmanlik = null)
+    string? Uzmanlik = null,
+    bool StokYetkisi = false)
 {
     public override string ToString() => GizliIcerik.Ad(this);
 }
@@ -97,7 +100,8 @@ public record KullaniciGuncelleIstegi(
     [RegularExpression(TelefonKurallari.Desen, ErrorMessage = TelefonKurallari.Mesaj)]
     string? Telefon = null,
     [StringLength(100, ErrorMessage = "Uzmanlık en fazla 100 karakter olabilir.")]
-    string? Uzmanlik = null)
+    string? Uzmanlik = null,
+    bool StokYetkisi = false)
 {
     public override string ToString() => GizliIcerik.Ad(this);
 }
