@@ -5,7 +5,7 @@
 <h1>Stok</h1>
 
 <div class="arac-cubugu">
-    @if (Oturum.AdminMi)
+    @if (Oturum.StokYonetebilir)
     {
         <button @onclick="YeniAc">Stok kartı</button>
     }
@@ -33,7 +33,7 @@ else if (_sayfa.Ogeler.Count == 0)
 {
     <p class="soluk">
         @(_arama.Length > 0 || _yalnizAzalan ? "Süzgeçle eşleşen parça bulunamadı."
-            : Oturum.AdminMi ? "Kayıtlı stok kartı bulunmuyor. “Stok kartı” düğmesiyle ekleyebilirsiniz." : "Kayıtlı stok kartı bulunmuyor.")
+            : Oturum.StokYonetebilir ? "Kayıtlı stok kartı bulunmuyor. “Stok kartı” düğmesiyle ekleyebilirsiniz." : "Kayıtlı stok kartı bulunmuyor.")
     </p>
 }
 else
@@ -64,7 +64,7 @@ else
                     </td>
                     <td class="islemler">
                         <button class="ikincil" @onclick="() => HareketleriAc(parca)">Hareketler</button>
-                        @if (Oturum.AdminMi)
+                        @if (Oturum.StokYonetebilir)
                         {
                             <button class="ikincil" @onclick="() => StokAc(parca)">Stok girişi</button>
                             <button class="ikincil" @onclick="() => DuzenleAc(parca)">Düzenle</button>

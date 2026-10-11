@@ -228,7 +228,8 @@ public class KimlikController : ControllerBase
     private async Task<OturumYaniti> OturumAc(Kullanici kullanici, Isletme isletme, CancellationToken iptal)
     {
         var (erisimTokeni, bitis) = _tokenlar.ErisimTokeniUret(
-            kullanici.Id, kullanici.KullaniciAdi, kullanici.Rol.ToString(), kullanici.OturumDamgasi, isletme.Id);
+            kullanici.Id, kullanici.KullaniciAdi, kullanici.Rol.ToString(), kullanici.OturumDamgasi, isletme.Id,
+            kullanici.StokYetkisi);
         var yenilemeTokeni = await YenilemeTokeniKaydet(kullanici.Id, isletme.Id, iptal);
 
         return new OturumYaniti(erisimTokeni, bitis, yenilemeTokeni, kullanici.OzeteCevir(),

@@ -108,7 +108,7 @@ src/
   Vulu.Shared      API ile masaüstünün paylaştığı istek/yanıt türleri ve kurallar
   Vulu.Desktop     Photino.Blazor masaüstü istemcisi
 tests/
-  Vulu.Tests       Otomatik testler (237 test; GuvenlikTestleri.cs saldırı denemeleridir)
+  Vulu.Tests       Otomatik testler (238 test; GuvenlikTestleri.cs saldırı denemeleridir)
 tools/
   Vulu.Kurulum     Kullanıcıya verilen kurulum programı
   ikon-uret.ps1    Logodan pencere ve exe simgesi üretir
@@ -183,8 +183,8 @@ arkasındaysa müşteriye verilen bağlantının kökü `Takip:Adres` ayarıyla 
 
 ## Stok
 
-Stok kartlarını ve stok girişlerini işletme yöneticisi yönetir; bütün personel stoğu görür ve servis kaydında
-parça kullanır. Stok adedi yalnızca atomik artırma/azaltma ile değişir: aynı anda gelen iki istek stokta olmayan
+Stok kartlarını ve stok girişlerini işletme yöneticisi ve Personel sayfasından “stok yetkisi” verilen personel
+yönetir; bütün personel stoğu görür ve servis kaydında parça kullanır. Stok adedi yalnızca atomik artırma/azaltma ile değişir: aynı anda gelen iki istek stokta olmayan
 parçayı kullanamaz ve stok eksiye düşmez. Her değişiklik `stokHareketleri` koleksiyonuna yazılır. Stoğu kritik
 seviyeye inen parçalar Stok sayfasında işaretlenir ve ana sayfada sayılır.
 

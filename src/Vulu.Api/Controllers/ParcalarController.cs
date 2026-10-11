@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
+using Vulu.Api.Kimlik;
 using Vulu.Api.Veri;
 using Vulu.Api.Veri.Belgeler;
 using Vulu.Shared;
@@ -78,7 +79,7 @@ public class ParcalarController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = nameof(KullaniciRol.Admin))]
+    [Authorize(Policy = Yetkiler.StokYonetimi)]
     public async Task<ActionResult<ParcaYaniti>> Ekle(ParcaIstegi istek, CancellationToken iptal)
     {
         if (FiyatHatasi(istek) is { } hata) return hata;
@@ -97,7 +98,7 @@ public class ParcalarController : ControllerBase
     }
 
     [HttpPut("{id:oid}")]
-    [Authorize(Roles = nameof(KullaniciRol.Admin))]
+    [Authorize(Policy = Yetkiler.StokYonetimi)]
     public async Task<ActionResult<ParcaYaniti>> Guncelle(string id, ParcaIstegi istek, CancellationToken iptal)
     {
         if (FiyatHatasi(istek) is { } hata) return hata;
@@ -121,7 +122,7 @@ public class ParcalarController : ControllerBase
 
     // Stok girişi (artı adet) ya da sayım düzeltmesi (eksi adet).
     [HttpPost("{id:oid}/stok")]
-    [Authorize(Roles = nameof(KullaniciRol.Admin))]
+    [Authorize(Policy = Yetkiler.StokYonetimi)]
     public async Task<ActionResult<ParcaYaniti>> StokDegistir(string id, StokHareketiIstegi istek, CancellationToken iptal)
     {
         if (istek.Adet == 0)
@@ -161,7 +162,7 @@ public class ParcalarController : ControllerBase
     }
 
     [HttpDelete("{id:oid}")]
-    [Authorize(Roles = nameof(KullaniciRol.Admin))]
+    [Authorize(Policy = Yetkiler.StokYonetimi)]
     public async Task<IActionResult> Sil(string id, CancellationToken iptal)
     {
         // Belge silinmez, işaretlenir: geçmiş servis kayıtları ve stok hareketleri parçaya bağlı kalır.

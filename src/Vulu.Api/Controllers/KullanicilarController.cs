@@ -51,7 +51,8 @@ public class KullanicilarController : ControllerBase
             Rol = istek.Rol,
             AdSoyad = istek.AdSoyad.Trim(),
             Telefon = Metin.BosIseNull(istek.Telefon),
-            Uzmanlik = Metin.BosIseNull(istek.Uzmanlik)
+            Uzmanlik = Metin.BosIseNull(istek.Uzmanlik),
+            StokYetkisi = istek.StokYetkisi
         };
 
         try
@@ -77,7 +78,8 @@ public class KullanicilarController : ControllerBase
         if (adminligiBirakiyor && !await BaskaAktifAdminVarMi(id, iptal))
             return Problem(detail: "Sistemde en az bir aktif yönetici kalmalı.", statusCode: StatusCodes.Status409Conflict);
 
-        var oturumlarKapansin = !istek.AktifMi || istek.Rol != kullanici.Rol || !string.IsNullOrEmpty(istek.YeniSifre);
+        var oturumlarKapansin = !istek.AktifMi || istek.Rol != kullanici.Rol || istek.StokYetkisi != kullanici.StokYetkisi
+            || !string.IsNullOrEmpty(istek.YeniSifre);
         var adDegisti = kullanici.AdSoyad != istek.AdSoyad.Trim();
 
         kullanici.KullaniciAdi = KullaniciAdlari.Normalle(istek.KullaniciAdi);
@@ -86,6 +88,7 @@ public class KullanicilarController : ControllerBase
         kullanici.AdSoyad = istek.AdSoyad.Trim();
         kullanici.Telefon = Metin.BosIseNull(istek.Telefon);
         kullanici.Uzmanlik = Metin.BosIseNull(istek.Uzmanlik);
+        kullanici.StokYetkisi = istek.StokYetkisi;
         if (!string.IsNullOrEmpty(istek.YeniSifre))
             kullanici.SifreHash = Sifreler.Hashle(istek.YeniSifre);
 
@@ -106,7 +109,7 @@ public class KullanicilarController : ControllerBase
         if (oturumlarKapansin)
         {
             await _oturumlar.KapatAsync(_isletme.Zorunlu.Id, id, iptal);
-            _log.LogInformation("Personel hesabının oturumları kapatıldı (rol, şifre ya da aktiflik değişti): {Kullanici}, işletme {Kod}",
+            _log.LogInformation("Personel hesabının oturumları kapatıldı (yetki, şifre ya da aktiflik değişti): {Kullanici}, işletme {Kod}",
                 id, _isletme.Zorunlu.Kod);
         }
 
@@ -157,5 +160,5 @@ public class KullanicilarController : ControllerBase
 public static class KullaniciDonusumleri
 {
     public static KullaniciOzeti OzeteCevir(this Kullanici k) =>
-        new(k.Id, k.KullaniciAdi, k.Rol, k.AktifMi, k.AdSoyad, k.Telefon, k.Uzmanlik);
+        new(k.Id, k.KullaniciAdi, k.Rol, k.AktifMi, k.AdSoyad, k.Telefon, k.Uzmanlik, k.StokYetkisi);
 }
