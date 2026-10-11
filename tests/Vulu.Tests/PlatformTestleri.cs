@@ -215,6 +215,37 @@ public class PlatformTestleri : IClassFixture<ApiFabrikasi>
         Assert.Equal(HttpStatusCode.Forbidden, personelListeler.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, personelEkler.StatusCode);
     }
+
+    [Fact]
+    public async Task Vulu_yoneticisi_isletmenin_logosunu_alir_isletme_personeli_alamaz()
+    {
+        using var yonetici = await _api.YoneticiIstemcisi();
+        var kod = "logo-" + Guid.NewGuid().ToString("N")[..8];
+        var isletme = await ApiFabrikasi.IsletmeAc(yonetici, kod, "Logolu İşletme");
+        using var admin = await _api.YetkiliIstemci(isletmeKodu: kod);
+
+        using var logosuz = await yonetici.GetAsync($"api/platform/isletmeler/{isletme.Id}/logo");
+
+        // Gerçek, açılabilir en küçük PNG (1x1 piksel).
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+        using var yukleme = await admin.PutAsJsonAsync("api/isletme", new IsletmeProfilIstegi(
+            "Logolu İşletme", null, null, null, null, null, 20, Convert.ToBase64String(png), "image/png", false));
+        yukleme.EnsureSuccessStatusCode();
+
+        using var logo = await yonetici.GetAsync($"api/platform/isletmeler/{isletme.Id}/logo");
+        using var personelIstegi = await admin.GetAsync($"api/platform/isletmeler/{isletme.Id}/logo");
+        var liste = await yonetici.GetFromJsonAsync<List<IsletmeYaniti>>("api/platform/isletmeler");
+        var satir = liste!.Single(i => i.Id == isletme.Id);
+
+        Assert.Equal(HttpStatusCode.NotFound, logosuz.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, logo.StatusCode);
+        Assert.Equal("image/png", logo.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(png, await logo.Content.ReadAsByteArrayAsync());
+        Assert.Equal(HttpStatusCode.Forbidden, personelIstegi.StatusCode);
+        // Liste logonun türünü bildirir ama içeriğini taşımaz.
+        Assert.Equal("image/png", satir.LogoTuru);
+        Assert.Null(satir.LogoVerisi);
+    }
 }
 
 // "En az bir aktif vulu yöneticisi kalmalı" kuralı diğer yöneticilere bağlı olduğu için kendi veritabanında çalışır.

@@ -1105,3 +1105,32 @@ a.ozet-kutusu:hover {
 .oturum button + button {
     margin-top: 8px;
 }
+
+/* Listelerde adın yanındaki küçük logo. */
+.logolu-ad {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logolu-ad img,
+.logo-yer-tutucu {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: var(--kose);
+}
+
+.logolu-ad img {
+    object-fit: contain;
+}
+
+.logo-yer-tutucu {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--yuzey-acik);
+    border: 1px solid var(--kenar);
+    color: var(--soluk-metin);
+    font-weight: 600;
+}

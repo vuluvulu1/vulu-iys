@@ -38,7 +38,20 @@ else
             @foreach (var isletme in _isletmeler)
             {
                 <tr @key="isletme.Id">
-                    <td>@isletme.Ad</td>
+                    <td>
+                        <span class="logolu-ad">
+                            @if (_logolar.TryGetValue(isletme.Id, out var logo))
+                            {
+                                <img src="@logo" alt="" />
+                            }
+                            else
+                            {
+                                @* Logosu olmayan (ya da logosu henüz yüklenmemiş) işletme, adının baş harfiyle gösterilir. *@
+                                <span class="logo-yer-tutucu" aria-hidden="true">@BasHarf(isletme.Ad)</span>
+                            }
+                            @isletme.Ad
+                        </span>
+                    </td>
                     <td><code>@isletme.Kod</code></td>
                     <td class="dar">@isletme.PersonelSayisi</td>
                     <td class="dar">@Bicim.Tarih(isletme.OlusturmaTarihi)</td>
@@ -137,6 +150,9 @@ else
     }
 
     private List<IsletmeYaniti>? _isletmeler;
+
+    // İşletme kimliği -> logonun sayfaya gömülen adresi. Liste logo içeriğini taşımaz; her logo bir kez indirilir.
+    private readonly Dictionary<string, string> _logolar = [];
     private string? _listeHatasi;
     private bool _yukleniyor;
 
@@ -155,9 +171,33 @@ else
         _yukleniyor = false;
 
         _listeHatasi = sonuc.Hata;
-        if (sonuc.Basarili)
-            _isletmeler = sonuc.Deger ?? [];
+        if (!sonuc.Basarili) return;
+
+        _isletmeler = sonuc.Deger ?? [];
+
+        // Liste hemen gösterilir; logolar arkasından, hepsi birlikte indirilir.
+        StateHasChanged();
+        await LogolariYukle(_isletmeler);
     }
+
+    private async Task LogolariYukle(List<IsletmeYaniti> isletmeler)
+    {
+        // Logosu kaldırılmış ya da silinmiş işletmelerin eski görseli kalmasın.
+        var logolular = isletmeler.Where(i => i.LogoTuru is not null).ToList();
+        foreach (var kimlik in _logolar.Keys.Except(logolular.Select(i => i.Id)).ToList())
+            _logolar.Remove(kimlik);
+
+        var indirilenler = await Task.WhenAll(logolular.Select(async isletme =>
+            (isletme, Sonuc: await Api.Indir($"api/platform/isletmeler/{isletme.Id}/logo"))));
+
+        // Logo indirilemezse satır baş harfle kalır; liste bunun için hata göstermez.
+        foreach (var (isletme, logo) in indirilenler)
+            if (logo is { Basarili: true, Deger: not null })
+                _logolar[isletme.Id] = $"data:{isletme.LogoTuru};base64,{Convert.ToBase64String(logo.Deger)}";
+    }
+
+    private static string BasHarf(string ad) =>
+        ad.Trim() is { Length: > 0 } dolu ? dolu[..1].ToUpper(System.Globalization.CultureInfo.GetCultureInfo("tr-TR")) : "?";
 
     private void YeniAc()
     {
