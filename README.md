@@ -257,7 +257,7 @@ powershell -ExecutionPolicy Bypass -File .\paketle.ps1 -ApiAdresi https://<servi
 - uygulamayı `%LOCALAPPDATA%\Programs\Vulu` klasörüne kurar (yönetici izni istemez),
 - Başlat menüsüne ve masaüstüne kısayol ekler,
 - "Program ekle/kaldır" listesine kaydeder; oradan kaldırılınca klasör, kısayollar ve kayıt silinir,
-- yeniden çalıştırılırsa kurulu sürümün üzerine yazar (güncelleme).
+- yeniden çalıştırılırsa kurulu sürümün üzerine yazar.
 
 Kurulum programı bu depodadır (`tools/Vulu.Kurulum`); dışarıdan bir kurulum aracı gerekmez. Uygulamayı içinde
 taşır, .NET kurulumu gerektirmez ve gizli ayar içermez; içindeki tek ayar API adresidir. `/sessiz` seçeneğiyle
@@ -265,11 +265,27 @@ soru sormadan kurar. Uygulamanın çalışması için bilgisayarda Microsoft Edg
 (Windows 11'de hazır gelir); yoksa kurulum bunu söyler ve indirme adresini gösterir. API adresi `https` olmak
 zorundadır. Dosyalar imzalı değildir; Windows ilk çalıştırmada "bilinmeyen yayıncı" uyarısı gösterebilir.
 
-Kurulum dosyası GitHub'da sürüm olarak yayımlanır:
+Kurulum dosyası GitHub'da sürüm olarak yayımlanır; dosyanın adı `Vulu-Kurulum.exe` kalmalıdır:
 
 ```bash
-gh release create v0.2.0 dist\Vulu-Kurulum.exe --target main --title "0.2.0"
+gh release create v0.4.0 dist\Vulu-Kurulum.exe --target main --title "0.4.0"
 ```
+
+### Otomatik güncelleme
+
+Kurulu uygulama her açılışta GitHub'a bu deponun en son sürümünü sorar (`Servisler/Guncelleyici.cs`). Daha yeni
+bir sürüm varsa giriş formu yerine güncelleme ekranı gelir; güncelleme **zorunludur**. Uygulama kurulum
+dosyasını indirir, kurulumu güncelleme kipinde başlatıp kapanır; kurulum dosyaları değiştirir ve uygulamayı
+yeniden açar. Sürüm numarası başka hiçbir yerde tutulmaz: yeni sürümü yayımlamak, onu bütün kurulu kopyalara
+göndermek demektir. Bu yüzden bir sürüm, yayımlanmadan önce denenmiş olmalıdır.
+
+- Dosya yalnızca bu deponun sürüm sayfasından, şifreli bağlantıyla indirilir ve GitHub'ın bildirdiği boyut ile
+  SHA-256 özetiyle eşleşmeden çalıştırılmaz. Güven GitHub hesabına dayanır: hesap ele geçirilirse saldırgan
+  bütün kurulu kopyalara kendi programını gönderebilir. Hesapta iki adımlı doğrulama açık olmalıdır.
+- Sürüm bilgisine ulaşılamazsa (internet yok, GitHub yanıt vermiyor) kontrol atlanır ve giriş yapılabilir.
+- Yalnızca kurulum programının yerleştirdiği kopya kendini günceller; geliştirme sırasında çalıştırılan kopya
+  güncelleme aramaz.
+- Depo herkese açık olmalıdır; özel depoda sürüm bilgisi dışarıdan okunamaz.
 
 API ile masaüstü arasındaki biçim geriye uyumsuz değişirse `Vulu.Shared/SaglikYaniti.cs` içindeki
 `ApiSozlesmesi.Surum` artırılır; eski masaüstü sürümleri girişte güncelleme uyarısı verir.
@@ -291,7 +307,7 @@ dağıtılır. Henüz olmayanlar:
 
 - Otomatik SMS (bir SMS sağlayıcısı bağlı değildir; bilgilendirme personelin WhatsApp ya da e-posta programı
   üzerinden yapılır).
-- Otomatik güncelleme (yeni sürüm, kurulum yeniden çalıştırılarak yüklenir) ve imzalı exe.
+- İmzalı exe.
 - e-Fatura / e-Arşiv bağlantısı.
 - Kalıcı silme ve veri saklama süresi düzeneği (bkz. Güvenlik → Bilinen sınırlar).
 
