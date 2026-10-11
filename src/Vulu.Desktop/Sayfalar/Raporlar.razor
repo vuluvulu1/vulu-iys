@@ -17,6 +17,11 @@ else
             <option value="@Donem.BuYil">Bu yıl</option>
             <option value="@Donem.SonOnIkiAy">Son 12 ay</option>
         </select>
+        @if (_bitis != default)
+        {
+            <ExcelDugmesi Yol="@($"api/raporlar/disa-aktar?baslangic={Bicim.SorguTarihi(_baslangic)}&bitis={Bicim.SorguTarihi(_bitis)}")"
+                          DosyaAdi="Rapor" />
+        }
         <span class="soluk kullanim">@AralikMetni</span>
     </div>
 

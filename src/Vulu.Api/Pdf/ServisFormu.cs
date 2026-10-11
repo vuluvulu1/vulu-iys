@@ -20,6 +20,15 @@ public static class ServisFormu
         "silinebilir; yedekleme müşterinin sorumluluğundadır. Bildirilen ücret ve süre tahminidir; arıza tespitinden " +
         "sonra değişirse müşteriye bilgi verilir ve onayı alınmadan işleme başlanmaz.";
 
+    // İşletme kendi metnini yazmadıysa kullanılan genel aydınlatma metni. Hukuki danışmanlık yerine geçmez; işletme
+    // kendi faaliyetine göre gözden geçirmelidir.
+    public static string VarsayilanAydinlatma(Isletme isletme) =>
+        $"Bu formdaki kişisel verileriniz (ad, soyad, iletişim ve cihaz bilgileri), 6698 sayılı Kişisel Verilerin Korunması "
+        + $"Kanunu kapsamında veri sorumlusu {isletme.Ad} tarafından, servis hizmetinin yürütülmesi, sizinle iletişim kurulması ve "
+        + $"yasal yükümlülüklerin yerine getirilmesi amacıyla işlenir; üçüncü kişilerle yalnızca yasal zorunluluk halinde "
+        + $"paylaşılır ve {isletme.SaklamaYili} yıllık saklama süresinin sonunda silinir. Verilerinize erişme, düzeltilmesini ya da "
+        + "silinmesini isteme haklarınızı işletmeye başvurarak kullanabilirsiniz.";
+
     // takipAdresi: müşterinin cihaz durumunu sorgulayacağı sayfa; bilinmiyorsa forma yazılmaz.
     public static byte[] Kabul(ServisKaydi kayit, Musteri? musteri, Isletme isletme, string? takipAdresi) =>
         Olustur(kayit, musteri, isletme, "SERVİS KABUL FORMU", Zaman.TarihSaat(kayit.OlusturmaTarihi), sutun =>
@@ -36,6 +45,9 @@ public static class ServisFormu
 
             sutun.Item().Element(alan => Bolum(alan, "SERVİS KOŞULLARI",
                 string.IsNullOrWhiteSpace(isletme.ServisKosullari) ? VarsayilanKosullar : isletme.ServisKosullari, kucuk: true));
+
+            sutun.Item().Element(alan => Bolum(alan, "KİŞİSEL VERİLERİN KORUNMASI",
+                string.IsNullOrWhiteSpace(isletme.AydinlatmaMetni) ? VarsayilanAydinlatma(isletme) : isletme.AydinlatmaMetni, kucuk: true));
 
             sutun.Item().Element(alan => Imzalar(alan, "Teslim eden (müşteri)", kayit.Musteri.AdSoyad,
                 "Teslim alan (işletme)", kayit.TeknisyenAdi));

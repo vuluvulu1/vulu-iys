@@ -103,6 +103,17 @@ public class RaporlarController : ControllerBase
             teknisyenler, aylar, parcalar);
     }
 
+    // Aynı rapor, Excel dosyası olarak (özet, teknisyenler, aylar ve parçalar ayrı sayfalarda).
+    [HttpGet("disa-aktar")]
+    public async Task<IActionResult> DisaAktar([FromQuery] DateTime baslangic, [FromQuery] DateTime bitis, CancellationToken iptal)
+    {
+        var sonuc = await Getir(baslangic, bitis, iptal);
+        if (sonuc.Value is not { } rapor) return sonuc.Result!;
+
+        var sayfalar = DisaAktarim.Rapor(rapor, Zaman.UtcYap(baslangic), Zaman.UtcYap(bitis));
+        return File(ExcelYazici.Olustur(sayfalar), ExcelYazici.IcerikTuru, DisaAktarim.DosyaAdi("Rapor"));
+    }
+
     private static double? OrtalamaSaat(IEnumerable<ServisKaydi> tamamlananlar)
     {
         var sureler = tamamlananlar

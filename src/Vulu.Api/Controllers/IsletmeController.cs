@@ -42,7 +42,9 @@ public class IsletmeController : ControllerBase
             .Set(i => i.VergiDairesi, Metin.BosIseNull(istek.VergiDairesi))
             .Set(i => i.VergiNo, Metin.BosIseNull(istek.VergiNo))
             .Set(i => i.KdvOrani, istek.KdvOrani)
-            .Set(i => i.ServisKosullari, Metin.BosIseNull(istek.ServisKosullari));
+            .Set(i => i.ServisKosullari, Metin.BosIseNull(istek.ServisKosullari))
+            .Set(i => i.SaklamaYili, istek.SaklamaYili)
+            .Set(i => i.AydinlatmaMetni, Metin.BosIseNull(istek.AydinlatmaMetni));
 
         if (istek.LogoyuKaldir)
         {
@@ -69,5 +71,5 @@ public static class IsletmeDonusumleri
     public static IsletmeYaniti YanitaCevir(this Isletme i, long? personelSayisi = null) => new(
         i.Id, i.Kod, i.Ad, i.Adres, i.Telefon, i.Eposta, i.VergiDairesi, i.VergiNo, i.KdvOrani, i.AktifMi,
         i.OlusturmaTarihi, i.Logo is null ? null : Convert.ToBase64String(i.Logo), i.LogoTuru,
-        personelSayisi, i.ServisKosullari);
+        personelSayisi, i.ServisKosullari, i.SaklamaYili, i.AydinlatmaMetni);
 }

@@ -87,8 +87,8 @@ vekil” sıfır olmalıdır.
 
 - Vulu yöneticisi bir işletme yöneticisinin şifresini sıfırlayıp o hesapla işletmenin verisini görebilir; her
   sıfırlama günlüğe yazılır ama teknik olarak engellenmez.
-- Silinen müşteri ve servis kayıtları veritabanında işaretli olarak kalır (geçmiş faturalar bozulmasın diye);
-  kalıcı silme ve saklama süresi (KVKK) için bir düzenek yoktur.
+- Müşteriler sayfasından silinen müşterinin verisi, yönetici Kişisel Veriler sayfasından kalıcı olarak silene
+  kadar veritabanında durur; süresi dolan veri kendiliğinden silinmez, yöneticiye listelenir.
 - Veritabanı yedeği uygulamanın değil barındırma tarafının (MongoDB Atlas) işidir.
 - Masaüstü uygulamasının açtığı PDF'ler geçici klasöre yazılır; uygulama açılırken ve kapanırken silinir.
 
@@ -108,7 +108,7 @@ src/
   Vulu.Shared      API ile masaüstünün paylaştığı istek/yanıt türleri ve kurallar
   Vulu.Desktop     Photino.Blazor masaüstü istemcisi
 tests/
-  Vulu.Tests       Otomatik testler (233 test; GuvenlikTestleri.cs saldırı denemeleridir)
+  Vulu.Tests       Otomatik testler (242 test; GuvenlikTestleri.cs saldırı denemeleridir)
 tools/
   Vulu.Kurulum     Kullanıcıya verilen kurulum programı
   ikon-uret.ps1    Logodan pencere ve exe simgesi üretir
@@ -192,6 +192,30 @@ seviyeye inen parçalar Stok sayfasında işaretlenir ve ana sayfada sayılır.
 
 Yönetici, seçtiği dönem için açılan/tamamlanan/iptal edilen iş sayısını, ortalama tamir süresini, kesilen ve
 tahsil edilen tutarı, teknisyen ve ay bazında dökümü ve en çok kullanılan parçaları görür.
+
+## Excel'e aktarma
+
+Müşteri listesi, servis kayıtları (ekrandaki süzgeçle), stok ve dönem raporu Excel dosyası olarak alınabilir;
+dosya İndirilenler klasörüne kaydedilir. Müşteri verisi içeren listeleri yalnızca yönetici aktarabilir. Dosyayı
+API üretir (`Altyapi/ExcelYazici.cs`); dışarıdan bir kitaplık kullanılmaz. Kullanıcının yazdığı her şey hücreye
+düz metin olarak konur: `=` ile başlayan bir müşteri adı ya da not Excel'de formül olarak çalışmaz.
+
+## Kişisel veriler (KVKK)
+
+Yöneticinin **Kişisel Veriler** sayfası, müşterilerin başvurularını karşılamak içindir:
+
+- **Veri dökümü:** müşteri hakkında tutulan her şey (bilgileri, servis kayıtları, randevuları) tek bir Excel
+  dosyası olarak alınır.
+- **Kalıcı silme:** müşteri kaydı, randevuları ve cihazlarının seri numaraları silinir; servis kayıtları
+  “Silinen müşteri” adıyla kalır, böylece işletmenin iş ve gelir geçmişi bozulmaz. Kayıtların işlem geçmişi de
+  (içinde ad geçebildiği için) kaldırılır. İşlem geri alınamaz.
+- **Saklama süresi:** faturası kesilmiş bir müşterinin verisi, fatura tarihinden itibaren saklama süresi
+  (varsayılan 10 yıl, İşletme sayfasından değişir) dolmadan silinemez. Son işlemi bu süreden eski olan müşteriler
+  ve Müşteriler sayfasından kaldırılmış ama verisi duranlar ayrı listelerde gösterilir.
+- **Aydınlatma metni:** servis kabul formunun altına yazılır; işletme kendi metnini girebilir.
+
+Dökümler ve silmeler API günlüğüne yazılır. Varsayılan aydınlatma metni ve saklama süresi genel kabullerdir,
+hukuki danışmanlık yerine geçmez; her işletme kendi durumuna göre gözden geçirmelidir.
 
 ## Veri geçişleri
 
@@ -309,7 +333,6 @@ dağıtılır. Henüz olmayanlar:
   üzerinden yapılır).
 - İmzalı exe.
 - e-Fatura / e-Arşiv bağlantısı.
-- Kalıcı silme ve veri saklama süresi düzeneği (bkz. Güvenlik → Bilinen sınırlar).
 
 ## Lisans
 

@@ -1154,3 +1154,17 @@ progress::-webkit-progress-bar {
 progress::-webkit-progress-value {
     background: var(--vurgu);
 }
+
+/* Alt alta dizilen kartlar ve metin içi bağlantılar. */
+.icerik > .kart + .kart {
+    margin-top: 16px;
+}
+
+.aciklama a {
+    color: var(--vurgu-acik);
+}
+
+.arac-cubugu .satir-ici {
+    align-self: center;
+    font-size: 13px;
+}

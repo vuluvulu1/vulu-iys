@@ -42,6 +42,20 @@ public class MusterilerController : ControllerBase
         return new Sayfa<MusteriYaniti>(musteriler.Select(m => m.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
     }
 
+    // Müşteri listesinin tamamı, Excel dosyası olarak. Toplu kişisel veri olduğu için yalnızca yönetici alır.
+    [HttpGet("disa-aktar")]
+    [Authorize(Roles = nameof(KullaniciRol.Admin))]
+    public async Task<IActionResult> DisaAktar(CancellationToken iptal)
+    {
+        var musteriler = await _db.Musteriler
+            .Find(m => m.SilinmeTarihi == null, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
+            .SortBy(m => m.AdSoyad)
+            .Limit(DisaAktarim.EnFazlaSatir)
+            .ToListAsync(iptal);
+
+        return File(ExcelYazici.Olustur(DisaAktarim.Musteriler(musteriler)), ExcelYazici.IcerikTuru, DisaAktarim.DosyaAdi("Musteriler"));
+    }
+
     [HttpGet("{id:oid}")]
     public async Task<ActionResult<MusteriYaniti>> Getir(string id, CancellationToken iptal)
     {

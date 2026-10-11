@@ -6,6 +6,10 @@
 
 <div class="arac-cubugu">
     <button @onclick="YeniAc">Müşteri kaydı</button>
+    @if (Oturum.AdminMi)
+    {
+        <ExcelDugmesi Yol="api/musteriler/disa-aktar" DosyaAdi="Musteriler" />
+    }
     <AramaKutusu YerTutucu="Ad, telefon veya e-posta ara" Etiket="Müşteri ara" Arandi="Ara" />
 </div>
 
