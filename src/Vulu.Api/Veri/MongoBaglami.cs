@@ -19,6 +19,9 @@ public class MongoBaglami
         Musteriler = db.GetCollection<Musteri>("musteriler");
         ServisKayitlari = db.GetCollection<ServisKaydi>("servisKayitlari");
         Randevular = db.GetCollection<Randevu>("randevular");
+        IslemGecmisi = db.GetCollection<IslemKaydi>("islemGecmisi");
+        Parcalar = db.GetCollection<Parca>("parcalar");
+        StokHareketleri = db.GetCollection<StokHareketi>("stokHareketleri");
         Sayaclar = db.GetCollection<BsonDocument>("sayaclar");
     }
 
@@ -27,7 +30,13 @@ public class MongoBaglami
     public IMongoCollection<Musteri> Musteriler { get; }
     public IMongoCollection<ServisKaydi> ServisKayitlari { get; }
     public IMongoCollection<Randevu> Randevular { get; }
+    public IMongoCollection<IslemKaydi> IslemGecmisi { get; }
+    public IMongoCollection<Parca> Parcalar { get; }
+    public IMongoCollection<StokHareketi> StokHareketleri { get; }
     private IMongoCollection<BsonDocument> Sayaclar { get; }
+
+    // Servis kaydı numaralarının yıllık sayacı.
+    public static string ServisSayaci(int yil) => $"servis-{yil}";
 
     // Adı verilen sayacı bir artırıp yeni değerini döner. Tek belgede tek işlem olduğu için aynı anda gelen
     // iki istek aynı numarayı alamaz.
@@ -75,9 +84,29 @@ public class MongoBaglami
                 new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.MusteriId)),
                 new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.TeknisyenId)),
                 new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.Durum).Descending(s => s.OlusturmaTarihi)),
-                new(Builders<ServisKaydi>.IndexKeys.Descending(s => s.OlusturmaTarihi))
+                new(Builders<ServisKaydi>.IndexKeys.Descending(s => s.OlusturmaTarihi)),
+                new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.No), new CreateIndexOptions { Unique = true }),
+                new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.TakipKodu), new CreateIndexOptions { Unique = true }),
+                // Aynı cihazın önceki kayıtları seri numarasıyla aranır; çoğu kayıtta seri no yoktur.
+                new(Builders<ServisKaydi>.IndexKeys.Ascending(s => s.SeriNo), new CreateIndexOptions { Sparse = true })
             ],
             iptal);
+
+        await IslemGecmisi.Indexes.CreateOneAsync(
+            new CreateIndexModel<IslemKaydi>(
+                Builders<IslemKaydi>.IndexKeys.Ascending(i => i.ServisKaydiId).Descending(i => i.Tarih)),
+            cancellationToken: iptal);
+
+        await Parcalar.Indexes.CreateOneAsync(
+            new CreateIndexModel<Parca>(
+                Builders<Parca>.IndexKeys.Ascending(p => p.Ad),
+                new CreateIndexOptions { Collation = TurkceSiralama }),
+            cancellationToken: iptal);
+
+        await StokHareketleri.Indexes.CreateOneAsync(
+            new CreateIndexModel<StokHareketi>(
+                Builders<StokHareketi>.IndexKeys.Ascending(h => h.ParcaId).Descending(h => h.Tarih)),
+            cancellationToken: iptal);
 
         await Randevular.Indexes.CreateManyAsync(
             [

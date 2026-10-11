@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
+using Vulu.Api.Kurallar;
 using Vulu.Api.Veri;
 using Vulu.Api.Veri.Belgeler;
 using Vulu.Shared;
@@ -83,7 +84,7 @@ public class MusterilerController : ControllerBase
     public async Task<IActionResult> Sil(string id, CancellationToken iptal)
     {
         var acikServisVar = await _db.ServisKayitlari.Find(s => s.MusteriId == id && s.SilinmeTarihi == null
-            && (s.Durum == ServisDurumu.Beklemede || s.Durum == ServisDurumu.DevamEdiyor)).AnyAsync(iptal);
+            && ServisKaydiKurallari.AcikDurumlar.Contains(s.Durum)).AnyAsync(iptal);
         if (acikServisVar)
             return Problem(detail: "Müşterinin devam eden servis kaydı var; önce kaydı tamamlayın veya iptal edin.",
                 statusCode: StatusCodes.Status409Conflict);

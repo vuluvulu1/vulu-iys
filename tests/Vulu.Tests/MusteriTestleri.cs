@@ -115,6 +115,8 @@ public class MusteriTestleri : IClassFixture<ApiFabrikasi>
         var musteri = await Ekle(istemci, Istek("Eski Ad", "05550000001"));
         var kayit = new ServisKaydi
         {
+            No = Guid.NewGuid().ToString("N"),
+            TakipKodu = Guid.NewGuid().ToString("N"),
             MusteriId = musteri.Id,
             Musteri = new MusteriOzeti { AdSoyad = "Eski Ad", Telefon = "05550000001" },
             CihazBilgisi = "Laptop",
@@ -174,6 +176,8 @@ public class MusteriTestleri : IClassFixture<ApiFabrikasi>
         var musteri = await Ekle(istemci, Istek("Açık Kaydı Olan"));
         await _api.Veritabani.ServisKayitlari.InsertOneAsync(new ServisKaydi
         {
+            No = Guid.NewGuid().ToString("N"),
+            TakipKodu = Guid.NewGuid().ToString("N"),
             MusteriId = musteri.Id,
             CihazBilgisi = "Telefon",
             Sorun = "Ekran kırık",

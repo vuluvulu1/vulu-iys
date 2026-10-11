@@ -44,6 +44,8 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<GecerliIsletme>();
 builder.Services.AddScoped(sp =>
     sp.GetRequiredService<PlatformBaglami>().IsletmeBaglami(sp.GetRequiredService<GecerliIsletme>().Zorunlu));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IslemGunlugu>();
 
 // Fatura belgesi
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -91,6 +93,17 @@ builder.Services.AddRateLimiter(secenekler =>
             {
                 PermitLimit = baglam.RequestServices.GetRequiredService<IConfiguration>()
                     .GetValue("GirisSiniri:DakikadaDeneme", 10),
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    // Takip sayfası herkese açıktır; kod tahmin etme denemeleri adres başına sınırlanır.
+    secenekler.AddPolicy(TakipController.SinirPolitikasi, baglam =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            baglam.Connection.RemoteIpAddress?.ToString() ?? "bilinmeyen",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = baglam.RequestServices.GetRequiredService<IConfiguration>()
+                    .GetValue("Takip:DakikadaSorgu", 20),
                 Window = TimeSpan.FromMinutes(1)
             }));
 });

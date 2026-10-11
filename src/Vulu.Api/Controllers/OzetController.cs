@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
+using Vulu.Api.Kurallar;
 using Vulu.Api.Veri;
 using Vulu.Api.Veri.Belgeler;
 using Vulu.Shared;
@@ -37,6 +38,13 @@ public class OzetController : ControllerBase
         var devamEden = await kayitlar.CountDocumentsAsync(
             s => s.SilinmeTarihi == null && s.Durum == ServisDurumu.DevamEdiyor, cancellationToken: iptal);
 
+        var onayBekleyen = await kayitlar.CountDocumentsAsync(
+            s => s.SilinmeTarihi == null && s.Durum == ServisDurumu.OnayBekliyor, cancellationToken: iptal);
+        var teslimBekleyen = await kayitlar.CountDocumentsAsync(
+            s => s.SilinmeTarihi == null && s.Durum == ServisDurumu.Tamamlandi, cancellationToken: iptal);
+        var azalanParca = await _db.Parcalar.CountDocumentsAsync(
+            Builders<Parca>.Filter.Eq(p => p.SilinmeTarihi, null) & ParcalarController.AzalanFiltresi, cancellationToken: iptal);
+
         var bugunku = await randevular.CountDocumentsAsync(
             r => r.Durum == RandevuDurumu.Planlandi && r.RandevuTarihi >= gun && r.RandevuTarihi < gun.AddDays(1),
             cancellationToken: iptal);
@@ -58,8 +66,7 @@ public class OzetController : ControllerBase
             .ToListAsync(iptal);
 
         var acik = await kayitlar
-            .Find(s => s.SilinmeTarihi == null
-                && (s.Durum == ServisDurumu.Beklemede || s.Durum == ServisDurumu.DevamEdiyor))
+            .Find(s => s.SilinmeTarihi == null && ServisKaydiKurallari.AcikDurumlar.Contains(s.Durum))
             .SortBy(s => s.OlusturmaTarihi)
             .Limit(ListeBoyutu)
             .ToListAsync(iptal);
@@ -68,6 +75,7 @@ public class OzetController : ControllerBase
             bekleyen, devamEden, bugunku,
             odenmemisler.Count, odenmemisler.Sum(), buAyOdenenler.Sum(),
             yaklasan.Select(r => r.YanitaCevir()).ToList(),
-            acik.Select(s => s.YanitaCevir()).ToList());
+            acik.Select(s => s.YanitaCevir()).ToList(),
+            onayBekleyen, teslimBekleyen, azalanParca);
     }
 }

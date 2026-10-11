@@ -77,22 +77,53 @@ public static partial class Bicim
             && decimal.TryParse(sade, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out tutar);
     }
 
-    public static string Durum(ServisDurumu durum) => durum switch
-    {
-        ServisDurumu.Beklemede => "Beklemede",
-        ServisDurumu.DevamEdiyor => "Devam ediyor",
-        ServisDurumu.Tamamlandi => "Tamamlandı",
-        ServisDurumu.IptalEdildi => "İptal edildi",
-        _ => durum.ToString()
-    };
+    public static string Durum(ServisDurumu durum) => durum.Ad();
 
     public static string DurumSinifi(ServisDurumu durum) => durum switch
     {
         ServisDurumu.Beklemede => "etiket bekliyor",
+        ServisDurumu.OnayBekliyor => "etiket onay",
         ServisDurumu.DevamEdiyor => "etiket suruyor",
         ServisDurumu.Tamamlandi => "etiket tamam",
+        ServisDurumu.TeslimEdildi => "etiket teslim",
         _ => "etiket iptal"
     };
+
+    // Marka ve model girilmişse cihaz adının yanında gösterilir.
+    public static string Cihaz(ServisKaydiYaniti kayit)
+    {
+        var markaModel = string.Join(' ', new[] { kayit.Marka, kayit.Model }.Where(b => !string.IsNullOrWhiteSpace(b)));
+        return markaModel.Length == 0 || kayit.CihazBilgisi.Contains(markaModel, StringComparison.OrdinalIgnoreCase)
+            ? kayit.CihazBilgisi
+            : $"{kayit.CihazBilgisi} – {markaModel}";
+    }
+
+    public static string Islem(IslemTuru tur) => tur switch
+    {
+        IslemTuru.KayitAcildi => "Kayıt açıldı",
+        IslemTuru.KayitGuncellendi => "Güncellendi",
+        IslemTuru.DurumDegisti => "Durum",
+        IslemTuru.Not => "Not",
+        IslemTuru.FaturaKesildi => "Fatura kesildi",
+        IslemTuru.FaturaGuncellendi => "Fatura güncellendi",
+        IslemTuru.FaturaSilindi => "Fatura silindi",
+        IslemTuru.KayitSilindi => "Silindi",
+        IslemTuru.TeklifVerildi => "Teklif",
+        IslemTuru.TeklifYanitlandi => "Teklif yanıtı",
+        IslemTuru.ParcaEklendi => "Parça eklendi",
+        IslemTuru.ParcaCikarildi => "Parça çıkarıldı",
+        IslemTuru.MusteriBilgilendirildi => "Bildirim",
+        _ => tur.ToString()
+    };
+
+    public static string Saat(double saat) => saat switch
+    {
+        < 1 => $"{Math.Round(saat * 60)} dakika",
+        < 48 => $"{saat.ToString("0.#", Turkce)} saat",
+        _ => $"{(saat / 24).ToString("0.#", Turkce)} gün"
+    };
+
+    public static string AyAdi(int yil, int ay) => new DateTime(yil, ay, 1).ToString("MMMM yyyy", Turkce);
 
     public static string Durum(RandevuDurumu durum) => durum switch
     {

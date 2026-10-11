@@ -21,7 +21,9 @@ public record IsletmeYaniti(
     string? LogoVerisi,
     string? LogoTuru,
     // Aktif personel sayısı; yalnızca vulu yöneticisinin işletme listesinde doldurulur.
-    long? PersonelSayisi);
+    long? PersonelSayisi,
+    // Kabul formuna yazılan koşullar; boşsa varsayılan metin kullanılır.
+    string? ServisKosullari = null);
 
 // Vulu yöneticisinin işletme kaydı açarken verdiği bilgiler: işletme, iletişim bilgileri ve ilk yöneticisi.
 // İletişim bilgileri kayıt sırasında zorunludur; anlaşma yapılan işletmenin kime ait olduğu baştan bilinir.
@@ -99,7 +101,9 @@ public record IsletmeProfilIstegi(
     // Yeni logo yüklenecekse dolu gelir; boşsa mevcut logo korunur.
     string? LogoVerisi,
     string? LogoTuru,
-    bool LogoyuKaldir);
+    bool LogoyuKaldir,
+    [StringLength(1500, ErrorMessage = "Servis koşulları en fazla 1500 karakter olabilir.")]
+    string? ServisKosullari = null);
 
 // Vulu yöneticisi hesapları (işletme kaydı açan kişiler).
 public record VuluYoneticisiYaniti(string Id, string KullaniciAdi, string AdSoyad, bool AktifMi);

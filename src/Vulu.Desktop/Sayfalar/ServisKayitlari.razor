@@ -21,7 +21,7 @@
         <option value="@FaturaSuzgeci.Odenmis">Ödenmiş faturalar</option>
     </select>
 
-    <AramaKutusu YerTutucu="Müşteri, cihaz veya sorun ara" Etiket="Servis kaydı ara" Arandi="Ara" />
+    <AramaKutusu YerTutucu="Müşteri, kayıt no, cihaz, seri no ara" Etiket="Servis kaydı ara" Arandi="Ara" />
 </div>
 
 @if (_listeHatasi is not null)
@@ -42,7 +42,7 @@ else
     <table class="tablo">
         <thead>
             <tr>
-                <th>Açılış</th>
+                <th>Kayıt</th>
                 <th>Müşteri</th>
                 <th>Cihaz</th>
                 <th>Teknisyen</th>
@@ -55,9 +55,15 @@ else
             @foreach (var kayit in _sayfa.Ogeler)
             {
                 <tr @key="kayit.Id">
-                    <td class="dar">@Bicim.Tarih(kayit.OlusturmaTarihi)</td>
+                    <td class="dar">@kayit.No<br /><span class="soluk">@Bicim.Tarih(kayit.OlusturmaTarihi)</span></td>
                     <td>@kayit.MusteriAdi<br /><span class="soluk">@kayit.MusteriTelefonu</span></td>
-                    <td class="uzun-metin">@kayit.CihazBilgisi</td>
+                    <td class="uzun-metin">
+                        @Bicim.Cihaz(kayit)
+                        @if (kayit.GarantiKapsaminda)
+                        {
+                            <span class="rozet">garantili</span>
+                        }
+                    </td>
                     <td>@(kayit.TeknisyenAdi ?? "—")</td>
                     <td><span class="@Bicim.DurumSinifi(kayit.Durum)">@Bicim.Durum(kayit.Durum)</span></td>
                     <td class="dar">
