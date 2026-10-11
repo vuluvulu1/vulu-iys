@@ -16,6 +16,8 @@ services:
         value: admin
       - key: IlkAdmin__Sifre
         sync: false
-      # API'nin önündeki vekil sayısı. Canlıya çıkınca uygulamadaki Sunucu ekranından denetlenir (bkz. README).
+      # API'nin önündeki vekil sayısı. Render'da istek üç vekilden geçer (Cloudflare ve Render'ın kendi katmanları):
+      # 1 ile denendiğinde API, istemci yerine Render'ın iç ağ adresini gördü ve başlıkta işlenmemiş iki adres kaldı.
+      # Uygulamadaki Sunucu ekranından denetlenir (bkz. README).
       - key: Vekil__AtlamaSayisi
-        value: "1"
+        value: "3"
