@@ -3,6 +3,7 @@ using System.Text;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
+using Vulu.Api.Kimlik;
 using Vulu.Api.Kurallar;
 
 namespace Vulu.Api.Veri;
@@ -73,7 +74,7 @@ public static class Gecisler
                     {
                         ["_id"] = ObjectId.GenerateNewId(),
                         ["kullaniciAdi"] = await BosKullaniciAdiBul(kullanicilar, teknisyen["adSoyad"].AsString, iptal),
-                        ["sifreHash"] = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N")),
+                        ["sifreHash"] = Sifreler.Hashle(Guid.NewGuid().ToString("N")),
                         ["rol"] = "Teknisyen",
                         ["aktifMi"] = false,
                         ["olusturmaTarihi"] = DateTime.UtcNow

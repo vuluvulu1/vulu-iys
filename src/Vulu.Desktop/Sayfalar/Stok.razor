@@ -74,15 +74,7 @@ else
         </tbody>
     </table>
 
-    <div class="sayfalama">
-        <span class="soluk">@_sayfa.Toplam parça</span>
-        @if (SayfaSayisi > 1)
-        {
-            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo - 1)" disabled="@(_sayfaNo <= 1)">Önceki</button>
-            <span>@_sayfaNo / @SayfaSayisi</span>
-            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo + 1)" disabled="@(_sayfaNo >= SayfaSayisi)">Sonraki</button>
-        }
-    </div>
+    <SayfaGezgini Sayfa="_sayfa" Birim="parça" SayfaIstendi="SayfayaGit" />
 }
 
 @if (_form is not null)
@@ -221,7 +213,7 @@ else
     private string? _silmeHatasi;
     private bool _siliniyor;
 
-    private int SayfaSayisi => _sayfa is null ? 1 : (int)Math.Max(1, Math.Ceiling(_sayfa.Toplam / (double)_sayfa.Boyut));
+    private int SayfaSayisi => _sayfa?.SayfaSayisi ?? 1;
 
     protected override Task OnInitializedAsync() => Yukle();
 
@@ -301,7 +293,7 @@ else
             return;
         }
 
-        var istek = new ParcaIstegi(_form.Ad.Trim(), string.IsNullOrWhiteSpace(_form.Kod) ? null : _form.Kod.Trim(),
+        var istek = new ParcaIstegi(_form.Ad.Trim(), Metin.BosIseNull(_form.Kod),
             fiyat, _form.KritikSeviye);
 
         _kaydediliyor = true;
@@ -357,7 +349,7 @@ else
 
         _kaydediliyor = true;
         var sonuc = await Api.Ekle<ParcaYaniti>($"api/parcalar/{_stokParcasi.Id}/stok",
-            new StokHareketiIstegi(_stokAdedi, string.IsNullOrWhiteSpace(_stokAciklamasi) ? null : _stokAciklamasi.Trim()));
+            new StokHareketiIstegi(_stokAdedi, Metin.BosIseNull(_stokAciklamasi)));
         _kaydediliyor = false;
 
         if (!sonuc.Basarili)

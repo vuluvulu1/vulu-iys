@@ -1,0 +1,11 @@
+<Project>
+
+  <!-- Bütün projelerin paylaştığı derleme ayarları. -->
+  <PropertyGroup>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Uyarı bırakılmaz: ya düzeltilir ya da .editorconfig içinde gerekçesiyle kapatılır. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
@@ -21,11 +22,10 @@ public class MusterilerController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<Sayfa<MusteriYaniti>>> Listele(
-        [FromQuery] string? arama, [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25,
+        [FromQuery, StringLength(AramaMetni.EnFazlaUzunluk, ErrorMessage = AramaMetni.UzunlukMesaji)] string? arama, [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25,
         CancellationToken iptal = default)
     {
-        sayfa = Math.Max(1, sayfa);
-        boyut = Math.Clamp(boyut, 1, EnFazlaSayfaBoyutu);
+        var sayfalama = Sayfalama.Olustur(sayfa, boyut, EnFazlaSayfaBoyutu);
 
         var filtre = Builders<Musteri>.Filter.Eq(m => m.SilinmeTarihi, null);
         if (!string.IsNullOrWhiteSpace(arama))
@@ -35,11 +35,11 @@ public class MusterilerController : ControllerBase
         var musteriler = await _db.Musteriler
             .Find(filtre, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
             .SortBy(m => m.AdSoyad)
-            .Skip((sayfa - 1) * boyut)
-            .Limit(boyut)
+            .Skip(sayfalama.Atla)
+            .Limit(sayfalama.Boyut)
             .ToListAsync(iptal);
 
-        return new Sayfa<MusteriYaniti>(musteriler.Select(m => m.YanitaCevir()).ToList(), toplam, sayfa, boyut);
+        return new Sayfa<MusteriYaniti>(musteriler.Select(m => m.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
     }
 
     [HttpGet("{id:oid}")]

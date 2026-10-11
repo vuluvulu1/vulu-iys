@@ -1,0 +1,60 @@
+@* Servis kaydı penceresinin "Geçmiş" sekmesi: not ekleme ve işlem geçmişi. *@
+
+<section class="bolum ilk">
+    <h3>Not ekle</h3>
+    <div class="fatura-formu">
+        <input class="genis-girdi" @bind="_not" @bind:event="oninput" maxlength="500" aria-label="Not"
+               placeholder="Örn. müşteri arandı, parça siparişi verildi" autocomplete="off" />
+        <button type="button" disabled="@(Islemler.Mesgul || _not.Trim().Length < EnKisaNot)" @onclick="NotEkle">Ekle</button>
+    </div>
+</section>
+
+<section class="bolum">
+    <h3>İşlem geçmişi</h3>
+    @if (_gecmis is null)
+    {
+        <p class="soluk aciklama">Yükleniyor…</p>
+    }
+    else
+    {
+        <ul class="gecmis">
+            @foreach (var islem in _gecmis)
+            {
+                <li @key="islem.Id">
+                    <span class="soluk dar">@Bicim.Tarih(islem.Tarih)</span>
+                    <span>
+                        <strong>@Bicim.Islem(islem.Tur)</strong> @islem.Aciklama
+                        <span class="soluk">– @islem.KullaniciAdi</span>
+                    </span>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private const int EnKisaNot = 2;
+
+    [Parameter, EditorRequired] public ServisKaydiYaniti Kayit { get; set; } = null!;
+    [Parameter, EditorRequired] public KayitIslemleri Islemler { get; set; } = null!;
+
+    private string _not = "";
+    private IReadOnlyList<IslemYaniti>? _gecmis;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var sonuc = await Islemler.Yap(api => api.Getir<IReadOnlyList<IslemYaniti>>($"{Islemler.Yol}/gecmis"));
+        if (sonuc.Basarili) _gecmis = sonuc.Deger;
+    }
+
+    private async Task NotEkle()
+    {
+        // Sunucu, yeni notu da içeren güncel geçmişi döner.
+        var sonuc = await Islemler.Yap(api =>
+            api.Ekle<IReadOnlyList<IslemYaniti>>($"{Islemler.Yol}/notlar", new NotIstegi(_not.Trim())));
+        if (sonuc is not { Basarili: true, Deger: not null }) return;
+
+        _gecmis = sonuc.Deger;
+        _not = "";
+    }
+}

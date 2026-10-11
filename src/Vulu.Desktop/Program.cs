@@ -39,7 +39,6 @@ internal static class Program
 
         builder.Services.AddLogging();
         builder.Services.AddSingleton(new HttpClient { BaseAddress = apiAdresi });
-        builder.Services.AddSingleton<YerelAyarlar>();
         builder.Services.AddSingleton<OturumServisi>();
         builder.Services.AddSingleton<ApiIstemcisi>();
 
@@ -67,10 +66,20 @@ internal static class Program
             .SetContextMenuEnabled(false);
 #endif
 
+        // Kullanıcıya iç ayrıntı (çağrı yığını) değil, yalnızca hatanın kendisi gösterilir.
         AppDomain.CurrentDomain.UnhandledException += (_, hata) =>
-            app.MainWindow.ShowMessage("Beklenmeyen hata", hata.ExceptionObject.ToString());
+            app.MainWindow.ShowMessage("Beklenmeyen hata",
+                (hata.ExceptionObject as Exception)?.Message ?? "Uygulama beklenmeyen bir hatayla karşılaştı.");
 
-        app.Run();
+        BelgeAcici.GeciciBelgeleriSil();
+        try
+        {
+            app.Run();
+        }
+        finally
+        {
+            BelgeAcici.GeciciBelgeleriSil();
+        }
     }
 
     private static void Hata(string mesaj)

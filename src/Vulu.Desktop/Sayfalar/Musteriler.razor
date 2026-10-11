@@ -54,15 +54,7 @@ else
         </tbody>
     </table>
 
-    <div class="sayfalama">
-        <span class="soluk">@_sayfa.Toplam kayıt</span>
-        @if (SayfaSayisi > 1)
-        {
-            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo - 1)" disabled="@(_sayfaNo <= 1)">Önceki</button>
-            <span>@_sayfaNo / @SayfaSayisi</span>
-            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo + 1)" disabled="@(_sayfaNo >= SayfaSayisi)">Sonraki</button>
-        }
-    </div>
+    <SayfaGezgini Sayfa="_sayfa" Birim="kayıt" SayfaIstendi="SayfayaGit" />
 }
 
 @if (_form is not null)
@@ -119,7 +111,7 @@ else
     private MusteriYaniti? _silinecek;
     private string? _silmeHatasi;
 
-    private int SayfaSayisi => _sayfa is null ? 1 : (int)Math.Max(1, Math.Ceiling(_sayfa.Toplam / (double)_sayfa.Boyut));
+    private int SayfaSayisi => _sayfa?.SayfaSayisi ?? 1;
 
     protected override Task OnInitializedAsync() => Yukle();
 
@@ -185,8 +177,8 @@ else
         var istek = new MusteriIstegi(
             _form.AdSoyad.Trim(),
             _form.Telefon.Trim(),
-            string.IsNullOrWhiteSpace(_form.Email) ? null : _form.Email.Trim(),
-            string.IsNullOrWhiteSpace(_form.Adres) ? null : _form.Adres.Trim());
+            Metin.BosIseNull(_form.Email),
+            Metin.BosIseNull(_form.Adres));
 
         _kaydediliyor = true;
         var sonuc = _duzenlenen is null

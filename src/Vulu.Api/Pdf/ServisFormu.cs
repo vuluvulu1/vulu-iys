@@ -20,15 +20,6 @@ public static class ServisFormu
         "silinebilir; yedekleme müşterinin sorumluluğundadır. Bildirilen ücret ve süre tahminidir; arıza tespitinden " +
         "sonra değişirse müşteriye bilgi verilir ve onayı alınmadan işleme başlanmaz.";
 
-    // Marka ve model girilmişse cihaz adının yanına eklenir (örn. "Laptop – Dell XPS 13").
-    public static string CihazAdi(ServisKaydi kayit)
-    {
-        var markaModel = string.Join(' ', new[] { kayit.Marka, kayit.Model }.Where(b => !string.IsNullOrWhiteSpace(b)));
-        return markaModel.Length == 0 || kayit.CihazBilgisi.Contains(markaModel, StringComparison.OrdinalIgnoreCase)
-            ? kayit.CihazBilgisi
-            : $"{kayit.CihazBilgisi} – {markaModel}";
-    }
-
     // takipAdresi: müşterinin cihaz durumunu sorgulayacağı sayfa; bilinmiyorsa forma yazılmaz.
     public static byte[] Kabul(ServisKaydi kayit, Musteri? musteri, Isletme isletme, string? takipAdresi) =>
         Olustur(kayit, musteri, isletme, "SERVİS KABUL FORMU", Zaman.TarihSaat(kayit.OlusturmaTarihi), sutun =>
@@ -96,7 +87,7 @@ public static class ServisFormu
                     satir.Spacing(12);
                     satir.RelativeItem().Element(alan => Kutu(alan, "MÜŞTERİ", kayit.Musteri.AdSoyad,
                         kayit.Musteri.Telefon, musteri?.Email, musteri?.Adres));
-                    satir.RelativeItem().Element(alan => Kutu(alan, "CİHAZ", CihazAdi(kayit),
+                    satir.RelativeItem().Element(alan => Kutu(alan, "CİHAZ", kayit.CihazAdi,
                         kayit.SeriNo is null ? null : $"Seri no / IMEI: {kayit.SeriNo}",
                         $"Garanti: {(kayit.GarantiKapsaminda ? "kapsamında" : "kapsam dışı")}",
                         $"Kabul tarihi: {Zaman.TarihSaat(kayit.OlusturmaTarihi)}"));

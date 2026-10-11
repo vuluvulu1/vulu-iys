@@ -14,7 +14,7 @@ fatura. Tek bir API birden çok işletmeye hizmet verir; her işletmenin verisi 
 - **Veri ayrımı:** platform veritabanında (`Mongo:VeritabaniAdi`) yalnızca işletme listesi, vulu yöneticileri ve
   yenileme tokenları durur. Her işletmenin personeli, müşterileri, servis kayıtları ve randevuları
   `Mongo:IsletmeVeritabaniOneki` + işletme kodu adlı ayrı bir veritabanındadır. Her istek, oturumdaki işletmenin
-  veritabanına bağlanır (`Altyapi/IsletmeCozucu.cs`); askıya alınan işletmenin açık oturumları da reddedilir.
+  veritabanına bağlanır (`Altyapi/OturumDogrulayici.cs`); askıya alınan işletmenin açık oturumları da reddedilir.
 - Veri geçişleri ve indexler açılışta her işletme veritabanına ayrı ayrı uygulanır.
 
 ### Vulu yöneticisinin işlemleri
@@ -31,6 +31,43 @@ fatura. Tek bir API birden çok işletmeye hizmet verir; her işletmenin verisi 
   veritabanı geri dönüşsüz silinir.
 - **Vulu yöneticileri:** birden fazla olabilir; her biri diğerlerini yönetir. Kendi hesabını silemez ve en az
   bir aktif yönetici kalmalıdır.
+
+## Güvenlik
+
+- **Oturum:** erişim tokenı 15 dakika geçerlidir ve her istekte veritabanındaki güncel durumla karşılaştırılır
+  (`Altyapi/OturumDogrulayici.cs`). İşletme askıya alınınca, hesap silinince ya da devre dışı bırakılınca, rolü
+  ya da şifresi değişince açık oturumları tokenın süresi dolmadan kapanır. Bunu sağlayan, hesabın üzerinde duran
+  ve tokena da yazılan oturum damgasıdır.
+- **Yenileme tokenı:** tek kullanımlıktır ve veritabanında yalnızca özeti durur. Kullanılmış bir token yeniden
+  sunulursa çalınmış sayılır ve hesabın bütün oturumları kapatılır.
+- **Şifreler:** bcrypt ile saklanır; en az 8 karakter, en fazla 72 bayt. Herkes kendi şifresini yan menüdeki
+  “Şifre değiştir” ile değiştirir; yöneticinin verdiği ilk şifrenin değiştirilmesi beklenir.
+- **Deneme sınırları:** giriş denemeleri adres başına dakikada `GirisSiniri:DakikadaDeneme` (10) ile, hesap
+  başına da `GirisKilidi:Deneme` (10) yanlış denemeden sonra `GirisKilidi:KilitDakika` (10) dakikalık kilitle
+  sınırlıdır. Hesap kilidinin bedeli, kullanıcı adını bilen birinin sahibini kısa süre dışarıda bırakabilmesidir.
+  Kilit sayaçları bellekte tutulur; API yeniden başlayınca sıfırlanır.
+- **Girdi:** bütün istekler doğrulama kurallarından geçer, istek gövdesi 4 MB ile sınırlıdır, arama metinleri
+  düzenli ifade olarak yorumlanmaz, logo gerçekten açılabilen ve makul boyutta bir resim olmalıdır.
+- **Yetki:** açıkça herkese açık bırakılmayan her uç oturum ister; herkese açık uçların listesi bir testle
+  sabitlenmiştir (`tests/Vulu.Tests/GuvenlikTestleri.cs`). O dosyadaki testlerin her biri bir saldırı denemesidir.
+- **Günlük:** başarısız girişler, hesap kilitleri, şifre değişiklikleri, vulu yöneticisinin yaptığı şifre
+  sıfırlamaları ve yeniden sunulan yenileme tokenları API günlüğüne yazılır.
+
+### Ters vekil arkasında
+
+Adres başına sınırların çalışması için API'nin istemcinin gerçek adresini görmesi gerekir. `Vekil:AtlamaSayisi`
+API'nin önündeki vekil sayısıdır (Docker imajında 1); ayarlanmamışsa `X-Forwarded-*` başlıkları hiç okunmaz.
+Canlıya çıkınca vulu yöneticisi **Sunucu** ekranından denetlemelidir: “Görülen adres” kendi internet adresi
+değil de barındırma şirketinin adresiyse değer bir artırılır. Bu, canlı ortamda denenmeden doğrulanamaz.
+
+### Bilinen sınırlar
+
+- Vulu yöneticisi bir işletme yöneticisinin şifresini sıfırlayıp o hesapla işletmenin verisini görebilir; her
+  sıfırlama günlüğe yazılır ama teknik olarak engellenmez.
+- Silinen müşteri ve servis kayıtları veritabanında işaretli olarak kalır (geçmiş faturalar bozulmasın diye);
+  kalıcı silme ve saklama süresi (KVKK) için bir düzenek yoktur.
+- Veritabanı yedeği uygulamanın değil barındırma tarafının (MongoDB Atlas) işidir.
+- Masaüstü uygulamasının açtığı PDF'ler geçici klasöre yazılır; uygulama açılırken ve kapanırken silinir.
 
 ## Teknolojiler
 
@@ -161,7 +198,8 @@ masaüstü uygulaması yalnızca API adresini bilir, veritabanına doğrudan ba�
 `render.yaml` ve `Dockerfile` API'yi kurar. Render panelinde elle girilecek değerler:
 
 - `Mongo__BaglantiDizesi`: Atlas bağlantı dizesi
-- `IlkAdmin__Sifre`: ilk yönetici şifresi (en az 8 karakter)
+- `IlkAdmin__Sifre`: ilk yönetici şifresi (en az 8 karakter); ilk girişten sonra uygulamadan değiştirin
+- `Takip__Adres` (isteğe bağlı): müşteriye verilen takip bağlantısının kökü, örn. `https://servis.ornek.com`
 
 `Jwt__Anahtar` Render tarafından rastgele üretilir. Sağlık kontrolü `/api/saglik/canli` adresidir.
 

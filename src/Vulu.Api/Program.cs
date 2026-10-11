@@ -1,6 +1,8 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -58,6 +60,9 @@ builder.Services.AddOptions<JwtAyarlari>()
     .ValidateOnStart();
 builder.Services.Configure<IlkAdminAyarlari>(builder.Configuration.GetSection(IlkAdminAyarlari.Bolum));
 builder.Services.AddSingleton<TokenServisi>();
+builder.Services.Configure<GirisKilidiAyarlari>(builder.Configuration.GetSection(GirisKilidiAyarlari.Bolum));
+builder.Services.AddSingleton<GirisKilidi>();
+builder.Services.AddSingleton<Oturumlar>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
@@ -69,6 +74,8 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             ValidIssuer = jwt.Value.Yayinci,
             ValidAudience = jwt.Value.Hedef,
             IssuerSigningKey = TokenServisi.ImzaAnahtari(jwt.Value),
+            // Yalnızca bu API'nin kullandığı imza algoritması kabul edilir.
+            ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
             ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = TokenServisi.AdTalebi,
             RoleClaimType = TokenServisi.RolTalebi
@@ -86,30 +93,42 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddRateLimiter(secenekler =>
 {
     secenekler.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    secenekler.AddPolicy(KimlikController.GirisSiniriPolitikasi, baglam =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            baglam.Connection.RemoteIpAddress?.ToString() ?? "bilinmeyen",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = baglam.RequestServices.GetRequiredService<IConfiguration>()
-                    .GetValue("GirisSiniri:DakikadaDeneme", 10),
-                Window = TimeSpan.FromMinutes(1)
-            }));
+
+    // Şifre denemeleri (giriş ve şifre değiştirme) adres başına sınırlanır; hesap başına sınır için bkz. GirisKilidi.
+    AdresBasinaSinir(secenekler, KimlikController.GirisSiniriPolitikasi, "GirisSiniri:DakikadaDeneme", 10);
 
     // Takip sayfası herkese açıktır; kod tahmin etme denemeleri adres başına sınırlanır.
-    secenekler.AddPolicy(TakipController.SinirPolitikasi, baglam =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            baglam.Connection.RemoteIpAddress?.ToString() ?? "bilinmeyen",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = baglam.RequestServices.GetRequiredService<IConfiguration>()
-                    .GetValue("Takip:DakikadaSorgu", 20),
-                Window = TimeSpan.FromMinutes(1)
-            }));
+    AdresBasinaSinir(secenekler, TakipController.SinirPolitikasi, "Takip:DakikadaSorgu", 20);
+});
+
+// Sunucunun adı ve sürümü yanıtlarda duyurulmaz; istek gövdesi sınırlıdır.
+builder.WebHost.ConfigureKestrel(kestrel =>
+{
+    kestrel.AddServerHeader = false;
+    kestrel.Limits.MaxRequestBodySize = GuvenlikOnlemleri.EnFazlaGovdeBayt;
 });
 
 var app = builder.Build();
 
+// API bir ters vekilin (Render vb.) arkasındaysa istemcinin gerçek adresi ve HTTPS bilgisi X-Forwarded-*
+// başlıklarından okunur. Bu başlıkları istemci de yazabildiği için yalnızca vekilin eklediği son
+// Vekil:AtlamaSayisi kadar girdiye güvenilir; değer, API'nin önündeki vekil sayısıdır. Ayarlanmamışsa başlıklar
+// hiç okunmaz. Adres sınırlarının doğru çalıştığı api/platform/baglanti ucundan denetlenebilir.
+var vekilSayisi = app.Configuration.GetValue("Vekil:AtlamaSayisi", 0);
+if (vekilSayisi > 0)
+{
+    var vekil = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+        ForwardLimit = vekilSayisi
+    };
+    // Vekilin adresi barındırma ortamında sabit değildir; güven, adres yerine atlama sayısıyla sınırlanır.
+    vekil.KnownIPNetworks.Clear();
+    vekil.KnownProxies.Clear();
+    app.UseForwardedHeaders(vekil);
+}
+
+app.UseMiddleware<GuvenlikOnlemleri>();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
@@ -123,13 +142,23 @@ else
     app.UseHttpsRedirection();
 }
 
-app.UseAuthentication();
-app.UseMiddleware<IsletmeCozucu>();
-app.UseAuthorization();
 app.UseRateLimiter();
+app.UseAuthentication();
+app.UseMiddleware<OturumDogrulayici>();
+app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+static void AdresBasinaSinir(RateLimiterOptions secenekler, string politika, string ayar, int varsayilan) =>
+    secenekler.AddPolicy(politika, baglam =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            baglam.Connection.RemoteIpAddress?.ToString() ?? "bilinmeyen",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = baglam.RequestServices.GetRequiredService<IConfiguration>().GetValue(ayar, varsayilan),
+                Window = TimeSpan.FromMinutes(1)
+            }));
 
 public partial class Program;

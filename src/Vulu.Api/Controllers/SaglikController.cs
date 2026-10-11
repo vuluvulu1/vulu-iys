@@ -2,13 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Vulu.Api.Kimlik;
 using Vulu.Shared;
 
 namespace Vulu.Api.Controllers;
 
 [ApiController]
 [Route("api/saglik")]
-[AllowAnonymous]
 public class SaglikController : ControllerBase
 {
     private static readonly TimeSpan PingZamanAsimi = TimeSpan.FromSeconds(2);
@@ -18,6 +18,7 @@ public class SaglikController : ControllerBase
     public SaglikController(IMongoDatabase db) => _db = db;
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<SaglikYaniti>> Getir(CancellationToken iptal)
     {
         using var sure = CancellationTokenSource.CreateLinkedTokenSource(iptal);
@@ -38,5 +39,16 @@ public class SaglikController : ControllerBase
     // Barındırma platformunun sağlık kontrolü içindir: veritabanı kapalıyken de 200 döner,
     // çünkü o durumda API'yi yeniden başlatmak sorunu çözmez.
     [HttpGet("canli")]
+    [AllowAnonymous]
     public IActionResult Canli() => Ok();
+
+    // API'nin bu isteği nasıl gördüğü: vulu yöneticisi, canlı ortamda vekil ayarının (Vekil:AtlamaSayisi) doğru
+    // olduğunu buradan denetler. IstemciAdresi kendi internet adresi olmalıdır; vekilin adresi görünüyorsa bütün
+    // kullanıcılar tek adres sayılır ve adres başına sınırlar herkesi birden etkiler.
+    [HttpGet("baglanti")]
+    [Authorize(Roles = TokenServisi.PlatformRolu)]
+    public ActionResult<BaglantiYaniti> Baglanti() => new BaglantiYaniti(
+        HttpContext.Connection.RemoteIpAddress?.ToString(),
+        Request.IsHttps,
+        Request.Headers["X-Forwarded-For"].ToString().Split(',', StringSplitOptions.RemoveEmptyEntries).Length);
 }

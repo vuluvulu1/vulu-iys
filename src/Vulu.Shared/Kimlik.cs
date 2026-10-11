@@ -2,13 +2,32 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Vulu.Shared;
 
+// Uzunluk sınırları kural değil korumadır: şifre doğrulaması pahalı bir işlemdir, çok uzun girdiyle yorulmasın.
 public record GirisIstegi(
-    [Required(ErrorMessage = "İşletme kodu gerekli.")] string IsletmeKodu,
-    [Required(ErrorMessage = "Kullanıcı adı gerekli.")] string KullaniciAdi,
-    [Required(ErrorMessage = "Şifre gerekli.")] string Sifre);
+    [Required(ErrorMessage = "İşletme kodu gerekli.")]
+    [StringLength(KullaniciKurallari.EnFazlaGirdiUzunlugu, ErrorMessage = "İşletme kodu çok uzun.")]
+    string IsletmeKodu,
+    [Required(ErrorMessage = "Kullanıcı adı gerekli.")]
+    [StringLength(KullaniciKurallari.EnFazlaGirdiUzunlugu, ErrorMessage = "Kullanıcı adı çok uzun.")]
+    string KullaniciAdi,
+    [Required(ErrorMessage = "Şifre gerekli.")]
+    [StringLength(KullaniciKurallari.EnFazlaGirdiUzunlugu, ErrorMessage = "Şifre çok uzun.")]
+    string Sifre);
 
 public record YenilemeIstegi(
-    [Required(ErrorMessage = "Yenileme tokeni gerekli.")] string YenilemeTokeni);
+    [Required(ErrorMessage = "Yenileme tokeni gerekli.")]
+    [StringLength(KullaniciKurallari.EnFazlaGirdiUzunlugu, ErrorMessage = "Yenileme tokeni geçersiz.")]
+    string YenilemeTokeni);
+
+// Oturumdaki kişinin kendi şifresini değiştirmesi; mevcut şifre, oturumu ele geçiren birinin şifreyi
+// değiştirip hesabı sahiplenmesini önler.
+public record SifreDegistirmeIstegi(
+    [Required(ErrorMessage = "Mevcut şifre gerekli.")]
+    [StringLength(KullaniciKurallari.EnFazlaGirdiUzunlugu, ErrorMessage = "Mevcut şifre çok uzun.")]
+    string MevcutSifre,
+    [Required(ErrorMessage = "Yeni şifre gerekli.")]
+    [Sifre]
+    string YeniSifre);
 
 // Isletme boşsa oturum bir işletme personeline değil vulu yöneticisine aittir.
 public record OturumYaniti(
@@ -37,7 +56,7 @@ public record KullaniciOlusturIstegi(
     [RegularExpression(KullaniciKurallari.AdDeseni, ErrorMessage = KullaniciKurallari.AdDeseniMesaji)]
     string KullaniciAdi,
     [Required(ErrorMessage = "Şifre gerekli.")]
-    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    [Sifre]
     string Sifre,
     KullaniciRol Rol,
     [Required(ErrorMessage = "Ad soyad gerekli.")]
@@ -55,7 +74,7 @@ public record KullaniciGuncelleIstegi(
     string KullaniciAdi,
     KullaniciRol Rol,
     bool AktifMi,
-    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    [Sifre]
     string? YeniSifre,
     [Required(ErrorMessage = "Ad soyad gerekli.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
@@ -68,7 +87,13 @@ public record KullaniciGuncelleIstegi(
 public static class KullaniciKurallari
 {
     public const int EnAzSifreUzunlugu = 8;
-    public const string SifreMesaji = "Şifre en az 8 karakter olmalı.";
+
+    // bcrypt şifrenin yalnızca ilk 72 baytını kullanır; daha uzun şifrenin sonu sessizce yok sayılırdı.
+    public const int EnFazlaSifreBayti = 72;
+    public const string SifreMesaji = "Şifre en az 8 karakter olmalı ve 72 baytı geçmemeli.";
+
+    // Giriş ekranından gelen alanların üst sınırı.
+    public const int EnFazlaGirdiUzunlugu = 128;
     public const string AdDeseni = "^[a-zA-Z0-9._-]+$";
     public const string AdDeseniMesaji = "Kullanıcı adı yalnızca harf, rakam, nokta, alt çizgi ve tire içerebilir.";
 }
@@ -77,4 +102,17 @@ public static class KimlikKurallari
 {
     // Kayıt kimlikleri 24 haneli onaltılık dizelerdir (MongoDB ObjectId).
     public const string Desen = "^[0-9a-fA-F]{24}$";
+}
+
+// Yeni belirlenen şifrelerin kuralı. Boş değer geçerlidir; zorunluluk ayrıca [Required] ile istenir.
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property)]
+public sealed class SifreAttribute : ValidationAttribute
+{
+    public SifreAttribute() => ErrorMessage = KullaniciKurallari.SifreMesaji;
+
+    public override bool IsValid(object? value) =>
+        value is null
+        || (value is string sifre
+            && sifre.Length >= KullaniciKurallari.EnAzSifreUzunlugu
+            && System.Text.Encoding.UTF8.GetByteCount(sifre) <= KullaniciKurallari.EnFazlaSifreBayti);
 }

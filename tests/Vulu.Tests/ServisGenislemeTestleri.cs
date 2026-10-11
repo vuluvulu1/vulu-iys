@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -72,7 +73,7 @@ public class ServisGenislemeTestleri : IClassFixture<ApiFabrikasi>
         var ikinci = await KayitEkle(admin);
 
         Assert.Matches(@"^SK-\d{4}-\d{5}$", ilk.No);
-        Assert.Equal(int.Parse(ilk.No[^5..]) + 1, int.Parse(ikinci.No[^5..]));
+        Assert.Equal(int.Parse(ilk.No[^5..], CultureInfo.InvariantCulture) + 1, int.Parse(ikinci.No[^5..], CultureInfo.InvariantCulture));
         Assert.Matches("^[A-Z2-9]{10}$", ilk.TakipKodu);
         Assert.NotEqual(ilk.TakipKodu, ikinci.TakipKodu);
 

@@ -157,8 +157,6 @@ else
 
     private static string RolAdi(KullaniciRol rol) => rol == KullaniciRol.Admin ? "Yönetici" : "Teknisyen";
 
-    private static string? BosIseNull(string deger) => string.IsNullOrWhiteSpace(deger) ? null : deger.Trim();
-
     private async Task Yukle()
     {
         _yukleniyor = true;
@@ -202,11 +200,11 @@ else
         var sonuc = _duzenlenen is null
             ? await Api.Ekle<KullaniciOzeti>("api/kullanicilar",
                 new KullaniciOlusturIstegi(_form.KullaniciAdi.Trim(), _form.Sifre, _form.Rol, _form.AdSoyad.Trim(),
-                    BosIseNull(_form.Telefon), BosIseNull(_form.Uzmanlik)))
+                    Metin.BosIseNull(_form.Telefon), Metin.BosIseNull(_form.Uzmanlik)))
             : await Api.Guncelle<KullaniciOzeti>($"api/kullanicilar/{_duzenlenen.Id}",
                 new KullaniciGuncelleIstegi(_form.KullaniciAdi.Trim(), _form.Rol, _form.AktifMi,
                     _form.Sifre.Length > 0 ? _form.Sifre : null, _form.AdSoyad.Trim(),
-                    BosIseNull(_form.Telefon), BosIseNull(_form.Uzmanlik)));
+                    Metin.BosIseNull(_form.Telefon), Metin.BosIseNull(_form.Uzmanlik)));
         _kaydediliyor = false;
 
         if (!sonuc.Basarili)

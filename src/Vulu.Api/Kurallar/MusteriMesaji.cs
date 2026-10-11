@@ -1,5 +1,4 @@
 using Vulu.Api.Altyapi;
-using Vulu.Api.Pdf;
 using Vulu.Api.Veri.Belgeler;
 using Vulu.Shared;
 
@@ -10,7 +9,7 @@ public static class MusteriMesaji
 {
     public static string Olustur(ServisKaydi kayit, Isletme isletme, string takipAdresi)
     {
-        var cihaz = ServisFormu.CihazAdi(kayit);
+        var cihaz = kayit.CihazAdi;
         var telefon = string.IsNullOrWhiteSpace(isletme.Telefon) ? "" : $" Tel: {isletme.Telefon}";
 
         var govde = kayit.Durum switch

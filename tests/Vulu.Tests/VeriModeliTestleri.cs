@@ -7,7 +7,7 @@ using Vulu.Shared;
 namespace Vulu.Tests;
 
 // Gerçek bir MongoDB ister: VULU_TEST_MONGO ortam değişkeni, yoksa mongodb://localhost:27017.
-public class VeriModeliTestleri : IAsyncLifetime
+public sealed class VeriModeliTestleri : IAsyncLifetime, IDisposable
 {
     private readonly MongoClient _istemci;
     private readonly string _veritabaniAdi = "vulu_tsys_test_" + Guid.NewGuid().ToString("N");
@@ -26,6 +26,7 @@ public class VeriModeliTestleri : IAsyncLifetime
     public Task InitializeAsync() => _baglam.IndexleriKurAsync();
 
     public Task DisposeAsync() => _istemci.DropDatabaseAsync(_veritabaniAdi);
+    public void Dispose() => _istemci.Dispose();
 
     [Fact]
     public async Task Ayni_kullanici_adi_iki_kez_eklenemez()

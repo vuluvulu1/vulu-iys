@@ -144,7 +144,7 @@ public class PersonelTestleri : IClassFixture<ApiFabrikasi>
 }
 
 // Eski biçimdeki veriyi yeni biçime taşıyan geçişi, API'den bağımsız olarak boş bir veritabanında sınar.
-public class GecisTestleri : IAsyncLifetime
+public sealed class GecisTestleri : IAsyncLifetime, IDisposable
 {
     private readonly MongoClient _istemci = new(ApiFabrikasi.MongoAdresi);
     private readonly string _ad = "vulu_tsys_test_" + Guid.NewGuid().ToString("N");
@@ -152,6 +152,7 @@ public class GecisTestleri : IAsyncLifetime
 
     public Task InitializeAsync() => Task.CompletedTask;
     public Task DisposeAsync() => _istemci.DropDatabaseAsync(_ad);
+    public void Dispose() => _istemci.Dispose();
 
     private IMongoCollection<BsonDocument> K(string ad) => Db.GetCollection<BsonDocument>(ad);
 

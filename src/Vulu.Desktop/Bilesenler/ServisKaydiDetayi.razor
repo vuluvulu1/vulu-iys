@@ -1,4 +1,4 @@
-@* Servis kaydının ayrıntı penceresi: bilgiler ve durum, teklif ve parçalar, fatura, işlem geçmişi. *@
+@* Servis kaydının ayrıntı penceresi. Her sekme kendi bileşenindedir; ortak durum KayitIslemleri üzerinden paylaşılır. *@
 @inject ApiIstemcisi Api
 @inject OturumServisi Oturum
 
@@ -13,366 +13,35 @@
         }
     </div>
 
-    @if (_sekme == Sekme.Genel)
+    @switch (_sekme)
     {
-        <dl class="ayrinti">
-            <dt>Müşteri</dt>
-            <dd>@Kayit.MusteriAdi <span class="soluk">@Kayit.MusteriTelefonu</span></dd>
-            <dt>Cihaz</dt>
-            <dd>
-                @Bicim.Cihaz(Kayit)
-                @if (Kayit.GarantiKapsaminda)
-                {
-                    <span class="rozet">garantili</span>
-                }
-            </dd>
-            @if (Kayit.SeriNo is not null)
-            {
-                <dt>Seri no / IMEI</dt>
-                <dd>@Kayit.SeriNo</dd>
-            }
-            @if (Kayit.Aksesuarlar is not null)
-            {
-                <dt>Aksesuarlar</dt>
-                <dd>@Kayit.Aksesuarlar</dd>
-            }
-            @if (Kayit.FizikselDurum is not null)
-            {
-                <dt>Teslim alındığında</dt>
-                <dd class="cok-satirli">@Kayit.FizikselDurum</dd>
-            }
-            <dt>Sorun</dt>
-            <dd class="cok-satirli">@Kayit.Sorun</dd>
-            <dt>Teknisyen</dt>
-            <dd>@(Kayit.TeknisyenAdi ?? "Atanmadı")</dd>
-            <dt>Açılış</dt>
-            <dd>@Bicim.Tarih(Kayit.OlusturmaTarihi)</dd>
-            @if (Kayit.TamamlanmaTarihi is { } tamamlanma)
-            {
-                <dt>Tamamlanma</dt>
-                <dd>@Bicim.Tarih(tamamlanma)</dd>
-            }
-            @if (Kayit.TeslimTarihi is { } teslim)
-            {
-                <dt>Teslim</dt>
-                <dd>@Bicim.Tarih(teslim)</dd>
-            }
-            @if (_ayniCihaz is { Count: > 0 })
-            {
-                <dt>Önceki kayıtlar</dt>
-                <dd>
-                    Bu cihaz daha önce @_ayniCihaz.Count kez geldi:
-                    <ul class="sade-liste">
-                        @foreach (var onceki in _ayniCihaz)
-                        {
-                            <li @key="onceki.Id">
-                                @onceki.No <span class="soluk">@Bicim.Tarih(onceki.OlusturmaTarihi)</span>
-                                <span class="@Bicim.DurumSinifi(onceki.Durum)">@Bicim.Durum(onceki.Durum)</span>
-                                <span class="soluk">@onceki.Sorun</span>
-                            </li>
-                        }
-                    </ul>
-                </dd>
-            }
-        </dl>
-
-        <section class="bolum">
-            <h3>Durum</h3>
-            <div class="durum-secimi">
-                @foreach (var durum in Enum.GetValues<ServisDurumu>())
-                {
-                    <button type="button" class="@(durum == Kayit.Durum ? "" : "ikincil")" aria-pressed="@(durum == Kayit.Durum ? "true" : "false")"
-                            disabled="@(_mesgul || (Kayit.Fatura is not null && !durum.BittiMi()))" @onclick="() => DurumuDegistir(durum)">
-                        @Bicim.Durum(durum)
-                    </button>
-                }
-            </div>
-            @if (Kayit.Fatura is not null)
-            {
-                <p class="soluk aciklama">Faturası olan kayıt yeniden açılamaz ya da iptal edilemez.</p>
-            }
-        </section>
-
-        <section class="bolum">
-            <h3>Yapılan işlem</h3>
-            <textarea id="d-islem" rows="2" maxlength="1000" aria-label="Yapılan işlem" @bind="_yapilanIslem" @bind:event="oninput"
-                      placeholder="Cihazda ne yapıldı? Teslim formuna ve faturaya yazılır."></textarea>
-            <div class="bolum-dugmesi">
-                <button type="button" class="ikincil" disabled="@(_mesgul || _yapilanIslem.Trim() == (Kayit.YapilanIslem ?? ""))"
-                        @onclick="YapilanIslemiKaydet">Kaydet</button>
-            </div>
-        </section>
-
-        <section class="bolum">
-            <h3>Belgeler</h3>
-            <div class="durum-secimi">
-                <button type="button" class="ikincil" disabled="@_mesgul" @onclick="@(() => BelgeyiAc("kabul-formu", $"Kabul-{Kayit.No}.pdf"))">
-                    Kabul formu
-                </button>
-                <button type="button" class="ikincil" disabled="@(_mesgul || Kayit.Durum.AcikMi())"
-                        @onclick="@(() => BelgeyiAc("teslim-formu", $"Teslim-{Kayit.No}.pdf"))">
-                    Teslim formu
-                </button>
-            </div>
-            @if (Kayit.Durum.AcikMi())
-            {
-                <p class="soluk aciklama">Teslim formu, kayıt tamamlandığında ya da iptal edildiğinde alınabilir.</p>
-            }
-        </section>
-
-        <section class="bolum">
-            <h3>Müşteriyi bilgilendir</h3>
-            <div class="durum-secimi">
-                <button type="button" class="ikincil" disabled="@_mesgul" @onclick="() => Bilgilendir(BildirimKanali.WhatsApp)">WhatsApp'ta aç</button>
-                <button type="button" class="ikincil" disabled="@_mesgul" @onclick="() => Bilgilendir(BildirimKanali.Eposta)">E-posta yaz</button>
-                <button type="button" class="ikincil" disabled="@_mesgul" @onclick="() => Bilgilendir(BildirimKanali.Telefon)">Telefonla arandı</button>
-            </div>
-            <p class="soluk aciklama">
-                Kaydın durumuna göre hazırlanan mesaj bu bilgisayardaki WhatsApp ya da e-posta programında açılır; göndermek size kalır.
-                Takip kodu: <code>@Kayit.TakipKodu</code>
-            </p>
-            @if (_bildirim is not null)
-            {
-                <textarea rows="4" readonly aria-label="Bildirim metni">@_bildirim.Metin</textarea>
-            }
-        </section>
-    }
-    else if (_sekme == Sekme.Teklif)
-    {
-        <section class="bolum ilk">
-            <h3>Fiyat teklifi</h3>
-            @if (Kayit.Teklif is { } teklif)
-            {
-                <dl class="ayrinti">
-                    <dt>Tutar</dt>
-                    <dd><strong>@Bicim.Para(teklif.Tutar)</strong> <span class="soluk">KDV dahil</span></dd>
-                    @if (teklif.Aciklama is not null)
-                    {
-                        <dt>Açıklama</dt>
-                        <dd class="cok-satirli">@teklif.Aciklama</dd>
-                    }
-                    <dt>Verildi</dt>
-                    <dd>@Bicim.Tarih(teklif.Tarih)</dd>
-                    <dt>Yanıt</dt>
-                    <dd>
-                        <span class="@TeklifSinifi(teklif.Durum)">@teklif.Durum.Ad()</span>
-                        @if (teklif.YanitTarihi is { } yanit)
-                        {
-                            <span class="soluk bosluklu">@Bicim.Tarih(yanit)</span>
-                        }
-                        @if (teklif.YanitNotu is not null)
-                        {
-                            <span class="soluk bosluklu">– @teklif.YanitNotu</span>
-                        }
-                    </dd>
-                </dl>
-            }
-
-            @if (Kayit.Teklif is { Durum: TeklifDurumu.Bekliyor } && Kayit.Durum.AcikMi())
-            {
-                <div class="fatura-formu">
-                    <input class="genis-girdi" @bind="_yanitNotu" @bind:event="oninput" maxlength="300" aria-label="Yanıt notu"
-                           placeholder="Onay nasıl alındı? (örn. telefonla)" autocomplete="off" />
-                    <button type="button" disabled="@_mesgul" @onclick="() => TeklifiYanitla(true)">Müşteri onayladı</button>
-                    <button type="button" class="tehlike" disabled="@_mesgul" @onclick="() => TeklifiYanitla(false)">Müşteri reddetti</button>
-                </div>
-                <p class="soluk aciklama">Onaylanınca iş “Devam ediyor” olur; reddedilince kayıt iptal edilir.</p>
-            }
-
-            @if (Kayit.Durum.AcikMi())
-            {
-                <div class="fatura-formu">
-                    <label for="d-teklif">Tutar (₺)</label>
-                    <input id="d-teklif" @bind="_teklifTutari" @bind:event="oninput" inputmode="decimal" placeholder="1500" autocomplete="off" />
-                    <input class="genis-girdi" @bind="_teklifAciklamasi" @bind:event="oninput" maxlength="500" aria-label="Teklif açıklaması"
-                           placeholder="Açıklama (isteğe bağlı)" autocomplete="off" />
-                    <button type="button" class="@(Kayit.Teklif is null ? "" : "ikincil")" disabled="@_mesgul" @onclick="TeklifVer">
-                        @(Kayit.Teklif is null ? "Teklif ver" : "Yeni teklif ver")
-                    </button>
-                </div>
-                <p class="soluk aciklama">Teklif verilince kayıt “Onay bekliyor” durumuna geçer.</p>
-            }
-            else if (Kayit.Teklif is null)
-            {
-                <p class="soluk aciklama">Bu kayıt için teklif verilmedi.</p>
-            }
-        </section>
-
-        <section class="bolum">
-            <h3>Kullanılan parçalar</h3>
-            @if (Kayit.Parcalar.Count == 0)
-            {
-                <p class="soluk aciklama">Henüz parça kullanılmadı.</p>
-            }
-            else
-            {
-                <table class="tablo sik">
-                    <thead>
-                        <tr><th>Parça</th><th>Adet</th><th>Birim fiyat</th><th>Tutar</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var satir in Kayit.Parcalar)
-                        {
-                            <tr @key="satir.Id">
-                                <td>@satir.Ad</td>
-                                <td class="dar">@satir.Adet</td>
-                                <td class="dar">@Bicim.Para(satir.BirimFiyat)</td>
-                                <td class="dar">@Bicim.Para(satir.Adet * satir.BirimFiyat)</td>
-                                <td class="islemler">
-                                    <button type="button" class="ikincil" disabled="@(_mesgul || Kayit.Fatura is not null)"
-                                            @onclick="() => ParcaCikar(satir)">Çıkar</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                    <tfoot>
-                        <tr><td colspan="3">Parça toplamı</td><td class="dar"><strong>@Bicim.Para(Kayit.ParcaToplami)</strong></td><td></td></tr>
-                    </tfoot>
-                </table>
-            }
-
-            @if (Kayit.Fatura is not null)
-            {
-                <p class="soluk aciklama">Faturası olan kaydın parçaları değiştirilemez.</p>
-            }
-            else if (Kayit.Durum != ServisDurumu.IptalEdildi)
-            {
-                <div class="fatura-formu">
-                    <AramaKutusu YerTutucu="Stokta parça ara" Etiket="Stokta parça ara" Arandi="ParcaAra" />
-                    <select class="genis-girdi" aria-label="Parça" @bind="_secilenParcaId">
-                        <option value="">@(_parcalar is null ? "Yükleniyor…" : _parcalar.Count == 0 ? "Parça bulunamadı" : "Parça seçin")</option>
-                        @foreach (var parca in _parcalar ?? [])
-                        {
-                            <option value="@parca.Id" disabled="@(parca.StokAdedi <= 0)">
-                                @parca.Ad – @Bicim.Para(parca.BirimFiyat) (stok: @parca.StokAdedi)
-                            </option>
-                        }
-                    </select>
-                    <label for="d-adet">Adet</label>
-                    <input id="d-adet" class="dar-girdi" type="number" min="1" max="1000" @bind="_parcaAdedi" />
-                    <button type="button" disabled="@(_mesgul || _secilenParcaId.Length == 0)" @onclick="ParcaEkle">Ekle</button>
-                </div>
-                <p class="soluk aciklama">Eklenen parça stoktan düşer; çıkarılırsa stoğa geri döner.</p>
-            }
-        </section>
-    }
-    else if (_sekme == Sekme.Fatura)
-    {
-        <section class="bolum ilk">
-            <h3>Fatura</h3>
-
-            @if (Kayit.Fatura is null && !Kayit.Durum.BittiMi())
-            {
-                <p class="soluk aciklama">Fatura kesmek için kaydı önce “Tamamlandı” olarak işaretleyin.</p>
-            }
-            else
-            {
-                @if (Kayit.Fatura is { } fatura)
-                {
-                    <dl class="ayrinti">
-                        <dt>Fatura no</dt>
-                        <dd>@fatura.No</dd>
-                        <dt>Tutar</dt>
-                        <dd><strong>@Bicim.Para(fatura.Tutar)</strong></dd>
-                        <dt>Ödeme</dt>
-                        <dd>
-                            @if (fatura.OdemeTarihi is { } odeme)
-                            {
-                                <span class="durum iyi">Ödendi</span> <span class="soluk">@Bicim.Tarih(odeme)</span>
-                            }
-                            else
-                            {
-                                <span class="durum kotu">Ödenmedi</span>
-                            }
-                        </dd>
-                        <dt>Kesildi</dt>
-                        <dd>@Bicim.Tarih(fatura.OlusturmaTarihi)</dd>
-                    </dl>
-                }
-
-                <div class="fatura-formu">
-                    <label for="d-tutar">Tutar (₺)</label>
-                    <input id="d-tutar" @bind="_tutar" @bind:event="oninput" inputmode="decimal" placeholder="750,50" autocomplete="off" />
-                    <label class="onay-kutusu">
-                        <input id="d-odendi" type="checkbox" @bind="_odendi" />
-                        Ödendi
-                    </label>
-                    <button type="button" disabled="@_mesgul" @onclick="FaturayiKaydet">
-                        @(Kayit.Fatura is null ? "Fatura kes" : "Faturayı güncelle")
-                    </button>
-                    @if (Kayit.Fatura is not null)
-                    {
-                        <button type="button" class="ikincil" disabled="@_mesgul" @onclick="FaturayiAc">PDF olarak aç</button>
-                    }
-                    @if (Kayit.Fatura is not null && Oturum.AdminMi)
-                    {
-                        <button type="button" class="tehlike" disabled="@_mesgul" @onclick="FaturayiSil">
-                            @(_faturaSilmeOnayi ? "Silmeyi onayla" : "Faturayı sil")
-                        </button>
-                    }
-                </div>
-                <p class="soluk aciklama">
-                    Tutar KDV dahil toplamdır ve parçaları da kapsar.
-                    @if (Kayit.Parcalar.Count > 0)
-                    {
-                        <span> Parça toplamı: @Bicim.Para(Kayit.ParcaToplami); kalan tutar faturada işçilik olarak görünür.</span>
-                    }
-                    @if (Kayit.Teklif is { Durum: TeklifDurumu.Onaylandi } onayli)
-                    {
-                        <span> Müşterinin onayladığı teklif: @Bicim.Para(onayli.Tutar).</span>
-                    }
-                </p>
-            }
-        </section>
-    }
-    else
-    {
-        <section class="bolum ilk">
-            <h3>Not ekle</h3>
-            <div class="fatura-formu">
-                <input class="genis-girdi" @bind="_not" @bind:event="oninput" maxlength="500" aria-label="Not"
-                       placeholder="Örn. müşteri arandı, parça siparişi verildi" autocomplete="off" />
-                <button type="button" disabled="@(_mesgul || _not.Trim().Length < 2)" @onclick="NotEkle">Ekle</button>
-            </div>
-        </section>
-
-        <section class="bolum">
-            <h3>İşlem geçmişi</h3>
-            @if (_gecmis is null)
-            {
-                <p class="soluk aciklama">Yükleniyor…</p>
-            }
-            else
-            {
-                <ul class="gecmis">
-                    @foreach (var islem in _gecmis)
-                    {
-                        <li @key="islem.Id">
-                            <span class="soluk dar">@Bicim.Tarih(islem.Tarih)</span>
-                            <span>
-                                <strong>@Bicim.Islem(islem.Tur)</strong> @islem.Aciklama
-                                <span class="soluk">– @islem.KullaniciAdi</span>
-                            </span>
-                        </li>
-                    }
-                </ul>
-            }
-        </section>
+        case Sekme.Genel:
+            <KayitGenelSekmesi Kayit="Kayit" Islemler="_islemler" />
+            break;
+        case Sekme.Teklif:
+            <KayitTeklifSekmesi Kayit="Kayit" Islemler="_islemler" />
+            break;
+        case Sekme.Fatura:
+            <KayitFaturaSekmesi Kayit="Kayit" Islemler="_islemler" />
+            break;
+        default:
+            <KayitGecmisSekmesi Kayit="Kayit" Islemler="_islemler" />
+            break;
     }
 
-    @if (_hata is not null)
+    @if (_islemler.Hata is not null)
     {
-        <p class="hata" role="alert">@_hata</p>
+        <p class="hata" role="alert">@_islemler.Hata</p>
     }
 
     <footer>
         @if (Oturum.AdminMi)
         {
-            <button type="button" class="tehlike sola" disabled="@_mesgul" @onclick="KaydiSil">
-                @(_kayitSilmeOnayi ? "Silmeyi onayla" : "Kaydı sil")
+            <button type="button" class="tehlike sola" disabled="@_islemler.Mesgul" @onclick="KaydiSil">
+                @(_silmeOnayi ? "Silmeyi onayla" : "Kaydı sil")
             </button>
         }
-        <button type="button" class="ikincil" disabled="@_mesgul" @onclick="DuzenleIstendi">Düzenle</button>
+        <button type="button" class="ikincil" disabled="@_islemler.Mesgul" @onclick="DuzenleIstendi">Düzenle</button>
         <button type="button" class="ikincil" @onclick="Kapat">Kapat</button>
     </footer>
 </Pencere>
@@ -386,29 +55,9 @@
     [Parameter] public EventCallback DuzenleIstendi { get; set; }
     [Parameter] public EventCallback Kapat { get; set; }
 
+    private KayitIslemleri _islemler = null!;
     private Sekme _sekme = Sekme.Genel;
-    private string _tutar = "";
-    private bool _odendi;
-    private string _yapilanIslem = "";
-    private string _teklifTutari = "";
-    private string _teklifAciklamasi = "";
-    private string _yanitNotu = "";
-    private string _not = "";
-    private string _secilenParcaId = "";
-    private int _parcaAdedi = 1;
-    private string? _hata;
-    private bool _mesgul;
-    private bool _faturaSilmeOnayi;
-    private bool _kayitSilmeOnayi;
-    private ServisKaydiYaniti? _alanlarinKaydi;
-    private string? _yuklenenKayitId;
-
-    private IReadOnlyList<ServisKaydiYaniti>? _ayniCihaz;
-    private IReadOnlyList<ParcaYaniti>? _parcalar;
-    private IReadOnlyList<IslemYaniti>? _gecmis;
-    private BildirimYaniti? _bildirim;
-
-    private string Yol => $"api/servis-kayitlari/{Kayit.Id}";
+    private bool _silmeOnayi;
 
     private static string SekmeAdi(Sekme sekme) => sekme switch
     {
@@ -418,263 +67,30 @@
         _ => "Geçmiş"
     };
 
-    private static string TeklifSinifi(TeklifDurumu durum) => durum switch
-    {
-        TeklifDurumu.Onaylandi => "durum iyi",
-        TeklifDurumu.Reddedildi => "durum kotu",
-        _ => "soluk"
-    };
+    protected override void OnInitialized() =>
+        _islemler = new KayitIslemleri(Api, kayit => Degisti.InvokeAsync(kayit), StateHasChanged);
 
-    protected override async Task OnParametersSetAsync()
-    {
-        // Form alanları yalnızca kayıt değiştiğinde (başka kayıt açıldığında ya da bir işlem sonrası yenilendiğinde)
-        // doldurulur; sayfanın araya giren yeniden çizimleri kullanıcının yazdığını silmez.
-        if (ReferenceEquals(_alanlarinKaydi, Kayit)) return;
-        _alanlarinKaydi = Kayit;
+    protected override void OnParametersSet() => _islemler.KayitId = Kayit.Id;
 
-        _odendi = Kayit.Fatura?.OdendiMi ?? false;
-        _yapilanIslem = Kayit.YapilanIslem ?? "";
-        _tutar = Kayit.Fatura is { } fatura ? Bicim.ParaGirdisi(fatura.Tutar) : OnerilenTutar();
-
-        // Geçmiş açıksa her işlemden sonra yenilenir.
-        if (_gecmis is not null && _yuklenenKayitId == Kayit.Id) await GecmisiYukle();
-
-        if (_yuklenenKayitId == Kayit.Id) return;
-        _yuklenenKayitId = Kayit.Id;
-        _gecmis = null;
-        _bildirim = null;
-        _ayniCihaz = null;
-
-        // Aynı seri numaralı diğer kayıtlar: cihaz daha önce de gelmiş mi?
-        if (Kayit.SeriNo is { } seriNo)
-        {
-            var sonuc = await Api.Getir<Sayfa<ServisKaydiYaniti>>($"api/servis-kayitlari?seriNo={Uri.EscapeDataString(seriNo)}&boyut=20");
-            if (sonuc is { Basarili: true, Deger: not null })
-                _ayniCihaz = sonuc.Deger.Ogeler.Where(k => k.Id != Kayit.Id).ToList();
-        }
-    }
-
-    // Faturası kesilmemiş kayıtta tutar kutusu müşterinin onayladığı teklifle, yoksa parça toplamıyla dolar.
-    private string OnerilenTutar() =>
-        Kayit.Teklif is { Durum: TeklifDurumu.Onaylandi } teklif ? Bicim.ParaGirdisi(teklif.Tutar)
-        : Kayit.ParcaToplami > 0 ? Bicim.ParaGirdisi(Kayit.ParcaToplami)
-        : "";
-
-    private async Task SekmeyeGec(Sekme sekme)
+    private void SekmeyeGec(Sekme sekme)
     {
         _sekme = sekme;
-        _hata = null;
-        _faturaSilmeOnayi = false;
-
-        if (sekme == Sekme.Gecmis) await GecmisiYukle();
-        if (sekme == Sekme.Teklif && _parcalar is null) await ParcaAra("");
+        _silmeOnayi = false;
+        _islemler.HatayiGoster(null);
     }
 
-    private async Task GecmisiYukle()
-    {
-        var sonuc = await Api.Getir<IReadOnlyList<IslemYaniti>>($"{Yol}/gecmis");
-        if (sonuc is { Basarili: true, Deger: not null }) _gecmis = sonuc.Deger;
-        else _hata = sonuc.Hata;
-    }
-
-    private async Task ParcaAra(string arama)
-    {
-        var sonuc = await Api.Getir<Sayfa<ParcaYaniti>>($"api/parcalar?arama={Uri.EscapeDataString(arama)}&boyut=50");
-        if (sonuc is { Basarili: true, Deger: not null })
-        {
-            _parcalar = sonuc.Deger.Ogeler;
-            if (_parcalar.All(p => p.Id != _secilenParcaId)) _secilenParcaId = "";
-        }
-        else
-        {
-            _hata = sonuc.Hata;
-        }
-    }
-
-    private Task DurumuDegistir(ServisDurumu durum) =>
-        durum == Kayit.Durum
-            ? Task.CompletedTask
-            : Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/durum", new ServisDurumuIstegi(durum)));
-
-    private Task YapilanIslemiKaydet() =>
-        Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/yapilan-islem", new YapilanIslemIstegi(_yapilanIslem.Trim())));
-
-    private async Task TeklifVer()
-    {
-        if (!Bicim.ParaOku(_teklifTutari, out var tutar) || tutar <= 0)
-        {
-            _hata = "Geçerli bir teklif tutarı girin (örn. 1500).";
-            return;
-        }
-
-        var aciklama = string.IsNullOrWhiteSpace(_teklifAciklamasi) ? null : _teklifAciklamasi.Trim();
-        if (await Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/teklif", new TeklifIstegi(tutar, aciklama))))
-        {
-            _teklifTutari = "";
-            _teklifAciklamasi = "";
-        }
-    }
-
-    private async Task TeklifiYanitla(bool onaylandi)
-    {
-        var not = string.IsNullOrWhiteSpace(_yanitNotu) ? null : _yanitNotu.Trim();
-        if (await Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/teklif/yanit", new TeklifYanitIstegi(onaylandi, not))))
-            _yanitNotu = "";
-    }
-
-    private async Task ParcaEkle()
-    {
-        if (_parcaAdedi < 1)
-        {
-            _hata = "Adet en az 1 olmalı.";
-            return;
-        }
-
-        if (await Calistir(() => Api.Ekle<ServisKaydiYaniti>($"{Yol}/parcalar", new ParcaKullanimIstegi(_secilenParcaId, _parcaAdedi))))
-            _parcaAdedi = 1;
-
-        // Stok sayıları değişti (başarısız olduysa da güncel stok görünsün).
-        var hata = _hata;
-        await ParcaAra("");
-        _hata = hata;
-    }
-
-    private async Task ParcaCikar(KullanilanParcaYaniti satir)
-    {
-        if (await Calistir(() => Api.Sil<ServisKaydiYaniti>($"{Yol}/parcalar/{satir.Id}")))
-            await ParcaAra("");
-    }
-
-    private async Task FaturayiKaydet()
-    {
-        if (!Bicim.ParaOku(_tutar, out var tutar) || tutar <= 0)
-        {
-            _hata = "Geçerli bir tutar girin (örn. 750,50).";
-            return;
-        }
-
-        await Calistir(() => Api.Guncelle<ServisKaydiYaniti>($"{Yol}/fatura", new FaturaIstegi(tutar, _odendi)));
-    }
-
-    private Task FaturayiAc() =>
-        Kayit.Fatura is { } fatura ? BelgeyiAc("fatura/pdf", $"Fatura-{fatura.No}.pdf") : Task.CompletedTask;
-
-    // Belgeyi sunucudan indirir ve bilgisayarın PDF görüntüleyicisinde açar.
-    private async Task BelgeyiAc(string uc, string dosyaAdi)
-    {
-        _mesgul = true;
-        _hata = null;
-        var sonuc = await Api.Indir($"{Yol}/{uc}");
-        _mesgul = false;
-
-        _hata = sonuc.Basarili && sonuc.Deger is not null
-            ? BelgeAcici.Ac(dosyaAdi, sonuc.Deger)
-            : sonuc.Hata;
-    }
-
-    // Hazır mesajı alır, seçilen yolla açar ve bilgilendirmeyi işlem geçmişine yazar.
-    private async Task Bilgilendir(BildirimKanali kanal)
-    {
-        _mesgul = true;
-        _hata = null;
-        var sonuc = await Api.Getir<BildirimYaniti>($"{Yol}/bildirim");
-        _mesgul = false;
-
-        if (!sonuc.Basarili || sonuc.Deger is null)
-        {
-            _hata = sonuc.Hata;
-            return;
-        }
-
-        _bildirim = sonuc.Deger;
-        var metin = Uri.EscapeDataString(_bildirim.Metin);
-
-        _hata = kanal switch
-        {
-            BildirimKanali.WhatsApp when _bildirim.WhatsAppNumarasi is { } numara =>
-                BelgeAcici.BaglantiAc($"https://wa.me/{numara}?text={metin}"),
-            BildirimKanali.WhatsApp => "Müşterinin telefonu WhatsApp için uygun biçimde değil.",
-            BildirimKanali.Eposta when _bildirim.Eposta is { } eposta =>
-                BelgeAcici.BaglantiAc($"mailto:{Uri.EscapeDataString(eposta)}?subject={Uri.EscapeDataString($"Servis kaydı {Kayit.No}")}&body={metin}"),
-            BildirimKanali.Eposta => "Müşterinin e-posta adresi kayıtlı değil.",
-            _ => null
-        };
-        if (_hata is not null) return;
-
-        var kayit = await Api.Ekle<object>($"{Yol}/bildirimler", new BildirimIstegi(kanal));
-        if (!kayit.Basarili) _hata = kayit.Hata;
-        else if (_gecmis is not null) await GecmisiYukle();
-    }
-
-    private async Task NotEkle()
-    {
-        _mesgul = true;
-        _hata = null;
-        var sonuc = await Api.Ekle<IReadOnlyList<IslemYaniti>>($"{Yol}/notlar", new NotIstegi(_not.Trim()));
-        _mesgul = false;
-
-        if (!sonuc.Basarili || sonuc.Deger is null)
-        {
-            _hata = sonuc.Hata;
-            return;
-        }
-
-        _gecmis = sonuc.Deger;
-        _not = "";
-    }
-
-    // Silme düğmeleri iki adımlıdır: ilk tıklama onay ister, ikincisi siler.
-    private async Task FaturayiSil()
-    {
-        if (!_faturaSilmeOnayi)
-        {
-            _faturaSilmeOnayi = true;
-            return;
-        }
-
-        await Calistir(() => Api.Sil<ServisKaydiYaniti>($"{Yol}/fatura"));
-    }
-
+    // Silme iki adımlıdır: ilk tıklama onay ister, ikincisi siler.
     private async Task KaydiSil()
     {
-        if (!_kayitSilmeOnayi)
+        if (!_silmeOnayi)
         {
-            _kayitSilmeOnayi = true;
+            _silmeOnayi = true;
             return;
         }
 
-        _mesgul = true;
-        var sonuc = await Api.Sil(Yol);
-        _mesgul = false;
-        _kayitSilmeOnayi = false;
-
-        if (!sonuc.Basarili)
-        {
-            _hata = sonuc.Hata;
-            return;
-        }
-
-        await Silindi.InvokeAsync();
-    }
-
-    // Kaydı değiştiren isteği çalıştırır; başarılıysa true döner ve güncel kaydı sayfaya bildirir.
-    private async Task<bool> Calistir(Func<Task<ApiSonucu<ServisKaydiYaniti>>> istek)
-    {
-        _mesgul = true;
-        _hata = null;
-        var sonuc = await istek();
-        _mesgul = false;
-        _faturaSilmeOnayi = false;
-        _kayitSilmeOnayi = false;
-
-        if (!sonuc.Basarili || sonuc.Deger is null)
-        {
-            _hata = sonuc.Hata;
-            return false;
-        }
-
-        // Sayfa güncel kaydı parametre olarak geri verir; alanlar OnParametersSetAsync içinde yenilenir.
-        await Degisti.InvokeAsync(sonuc.Deger);
-        return true;
+        _silmeOnayi = false;
+        var sonuc = await _islemler.Yap(api => api.Sil(_islemler.Yol));
+        if (sonuc.Basarili)
+            await Silindi.InvokeAsync();
     }
 }

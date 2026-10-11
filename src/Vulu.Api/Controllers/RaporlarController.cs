@@ -27,8 +27,9 @@ public class RaporlarController : ControllerBase
     public async Task<ActionResult<RaporYaniti>> Getir(
         [FromQuery] DateTime baslangic, [FromQuery] DateTime bitis, CancellationToken iptal)
     {
-        if (baslangic == default || bitis == default)
-            return Problem(detail: "baslangic ve bitis gerekli.", statusCode: StatusCodes.Status400BadRequest);
+        if (!Zaman.MakulMu(baslangic) || !Zaman.MakulMu(bitis))
+            return Problem(detail: $"baslangic ve bitis gerekli. {Zaman.MakulDegilMesaji}",
+                statusCode: StatusCodes.Status400BadRequest);
 
         var ilk = Zaman.UtcYap(baslangic);
         var son = Zaman.UtcYap(bitis);

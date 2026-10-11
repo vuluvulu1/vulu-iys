@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -33,11 +34,10 @@ public class ParcalarController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<Sayfa<ParcaYaniti>>> Listele(
-        [FromQuery] string? arama, [FromQuery] bool azalan = false,
+        [FromQuery, StringLength(AramaMetni.EnFazlaUzunluk, ErrorMessage = AramaMetni.UzunlukMesaji)] string? arama, [FromQuery] bool azalan = false,
         [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25, CancellationToken iptal = default)
     {
-        sayfa = Math.Max(1, sayfa);
-        boyut = Math.Clamp(boyut, 1, EnFazlaSayfaBoyutu);
+        var sayfalama = Sayfalama.Olustur(sayfa, boyut, EnFazlaSayfaBoyutu);
 
         var f = Builders<Parca>.Filter;
         var filtre = f.Eq(p => p.SilinmeTarihi, null);
@@ -51,11 +51,11 @@ public class ParcalarController : ControllerBase
         var parcalar = await _db.Parcalar
             .Find(filtre, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
             .SortBy(p => p.Ad)
-            .Skip((sayfa - 1) * boyut)
-            .Limit(boyut)
+            .Skip(sayfalama.Atla)
+            .Limit(sayfalama.Boyut)
             .ToListAsync(iptal);
 
-        return new Sayfa<ParcaYaniti>(parcalar.Select(p => p.YanitaCevir()).ToList(), toplam, sayfa, boyut);
+        return new Sayfa<ParcaYaniti>(parcalar.Select(p => p.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
     }
 
     [HttpGet("{id:oid}")]

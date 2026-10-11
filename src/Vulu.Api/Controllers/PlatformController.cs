@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Driver;
-using Vulu.Api.Altyapi;
 using Vulu.Api.Kimlik;
 using Vulu.Api.Veri;
 using Vulu.Api.Veri.Belgeler;
@@ -17,13 +15,13 @@ namespace Vulu.Api.Controllers;
 public class PlatformController : ControllerBase
 {
     private readonly PlatformBaglami _platform;
-    private readonly IMemoryCache _onbellek;
+    private readonly Oturumlar _oturumlar;
     private readonly ILogger<PlatformController> _log;
 
-    public PlatformController(PlatformBaglami platform, IMemoryCache onbellek, ILogger<PlatformController> log)
+    public PlatformController(PlatformBaglami platform, Oturumlar oturumlar, ILogger<PlatformController> log)
     {
         _platform = platform;
-        _onbellek = onbellek;
+        _oturumlar = oturumlar;
         _log = log;
     }
 
@@ -37,7 +35,7 @@ public class PlatformController : ControllerBase
             .SortBy(i => i.Ad)
             .ToListAsync(iptal);
 
-        // Paket kullanımını göstermek için her işletmenin aktif personeli sayılır.
+        // Listede her işletmenin aktif personel sayısı da gösterilir.
         var yanitlar = new List<IsletmeYaniti>(isletmeler.Count);
         foreach (var isletme in isletmeler)
             yanitlar.Add(isletme.YanitaCevir(await AktifPersonelSayisi(isletme, iptal)));
@@ -77,15 +75,18 @@ public class PlatformController : ControllerBase
             await _platform.IsletmeBaglami(isletme).Kullanicilar.InsertOneAsync(new Kullanici
             {
                 KullaniciAdi = KullaniciAdlari.Normalle(istek.YoneticiKullaniciAdi),
-                SifreHash = BCrypt.Net.BCrypt.HashPassword(istek.YoneticiSifre),
+                SifreHash = Sifreler.Hashle(istek.YoneticiSifre),
+                OturumDamgasi = Sifreler.YeniOturumDamgasi(),
                 Rol = KullaniciRol.Admin,
                 AdSoyad = istek.YoneticiAdSoyad.Trim()
             }, cancellationToken: iptal);
         }
         catch
         {
-            // Yöneticisi olmayan bir işletme kimsenin giremeyeceği bir kayıt olurdu; kayıt geri alınır.
+            // Yöneticisi olmayan bir işletme kimsenin giremeyeceği bir kayıt olurdu; kayıt ve yarım kalan
+            // veritabanı geri alınır.
             await _platform.Isletmeler.DeleteOneAsync(i => i.Id == isletme.Id, CancellationToken.None);
+            await _platform.IsletmeVeritabaniniSilAsync(isletme, CancellationToken.None);
             throw;
         }
 
@@ -109,9 +110,12 @@ public class PlatformController : ControllerBase
         if (isletme is null) return Bulunamadi();
 
         // Askıya alınan işletmenin açık oturumları yenilenemesin; erişim tokenları da bir sonraki istekte reddedilir.
-        IsletmeCozucu.OnbellektenCikar(_onbellek, id);
+        _oturumlar.IsletmeDegisti(id);
         if (!istek.AktifMi)
-            await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.IsletmeId == id, iptal);
+        {
+            await _oturumlar.IsletmeninkileriKapatAsync(id, iptal);
+            _log.LogWarning("İşletme askıya alındı: {Kod}", isletme.Kod);
+        }
 
         return isletme.YanitaCevir(await AktifPersonelSayisi(isletme, iptal));
     }
@@ -129,10 +133,10 @@ public class PlatformController : ControllerBase
         if (!string.Equals(kod?.Trim(), isletme.Kod, StringComparison.Ordinal))
             return Problem(detail: "Onay için işletme kodu yanlış yazıldı.", statusCode: StatusCodes.Status400BadRequest);
 
-        await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.IsletmeId == id, iptal);
+        await _oturumlar.IsletmeninkileriKapatAsync(id, iptal);
         await _platform.IsletmeVeritabaniniSilAsync(isletme, iptal);
         await _platform.Isletmeler.DeleteOneAsync(i => i.Id == id, iptal);
-        IsletmeCozucu.OnbellektenCikar(_onbellek, id);
+        _oturumlar.IsletmeDegisti(id);
 
         _log.LogWarning("İşletme kalıcı olarak silindi: {Kod} ({Ad}), veritabanı {Veritabani}",
             isletme.Kod, isletme.Ad, isletme.VeritabaniAdi);
@@ -164,15 +168,17 @@ public class PlatformController : ControllerBase
         var sonuc = await _platform.IsletmeBaglami(isletme).Kullanicilar.UpdateOneAsync(
             k => k.Id == kullaniciId && k.Rol == KullaniciRol.Admin,
             Builders<Kullanici>.Update
-                .Set(k => k.SifreHash, BCrypt.Net.BCrypt.HashPassword(istek.YeniSifre))
+                .Set(k => k.SifreHash, Sifreler.Hashle(istek.YeniSifre))
+                .Set(k => k.OturumDamgasi, Sifreler.YeniOturumDamgasi())
                 .Set(k => k.AktifMi, true),
             cancellationToken: iptal);
         if (sonuc.MatchedCount == 0)
             return Problem(detail: "İşletmede böyle bir yönetici hesabı yok.", statusCode: StatusCodes.Status404NotFound);
 
         // Eski şifreyle açılmış oturumlar kapanır.
-        await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.KullaniciId == kullaniciId, iptal);
-        _log.LogInformation("İşletme yöneticisinin şifresi sıfırlandı: {Kod}", isletme.Kod);
+        await _oturumlar.KapatAsync(id, kullaniciId, iptal);
+        _log.LogWarning("İşletme yöneticisinin şifresi vulu yöneticisi tarafından sıfırlandı: {Kod}, hesap {Kullanici}, sıfırlayan {Yonetici}",
+            isletme.Kod, kullaniciId, User.Identity?.Name);
         return NoContent();
     }
 

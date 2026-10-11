@@ -4,7 +4,7 @@ using Vulu.Shared;
 namespace Vulu.Desktop.Servisler;
 
 // Açık oturumu bellekte tutar; uygulama kapanınca oturum da biter.
-public class OturumServisi
+public sealed class OturumServisi : IDisposable
 {
     private readonly HttpClient _http;
     private readonly SemaphoreSlim _yenilemeKilidi = new(1, 1);
@@ -84,9 +84,7 @@ public class OturumServisi
                 return false;
             }
 
-            // Yalnızca tokenlar yenilenir; yüklenmiş işletme bilgisi korunur.
-            Oturum = yeni;
-            Degisti?.Invoke();
+            OturumuYenile(yeni);
             return true;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -101,6 +99,15 @@ public class OturumServisi
     }
 
     public void Kapat() => Ayarla(null);
+
+    public void Dispose() => _yenilemeKilidi.Dispose();
+
+    // Sunucu açık oturumun yerine yenisini verdi (şifre değişikliği); yüklenmiş işletme bilgisi korunur.
+    public void OturumuYenile(OturumYaniti yeni)
+    {
+        Oturum = yeni;
+        Degisti?.Invoke();
+    }
 
     public void IsletmeyiAyarla(IsletmeYaniti isletme)
     {

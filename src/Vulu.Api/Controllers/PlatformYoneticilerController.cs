@@ -16,8 +16,13 @@ namespace Vulu.Api.Controllers;
 public class PlatformYoneticilerController : ControllerBase
 {
     private readonly PlatformBaglami _platform;
+    private readonly Oturumlar _oturumlar;
 
-    public PlatformYoneticilerController(PlatformBaglami platform) => _platform = platform;
+    public PlatformYoneticilerController(PlatformBaglami platform, Oturumlar oturumlar)
+    {
+        _platform = platform;
+        _oturumlar = oturumlar;
+    }
 
     [HttpGet]
     public async Task<ActionResult<List<VuluYoneticisiYaniti>>> Listele(CancellationToken iptal)
@@ -33,7 +38,8 @@ public class PlatformYoneticilerController : ControllerBase
         var yonetici = new PlatformYoneticisi
         {
             KullaniciAdi = KullaniciAdlari.Normalle(istek.KullaniciAdi),
-            SifreHash = BCrypt.Net.BCrypt.HashPassword(istek.Sifre),
+            SifreHash = Sifreler.Hashle(istek.Sifre),
+            OturumDamgasi = Sifreler.YeniOturumDamgasi(),
             AdSoyad = istek.AdSoyad.Trim()
         };
 
@@ -64,13 +70,17 @@ public class PlatformYoneticilerController : ControllerBase
             .Set(y => y.AdSoyad, istek.AdSoyad.Trim())
             .Set(y => y.AktifMi, istek.AktifMi);
         if (!string.IsNullOrEmpty(istek.YeniSifre))
-            guncelleme = guncelleme.Set(y => y.SifreHash, BCrypt.Net.BCrypt.HashPassword(istek.YeniSifre));
+            guncelleme = guncelleme.Set(y => y.SifreHash, Sifreler.Hashle(istek.YeniSifre));
+
+        // Damga değişince hesabın açık erişim tokenları da reddedilir.
+        if (oturumlarKapansin)
+            guncelleme = guncelleme.Set(y => y.OturumDamgasi, Sifreler.YeniOturumDamgasi());
 
         var guncel = await _platform.Yoneticiler.FindOneAndUpdateAsync<PlatformYoneticisi>(y => y.Id == id, guncelleme,
             new FindOneAndUpdateOptions<PlatformYoneticisi> { ReturnDocument = ReturnDocument.After }, iptal);
 
         if (oturumlarKapansin)
-            await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.KullaniciId == id, iptal);
+            await _oturumlar.KapatAsync(null, id, iptal);
 
         return YanitaCevir(guncel);
     }
@@ -86,7 +96,7 @@ public class PlatformYoneticilerController : ControllerBase
         var sonuc = await _platform.Yoneticiler.DeleteOneAsync(y => y.Id == id, iptal);
         if (sonuc.DeletedCount == 0) return Bulunamadi();
 
-        await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.KullaniciId == id, iptal);
+        await _oturumlar.KapatAsync(null, id, iptal);
         return NoContent();
     }
 

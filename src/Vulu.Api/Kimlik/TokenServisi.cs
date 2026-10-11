@@ -17,6 +17,9 @@ public class TokenServisi
     // Oturumun ait olduğu işletmenin kimliği. Vulu yöneticisinin tokenında bulunmaz.
     public const string IsletmeTalebi = "isletme";
 
+    // Hesabın oturum damgası; hesaptaki güncel değerle eşleşmeyen token reddedilir.
+    public const string DamgaTalebi = "damga";
+
     // Vulu yöneticisinin rolü. İşletme personelinin rolleri (Admin, Teknisyen) ile karışmaz.
     public const string PlatformRolu = "Platform";
 
@@ -24,7 +27,7 @@ public class TokenServisi
 
     public TokenServisi(IOptions<JwtAyarlari> ayarlar) => _ayarlar = ayarlar.Value;
 
-    public (string Token, DateTime Bitis) ErisimTokeniUret(string kimlik, string ad, string rol, string? isletmeId)
+    public (string Token, DateTime Bitis) ErisimTokeniUret(string kimlik, string ad, string rol, string damga, string? isletmeId)
     {
         var bitis = DateTime.UtcNow.AddMinutes(_ayarlar.ErisimDakika);
 
@@ -32,7 +35,8 @@ public class TokenServisi
         {
             new(KimlikTalebi, kimlik),
             new(AdTalebi, ad),
-            new(RolTalebi, rol)
+            new(RolTalebi, rol),
+            new(DamgaTalebi, damga)
         };
         if (isletmeId is not null)
             talepler.Add(new Claim(IsletmeTalebi, isletmeId));

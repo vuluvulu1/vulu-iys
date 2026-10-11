@@ -20,6 +20,10 @@ public class YenilemeTokeni
     // Tokenin kendisi saklanmaz; veritabanı sızsa bile oturum açılamaz.
     public string TokenHash { get; set; } = string.Empty;
 
+    // Token tek kullanımlıktır. Kullanılınca silinmez, işaretlenir: aynı token ikinci kez sunulursa çalınmış
+    // demektir ve hesabın bütün oturumları kapatılır (bkz. KimlikController.Yenile).
+    public DateTime? KullanildiTarihi { get; set; }
+
     public DateTime SonGecerlilik { get; set; }
     public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
 }
