@@ -17,6 +17,27 @@
                 <button type="button" @onclick="SunucuyuKontrolEt">Yeniden dene</button>
                 break;
 
+            case SunucuDurumu.GuncellemeGerekli:
+                <p class="bilgi" role="status">
+                    Yeni sürüm yayımlandı: <strong>@_yeniSurum!.Surum</strong> (kurulu olan @Guncelleyici.MevcutSurum).
+                    Devam etmek için uygulamanın güncellenmesi gerekiyor.
+                </p>
+                @if (_indirmeYuzdesi is { } yuzde)
+                {
+                    <progress max="100" value="@yuzde" aria-label="İndirme ilerlemesi"></progress>
+                    <p class="soluk bilgi">İndiriliyor… %@yuzde</p>
+                }
+                else
+                {
+                    @if (_hata is not null)
+                    {
+                        <p class="hata" role="alert">@_hata</p>
+                    }
+                    <button type="button" @onclick="Guncelle">@(_hata is null ? "Güncelle" : "Yeniden dene")</button>
+                    <p class="soluk bilgi">Güncelleme indirilir, kurulur ve uygulama kendiliğinden yeniden açılır.</p>
+                }
+                break;
+
             case SunucuDurumu.SurumUyumsuz:
                 <p class="hata bilgi" role="alert">
                     Bu uygulama sürümü sunucuyla uyumlu değil. Lütfen uygulamanın güncel sürümünü kurun.
@@ -48,7 +69,7 @@
 </div>
 
 @code {
-    private enum SunucuDurumu { Kontrol, Hazir, Ulasilamiyor, SurumUyumsuz }
+    private enum SunucuDurumu { Kontrol, Hazir, Ulasilamiyor, SurumUyumsuz, GuncellemeGerekli }
 
     private SunucuDurumu _sunucu = SunucuDurumu.Kontrol;
     private string _isletmeKodu = "";
@@ -56,6 +77,8 @@
     private string _sifre = "";
     private string? _hata;
     private bool _bekliyor;
+    private YeniSurum? _yeniSurum;
+    private int? _indirmeYuzdesi;
 
     private bool Dolu => !string.IsNullOrWhiteSpace(_isletmeKodu) && !string.IsNullOrWhiteSpace(_kullaniciAdi) && _sifre.Length > 0;
 
@@ -65,10 +88,19 @@
         return SunucuyuKontrolEt();
     }
 
-    // Giriş formu, sunucuya ulaşılıp sürümün uyumlu olduğu görülmeden açılmaz.
+    // Giriş formu, uygulamanın güncel olduğu, sunucuya ulaşıldığı ve sürümün uyumlu olduğu görülmeden açılmaz.
     private async Task SunucuyuKontrolEt()
     {
         _sunucu = SunucuDurumu.Kontrol;
+
+        // Güncelleme zorunludur: yeni sürüm varsa giriş formu hiç gösterilmez. Sürüm bilgisine ulaşılamazsa
+        // (internet yok, GitHub yanıt vermiyor) kontrol atlanır; uygulama bu yüzden kullanılamaz kalmaz.
+        _yeniSurum = await Guncelleyici.KontrolEt();
+        if (_yeniSurum is not null)
+        {
+            _sunucu = SunucuDurumu.GuncellemeGerekli;
+            return;
+        }
 
         try
         {
@@ -81,6 +113,21 @@
         {
             _sunucu = SunucuDurumu.Ulasilamiyor;
         }
+    }
+
+    private async Task Guncelle()
+    {
+        if (_yeniSurum is null || _indirmeYuzdesi is not null) return;
+
+        _hata = null;
+        _indirmeYuzdesi = 0;
+        // Başarılıysa uygulama kapanır ve bu satırdan sonrası çalışmaz.
+        _hata = await Guncelleyici.IndirVeKur(_yeniSurum, yuzde =>
+        {
+            _indirmeYuzdesi = yuzde;
+            InvokeAsync(StateHasChanged);
+        });
+        _indirmeYuzdesi = null;
     }
 
     private async Task GirisYap()
