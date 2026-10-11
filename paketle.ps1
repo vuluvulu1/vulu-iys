@@ -5,14 +5,15 @@
 #       Bu makinedeki .NET 10 ile çalışır; gizli ayarları ve veritabanı bağlantısını (appsettings.Local.json) içerir;
 #       paylaşılmamalıdır.
 #
-#   .\paketle.ps1 -Dagitim -ApiAdresi https://ornek.onrender.com/
-#       Dağıtım paketi: dist\Vulu-win-x64 klasörü ve .zip dosyası. Yalnızca masaüstü uygulamasını içerir,
-#       .NET kurulumu gerektirmez (Windows 10/11, 64 bit) ve verilen adresteki API'ye bağlanır.
-#       İçinde gizli ayar yoktur.
+#   .\paketle.ps1 -Dagitim -ApiAdresi https://ornek.onrender.com/ -Surum 0.2.0
+#       Dağıtım paketi: dist\Vulu-Kurulum.exe. Kullanıcıya verilen tek dosyadır; uygulamayı kurar, Başlat menüsü
+#       ve masaüstü kısayolu oluşturur. .NET kurulumu gerektirmez (Windows 10/11, 64 bit), verilen adresteki
+#       API'ye bağlanır ve içinde gizli ayar yoktur. Ara ürün olarak dist\Vulu-win-x64 klasörü ve .zip de kalır.
 
 param(
     [switch]$Dagitim,
-    [string]$ApiAdresi
+    [string]$ApiAdresi,
+    [string]$Surum = '0.0.0'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -42,7 +43,9 @@ if ($Dagitim) {
 
     $hedef = Join-Path $kok 'dist\Vulu-win-x64'
     Temizle $hedef
-    Yayimla 'src\Vulu.Desktop' $hedef @('-r', 'win-x64', '--self-contained', 'true', '-p:DebugType=none')
+    if ($Surum -notmatch '^\d+\.\d+\.\d+$') { throw "-Surum 1.2.3 biçiminde olmalı: $Surum" }
+
+    Yayimla 'src\Vulu.Desktop' $hedef @('-r', 'win-x64', '--self-contained', 'true', '-p:DebugType=none', "-p:Version=$Surum")
 
     @{ ApiAdresi = $adres.AbsoluteUri } | ConvertTo-Json |
         Set-Content (Join-Path $hedef 'appsettings.json') -Encoding utf8
@@ -51,8 +54,16 @@ if ($Dagitim) {
     if (Test-Path $zip) { Remove-Item $zip -Force }
     Compress-Archive -Path (Join-Path $hedef '*') -DestinationPath $zip
 
-    Write-Host "Hazır: $(Join-Path $hedef 'Vulu.Desktop.exe')"
-    Write-Host "Zip:   $zip"
+    # Kurulum programı, az önce üretilen zip'i içine gömerek tek dosya olarak yayımlanır.
+    $kurulumKlasoru = Join-Path $kok 'dist\kurulum'
+    Temizle $kurulumKlasoru
+    Yayimla 'tools\Vulu.Kurulum' $kurulumKlasoru @("-p:UygulamaZip=$zip", "-p:Version=$Surum")
+
+    $kurulum = Join-Path $kok 'dist\Vulu-Kurulum.exe'
+    Move-Item (Join-Path $kurulumKlasoru 'Vulu-Kurulum.exe') $kurulum -Force
+    Remove-Item $kurulumKlasoru -Recurse -Force
+
+    Write-Host "Hazır: $kurulum"
     return
 }
 

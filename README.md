@@ -111,6 +111,7 @@ tests/
   Vulu.Tests       Testler (232 test; GuvenlikTestleri.cs saldırı denemeleridir)
 tools/
   Vulu.Baslatici   Test paketinin API ile masaüstünü birlikte açan başlatıcısı
+  Vulu.Kurulum     Kullanıcıya verilen kurulum programı
   ikon-uret.ps1    Logodan pencere ve exe simgesi üretir
 paketle.ps1        Test paketini ve dağıtım paketini üretir
 Dockerfile         API'nin barındırma imajı
@@ -262,18 +263,26 @@ Bilinmesi gerekenler:
 ### Masaüstü
 
 ```bash
-powershell -ExecutionPolicy Bypass -File .\paketle.ps1 -Dagitim -ApiAdresi https://<servis-adi>.onrender.com/
+powershell -ExecutionPolicy Bypass -File .\paketle.ps1 -Dagitim -ApiAdresi https://<servis-adi>.onrender.com/ -Surum 0.2.0
 ```
 
-`dist\Vulu-win-x64` klasörünü ve `.zip` dosyasını üretir. Paket .NET kurulumu gerektirmez ve gizli ayar
-içermez; içindeki tek ayar API adresidir. Çalışması için bilgisayarda Microsoft Edge WebView2 Runtime
-bulunmalıdır (Windows 11'de hazır gelir); yoksa uygulama açılışta indirme adresini gösterir. API adresi `https`
-olmak zorundadır. Exe imzalı değildir; Windows ilk açılışta "bilinmeyen yayıncı" uyarısı gösterebilir.
+`dist\Vulu-Kurulum.exe` dosyasını üretir; kullanıcıya verilen tek dosya budur. Çalıştırılınca:
 
-Üretilen zip, GitHub'da sürüm olarak yayımlanır:
+- uygulamayı `%LOCALAPPDATA%\Programs\Vulu` klasörüne kurar (yönetici izni istemez),
+- Başlat menüsüne ve masaüstüne kısayol ekler,
+- "Program ekle/kaldır" listesine kaydeder; oradan kaldırılınca klasör, kısayollar ve kayıt silinir,
+- yeniden çalıştırılırsa kurulu sürümün üzerine yazar (güncelleme).
+
+Kurulum programı bu depodadır (`tools/Vulu.Kurulum`); dışarıdan bir kurulum aracı gerekmez. Uygulamayı içinde
+taşır, .NET kurulumu gerektirmez ve gizli ayar içermez; içindeki tek ayar API adresidir. `/sessiz` seçeneğiyle
+soru sormadan kurar. Uygulamanın çalışması için bilgisayarda Microsoft Edge WebView2 Runtime bulunmalıdır
+(Windows 11'de hazır gelir); yoksa kurulum bunu söyler ve indirme adresini gösterir. API adresi `https` olmak
+zorundadır. Dosyalar imzalı değildir; Windows ilk çalıştırmada "bilinmeyen yayıncı" uyarısı gösterebilir.
+
+Kurulum dosyası GitHub'da sürüm olarak yayımlanır:
 
 ```bash
-gh release create v0.1.0 dist\Vulu-win-x64.zip --target main --title "0.1.0"
+gh release create v0.2.0 dist\Vulu-Kurulum.exe --target main --title "0.2.0"
 ```
 
 API ile masaüstü arasındaki biçim geriye uyumsuz değişirse `Vulu.Shared/SaglikYaniti.cs` içindeki
@@ -296,7 +305,7 @@ dağıtılır. Henüz olmayanlar:
 
 - Otomatik SMS (bir SMS sağlayıcısı bağlı değildir; bilgilendirme personelin WhatsApp ya da e-posta programı
   üzerinden yapılır).
-- Kurulum programı, otomatik güncelleme ve imzalı exe.
+- Otomatik güncelleme (yeni sürüm, kurulum yeniden çalıştırılarak yüklenir) ve imzalı exe.
 - e-Fatura / e-Arşiv bağlantısı.
 - Kalıcı silme ve veri saklama süresi düzeneği (bkz. Güvenlik → Bilinen sınırlar).
 

@@ -4,7 +4,7 @@ using Microsoft.Win32;
 
 namespace Vulu.Desktop;
 
-// Pencere açılmadan önce yapılan Windows'a özgü kontroller ve hata bildirimi.
+// Pencere açılmadan önce yapılan Windows'a özgü kontroller ve ileti kutuları. Kurulum programı da kullanır.
 [SupportedOSPlatform("windows")]
 internal static class WindowsUyumlulugu
 {
@@ -51,6 +51,20 @@ internal static class WindowsUyumlulugu
     {
         const uint HataSimgesi = 0x10;
         _ = MessageBoxW(IntPtr.Zero, mesaj, "vulu", HataSimgesi);
+    }
+
+    public static void BilgiGoster(string mesaj)
+    {
+        const uint BilgiSimgesi = 0x40;
+        _ = MessageBoxW(IntPtr.Zero, mesaj, "vulu", BilgiSimgesi);
+    }
+
+    // Evet / Hayır sorusu; kullanıcı Evet derse true.
+    public static bool Sor(string mesaj)
+    {
+        const uint EvetHayir = 0x04, SoruSimgesi = 0x20;
+        const int Evet = 6;
+        return MessageBoxW(IntPtr.Zero, mesaj, "vulu", EvetHayir | SoruSimgesi) == Evet;
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
