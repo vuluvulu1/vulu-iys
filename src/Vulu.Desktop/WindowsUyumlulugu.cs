@@ -47,26 +47,10 @@ internal static class WindowsUyumlulugu
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
-    public static void HataGoster(string mesaj)
-    {
-        const uint HataSimgesi = 0x10;
-        _ = MessageBoxW(IntPtr.Zero, mesaj, "vulu", HataSimgesi);
-    }
+    public static void HataGoster(string mesaj) => IletiKutusu.Goster(mesaj, IletiKutusu.Tur.Hata);
 
-    public static void BilgiGoster(string mesaj)
-    {
-        const uint BilgiSimgesi = 0x40;
-        _ = MessageBoxW(IntPtr.Zero, mesaj, "vulu", BilgiSimgesi);
-    }
+    public static void BilgiGoster(string mesaj) => IletiKutusu.Goster(mesaj, IletiKutusu.Tur.Bilgi);
 
     // Evet / Hayır sorusu; kullanıcı Evet derse true.
-    public static bool Sor(string mesaj)
-    {
-        const uint EvetHayir = 0x04, SoruSimgesi = 0x20;
-        const int Evet = 6;
-        return MessageBoxW(IntPtr.Zero, mesaj, "vulu", EvetHayir | SoruSimgesi) == Evet;
-    }
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
+    public static bool Sor(string mesaj) => IletiKutusu.Goster(mesaj, IletiKutusu.Tur.Soru);
 }
