@@ -53,7 +53,10 @@ public record IsletmeOlusturIstegi(
     string YoneticiSifre,
     [Required(ErrorMessage = "Yönetici ad soyadı gerekli.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
-    string YoneticiAdSoyad);
+    string YoneticiAdSoyad)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 // Vulu yöneticisinin sonradan değiştirebildikleri: ad, iletişim bilgileri ve açık/askıda durumu.
 public record IsletmeDurumIstegi(
@@ -78,7 +81,10 @@ public record IsletmeYoneticisiOzeti(string Id, string KullaniciAdi, string AdSo
 public record SifreSifirlamaIstegi(
     [Required(ErrorMessage = "Yeni şifre gerekli.")]
     [Sifre]
-    string YeniSifre);
+    string YeniSifre)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 // İşletme yöneticisinin kendi işletmesi için düzenlediği bilgiler.
 public record IsletmeProfilIstegi(
@@ -118,7 +124,10 @@ public record VuluYoneticisiOlusturIstegi(
     string Sifre,
     [Required(ErrorMessage = "Ad soyad gerekli.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
-    string AdSoyad);
+    string AdSoyad)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 public record VuluYoneticisiGuncelleIstegi(
     [Required(ErrorMessage = "Ad soyad gerekli.")]
@@ -126,7 +135,10 @@ public record VuluYoneticisiGuncelleIstegi(
     string AdSoyad,
     bool AktifMi,
     [Sifre]
-    string? YeniSifre);
+    string? YeniSifre)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 public static class IsletmeKurallari
 {

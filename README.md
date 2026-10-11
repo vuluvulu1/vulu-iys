@@ -1,7 +1,28 @@
 # vulu Teknik Servis Yönetim Sistemi
 
-Teknik servis işletmelerine hizmet olarak sunulan yönetim paneli: müşteri, personel, servis kaydı, randevu ve
-fatura. Tek bir API birden çok işletmeye hizmet verir; her işletmenin verisi kendi veritabanında durur.
+Teknik servis işletmelerine hizmet olarak sunulan yönetim paneli. Tek bir API birden çok işletmeye hizmet
+verir; her işletmenin verisi kendi veritabanında durur.
+
+Bir işletme bu sistemle şunları yapar:
+
+- müşterilerini ve personelini kaydeder,
+- cihazı marka, model, seri numarası, aksesuar ve teslim alındığı andaki durumuyla servise kabul eder,
+- fiyat teklifi verir ve müşterinin onayını kaydeder,
+- kullanılan yedek parçaları stoktan düşer,
+- kabul formu, teslim formu ve fatura belgesini PDF olarak alır,
+- randevuları takvimde izler,
+- müşteriyi WhatsApp ya da e-postayla bilgilendirir; müşteri cihazının durumunu bir web sayfasından sorgular,
+- dönem raporlarını ve her kaydın işlem geçmişini görür.
+
+## Mimari
+
+```text
+Masaüstü uygulaması (Windows)  --HTTPS-->  API (Render, Docker)  -->  MongoDB Atlas
+     Photino + Blazor                       ASP.NET Core               işletme başına bir veritabanı
+```
+
+Masaüstü uygulaması veritabanına hiç bağlanmaz; yalnızca API'nin adresini bilir. Veritabanına erişen tek şey
+API'dir, bu yüzden işletmelerin bilgisayarları herhangi bir ağdan çalışır.
 
 ## Çok işletmeli yapı
 
@@ -56,9 +77,11 @@ fatura. Tek bir API birden çok işletmeye hizmet verir; her işletmenin verisi 
 ### Ters vekil arkasında
 
 Adres başına sınırların çalışması için API'nin istemcinin gerçek adresini görmesi gerekir. `Vekil:AtlamaSayisi`
-API'nin önündeki vekil sayısıdır (Docker imajında 1); ayarlanmamışsa `X-Forwarded-*` başlıkları hiç okunmaz.
-Canlıya çıkınca vulu yöneticisi **Sunucu** ekranından denetlemelidir: “Görülen adres” kendi internet adresi
-değil de barındırma şirketinin adresiyse değer bir artırılır. Bu, canlı ortamda denenmeden doğrulanamaz.
+API'nin önündeki vekil sayısıdır; ayarlanmamışsa `X-Forwarded-*` başlıkları hiç okunmaz. Render'da doğru değer
+3'tür (`render.yaml`): 1 ile denendiğinde API, kullanıcının adresi yerine Render'ın iç ağ adresini gördü; 3 ile
+gerçek adresi görüyor ve istekle gönderilen sahte adresi kabul etmiyor. Barındırma ortamı değişirse vulu
+yöneticisi **Sunucu** ekranından denetlemelidir: “Görülen adres” kendi internet adresi olmalı, “İşlenmeyen
+vekil” sıfır olmalıdır.
 
 ### Bilinen sınırlar
 
@@ -81,23 +104,37 @@ değil de barındırma şirketinin adresiyse değer bir artırılır. Bu, canlı
 
 ```text
 src/
-  Vulu.Api       Web API; veritabanına yalnızca bu proje erişir
-  Vulu.Shared    API ile masaüstünün paylaştığı DTO ve enum'lar
-  Vulu.Desktop   Photino.Blazor masaüstü istemcisi
+  Vulu.Api         Web API; veritabanına yalnızca bu proje erişir
+  Vulu.Shared      API ile masaüstünün paylaştığı istek/yanıt türleri ve kurallar
+  Vulu.Desktop     Photino.Blazor masaüstü istemcisi
 tests/
-  Vulu.Tests     Testler
+  Vulu.Tests       Testler (232 test; GuvenlikTestleri.cs saldırı denemeleridir)
+tools/
+  Vulu.Baslatici   Test paketinin API ile masaüstünü birlikte açan başlatıcısı
+  ikon-uret.ps1    Logodan pencere ve exe simgesi üretir
+paketle.ps1        Test paketini ve dağıtım paketini üretir
+Dockerfile         API'nin barındırma imajı
+render.yaml        Render kurulum tanımı (Blueprint)
 ```
 
-## Çalıştırma
+Derleme uyarı bırakmaz: çözümleyiciler açıktır ve uyarılar hata sayılır (`Directory.Build.props`,
+`.editorconfig`).
 
-Yerelde `mongodb://localhost:27017` adresinde bir MongoDB gerekir
-(`src/Vulu.Api/appsettings.Development.json`).
+## Geliştirme ortamında çalıştırma
+
+Gerekenler: .NET 10 SDK ve bir MongoDB (bu bilgisayarda kurulu ya da MongoDB Atlas'ta).
 
 Gizli ayarlar repoda tutulmaz. `src/Vulu.Api/appsettings.Local.ornek.json` dosyasını aynı klasöre
 `appsettings.Local.json` adıyla kopyalayıp değerleri doldurun; bu dosya git'e girmez.
 
-`IlkAdmin` ilk vulu yöneticisinin hesabıdır ve yalnızca hiç vulu yöneticisi yokken oluşturulur; işletmeleri o
-açar. Canlı ortamda aynı ayarlar ortam değişkeniyle verilir (`Jwt__Anahtar`, `Mongo__BaglantiDizesi`, ...).
+- `Jwt:Anahtar`: en az 32 karakterlik rastgele bir dize.
+- `IlkAdmin`: ilk vulu yöneticisinin hesabı. Yalnızca veritabanında hiç vulu yöneticisi yokken oluşturulur;
+  işletmeleri o açar.
+- `Mongo:BaglantiDizesi`: yazılmazsa bu bilgisayardaki MongoDB kullanılır (`mongodb://localhost:27017`). Atlas'a
+  bağlanmak için buraya Atlas bağlantı dizesi yazılır ve Atlas'ın "Network Access" listesine bu bilgisayarın
+  adresi eklenir.
+
+Canlı ortamda aynı ayarlar ortam değişkeniyle verilir (`Jwt__Anahtar`, `Mongo__BaglantiDizesi`, ...).
 
 ```bash
 dotnet run --project src/Vulu.Api --launch-profile http
@@ -184,24 +221,43 @@ powershell -ExecutionPolicy Bypass -File .\paketle.ps1
 ```
 
 `dist\Vulu\Vulu.exe` çift tıklanınca API'yi arka planda başlatır, masaüstü uygulamasını açar ve pencere
-kapanınca API'yi kapatır. API çıktısı `dist\Vulu\api.log` dosyasına yazılır. Paket bu makinedeki .NET 10,
-yerel MongoDB ile çalışır ve `appsettings.Local.json` içindeki gizli ayarları taşır; dağıtım paketi değildir,
-paylaşılmamalıdır.
+kapanınca API'yi kapatır. API çıktısı `dist\Vulu\api.log` dosyasına yazılır. Paket bu makinedeki .NET 10 ile
+çalışır ve `appsettings.Local.json` içindeki ayarları (veritabanı bağlantısı dahil) taşır; dağıtım paketi
+değildir, paylaşılmamalıdır.
 
 ## Dağıtım
 
-Hedef: Windows 10 ve 11 (64 bit). API merkezi bir sunucuda (Render) çalışır, veritabanı MongoDB Atlas'tadır;
-masaüstü uygulaması yalnızca API adresini bilir, veritabanına doğrudan bağlanmaz.
+Hedef: Windows 10 ve 11 (64 bit). API Render'da, veritabanı MongoDB Atlas'ta çalışır.
+
+### Veritabanı (MongoDB Atlas)
+
+1. Bir küme ve bir veritabanı kullanıcısı oluşturulur. Kullanıcının bütün veritabanlarında okuma, yazma ve
+   yönetim yetkisi olmalıdır: API her işletme için ayrı bir veritabanı açar ve işletme silinince onu kaldırır.
+   Bu yüzden küme başka bir projeyle paylaşılmamalıdır.
+2. "Network Access" listesine `0.0.0.0/0` eklenir; Render'ın ücretsiz planında sabit çıkış adresi yoktur. Bu
+   durumda veritabanını koruyan şey kullanıcı şifresidir; uzun ve rastgele olmalıdır.
+
+Platform veritabanı (`vulu_platform`) ve işletme veritabanları (`isletme_<kod>`) ilk kullanımda kendiliğinden
+oluşur; elle veritabanı açmak gerekmez.
 
 ### API (Render)
 
-`render.yaml` ve `Dockerfile` API'yi kurar. Render panelinde elle girilecek değerler:
+Render'da "New → Blueprint" ile bu depo seçilir; `render.yaml` servisi tanımlar ve iki değer ister:
 
 - `Mongo__BaglantiDizesi`: Atlas bağlantı dizesi
-- `IlkAdmin__Sifre`: ilk yönetici şifresi (en az 8 karakter); ilk girişten sonra uygulamadan değiştirin
-- `Takip__Adres` (isteğe bağlı): müşteriye verilen takip bağlantısının kökü, örn. `https://servis.ornek.com`
+- `IlkAdmin__Sifre`: ilk vulu yöneticisinin şifresi (en az 8 karakter); ilk girişten sonra uygulamadan
+  değiştirilmelidir
 
-`Jwt__Anahtar` Render tarafından rastgele üretilir. Sağlık kontrolü `/api/saglik/canli` adresidir.
+`Jwt__Anahtar` Render tarafından rastgele üretilir. İsteğe bağlı olarak `Takip__Adres` ile müşteriye verilen
+takip bağlantısının kökü değiştirilebilir (örn. `https://servis.ornek.com`). Sağlık kontrolü `/api/saglik/canli`
+adresidir. `main` dalına gönderilen her commit yeniden yayımlanır.
+
+Bilinmesi gerekenler:
+
+- `render.yaml` bölge belirtmez; Render varsayılan bölgeyi seçer. API ile veritabanı aynı bölgede olursa
+  yanıtlar belirgin hızlanır. Bölge servis kurulduktan sonra değiştirilemez.
+- Ücretsiz planda servis 15 dakika istek almayınca uyur; sonraki ilk istek bir dakika kadar sürebilir. Giriş
+  ekranı bu sırada beklediğini söyler.
 
 ### Masaüstü
 
@@ -210,8 +266,15 @@ powershell -ExecutionPolicy Bypass -File .\paketle.ps1 -Dagitim -ApiAdresi https
 ```
 
 `dist\Vulu-win-x64` klasörünü ve `.zip` dosyasını üretir. Paket .NET kurulumu gerektirmez ve gizli ayar
-içermez. Çalışması için bilgisayarda Microsoft Edge WebView2 Runtime bulunmalıdır (Windows 11'de hazır gelir);
-yoksa uygulama açılışta indirme adresini gösterir. API adresi `https` olmak zorundadır.
+içermez; içindeki tek ayar API adresidir. Çalışması için bilgisayarda Microsoft Edge WebView2 Runtime
+bulunmalıdır (Windows 11'de hazır gelir); yoksa uygulama açılışta indirme adresini gösterir. API adresi `https`
+olmak zorundadır. Exe imzalı değildir; Windows ilk açılışta "bilinmeyen yayıncı" uyarısı gösterebilir.
+
+Üretilen zip, GitHub'da sürüm olarak yayımlanır:
+
+```bash
+gh release create v0.1.0 dist\Vulu-win-x64.zip --target main --title "0.1.0"
+```
 
 API ile masaüstü arasındaki biçim geriye uyumsuz değişirse `Vulu.Shared/SaglikYaniti.cs` içindeki
 `ApiSozlesmesi.Surum` artırılır; eski masaüstü sürümleri girişte güncelleme uyarısı verir.
@@ -222,22 +285,25 @@ API ile masaüstü arasındaki biçim geriye uyumsuz değişirse `Vulu.Shared/Sa
 dotnet test
 ```
 
-Sağlık testi dışındaki testler gerçek bir MongoDB ister. Adres `VULU_TEST_MONGO` ortam değişkeninden okunur,
-yoksa `mongodb://localhost:27017` kullanılır. Her test kendi geçici veritabanını açıp siler.
+Testler bu bilgisayarda çalışan bir MongoDB ister. Adres `VULU_TEST_MONGO` ortam değişkeninden okunur, yoksa
+`mongodb://localhost:27017` kullanılır; `appsettings.Local.json` içindeki bağlantı dizesi testlerde kullanılmaz,
+yani testler canlı veritabanına dokunmaz. Her test kendi geçici veritabanını açıp siler.
 
 ## Durum
 
-- [x] 0. İskelet
-- [x] 1. Veri modeli
-- [x] 2. API çekirdeği (kimlik doğrulama, roller, doğrulama)
-- [x] 3. Giriş ekranı, oturum yönetimi, kullanıcı yönetimi ekranı
-- [x] 4. Müşteriler (uç noktalar + ekran)
-- [x] 5. Teknisyenler (uç noktalar + ekran)
-- [x] 6. Servis kayıtları ve fatura (uç noktalar + ekran)
-- [x] 7. Randevular (uç noktalar + ekran)
-- [x] 8. Çok işletmeli yapı, fatura belgesi, takvim
-- [x] 9. Cihaz ayrıntısı, formlar, teklif, stok, işlem geçmişi, raporlar, takip sayfası, bildirim
-- [ ] 10. Canlı ortama dağıtım (Render + Atlas)
+Sistem canlıdadır: API Render'da, veritabanı Atlas'ta çalışır ve masaüstü uygulaması GitHub sürümü olarak
+dağıtılır. Henüz olmayanlar:
+
+- Otomatik SMS (bir SMS sağlayıcısı bağlı değildir; bilgilendirme personelin WhatsApp ya da e-posta programı
+  üzerinden yapılır).
+- Kurulum programı, otomatik güncelleme ve imzalı exe.
+- e-Fatura / e-Arşiv bağlantısı.
+- Kalıcı silme ve veri saklama süresi düzeneği (bkz. Güvenlik → Bilinen sınırlar).
+
+## Lisans
+
+[GNU Affero Genel Kamu Lisansı v3.0](LICENSE) (AGPL-3.0). Yazılımı değiştirip bir ağ üzerinden başkalarına
+hizmet olarak sunan herkes, değiştirdiği kaynak kodu da aynı lisansla o kullanıcılara açmak zorundadır.
 
 Logo `assets/logo.svg` dosyasındadır. Değiştirilirse pencere ve exe simgesi
 `tools/ikon-uret.ps1` ile yeniden üretilir (`assets/logo.ico`).

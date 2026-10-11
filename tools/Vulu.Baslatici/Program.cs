@@ -69,7 +69,7 @@ internal static class Program
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        // Test paketi geliştirme ayarlarıyla çalışır: yerel MongoDB ve pakete kopyalanan appsettings.Local.json.
+        // Test paketi geliştirme ayarlarıyla çalışır: veritabanı bağlantısı pakete kopyalanan appsettings.Local.json içindedir.
         baslangic.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
         baslangic.Environment["ASPNETCORE_URLS"] = apiAdresi.GetLeftPart(UriPartial.Authority);
 
