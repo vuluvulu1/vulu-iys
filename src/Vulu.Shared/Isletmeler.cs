@@ -23,11 +23,7 @@ public record IsletmeYaniti(
     // Aktif personel sayısı; yalnızca vulu yöneticisinin işletme listesinde doldurulur.
     long? PersonelSayisi,
     // Kabul formuna yazılan koşullar; boşsa varsayılan metin kullanılır.
-    string? ServisKosullari = null,
-    // Faturalı kayıtların ve müşteri verisinin saklandığı süre (yıl).
-    int SaklamaYili = IsletmeKurallari.VarsayilanSaklamaYili,
-    // Kabul formuna yazılan kişisel veri aydınlatma metni; boşsa varsayılan metin kullanılır.
-    string? AydinlatmaMetni = null);
+    string? ServisKosullari = null);
 
 // Vulu yöneticisinin işletme kaydı açarken verdiği bilgiler: işletme, iletişim bilgileri ve ilk yöneticisi.
 // İletişim bilgileri kayıt sırasında zorunludur; anlaşma yapılan işletmenin kime ait olduğu baştan bilinir.
@@ -113,17 +109,7 @@ public record IsletmeProfilIstegi(
     string? LogoTuru,
     bool LogoyuKaldir,
     [StringLength(1500, ErrorMessage = "Servis koşulları en fazla 1500 karakter olabilir.")]
-    string? ServisKosullari = null,
-    [Range(IsletmeKurallari.EnAzSaklamaYili, IsletmeKurallari.EnFazlaSaklamaYili, ErrorMessage = "Saklama süresi 1 ile 30 yıl arasında olmalı.")]
-    int SaklamaYili = IsletmeKurallari.VarsayilanSaklamaYili,
-    [StringLength(2000, ErrorMessage = "Aydınlatma metni en fazla 2000 karakter olabilir.")]
-    string? AydinlatmaMetni = null);
-
-// Kişisel veriler ekranındaki bir müşteri satırı. SonIslemTarihi: kaydı, servis kayıtları ve randevularından en geç olanı.
-public record KvkkMusterisi(string Id, string AdSoyad, string? Telefon, DateTime SonIslemTarihi, bool SilinmisMi);
-
-// Silinmisler: listeden kaldırılmış ama verisi hâlâ duran müşteriler. SuresiDolanlar: son işlemi saklama süresinden eski olanlar.
-public record KvkkDurumu(int SaklamaYili, IReadOnlyList<KvkkMusterisi> Silinmisler, IReadOnlyList<KvkkMusterisi> SuresiDolanlar);
+    string? ServisKosullari = null);
 
 // Vulu yöneticisi hesapları (işletme kaydı açan kişiler).
 public record VuluYoneticisiYaniti(string Id, string KullaniciAdi, string AdSoyad, bool AktifMi);
@@ -159,12 +145,6 @@ public static class IsletmeKurallari
     // Giriş ekranında yazılan kısa ad; adreslerde ve veritabanı adında kullanıldığı için dar bir alfabeyle sınırlıdır.
     public const string KodDeseni = "^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$";
     public const string KodMesaji = "İşletme kodu 3-30 karakter olmalı; yalnızca küçük harf, rakam ve tire içerebilir.";
-
-    // Faturalı kayıtların saklanması gereken süre. Varsayılan, Türk Ticaret Kanunu'ndaki on yıllık saklama süresidir;
-    // işletme kendi hukuki değerlendirmesine göre değiştirebilir.
-    public const int VarsayilanSaklamaYili = 10;
-    public const int EnAzSaklamaYili = 1;
-    public const int EnFazlaSaklamaYili = 30;
 
     // Bu kodla giriş yapanlar bir işletmenin personeli değil, vulu yöneticisidir.
     public const string PlatformKodu = "vulu";

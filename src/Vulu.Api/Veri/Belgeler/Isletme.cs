@@ -1,6 +1,5 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Vulu.Shared;
 
 namespace Vulu.Api.Veri.Belgeler;
 
@@ -28,12 +27,6 @@ public class Isletme
 
     // Servis kabul formunun altına yazılan koşullar; boşsa varsayılan metin kullanılır.
     public string? ServisKosullari { get; set; }
-
-    // Faturalı kayıtların ve müşteri verisinin saklandığı süre; dolmadan faturalı müşterinin verisi silinemez.
-    public int SaklamaYili { get; set; } = IsletmeKurallari.VarsayilanSaklamaYili;
-
-    // Kabul formuna yazılan kişisel veri aydınlatma metni; boşsa varsayılan metin kullanılır.
-    public string? AydinlatmaMetni { get; set; }
 
     public byte[]? Logo { get; set; }
     public string? LogoTuru { get; set; }

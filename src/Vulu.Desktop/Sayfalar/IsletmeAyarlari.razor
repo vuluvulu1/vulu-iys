@@ -80,23 +80,6 @@ else
         <textarea id="i-kosullar" rows="4" maxlength="1500" @bind="_form.ServisKosullari" @bind:event="oninput"
                   placeholder="Boş bırakılırsa genel bir metin kullanılır."></textarea>
 
-        <h3 class="form-basligi">Kişisel veriler (KVKK)</h3>
-
-        <label for="i-saklama">Saklama süresi (yıl)</label>
-        <input id="i-saklama" type="number" min="@IsletmeKurallari.EnAzSaklamaYili" max="@IsletmeKurallari.EnFazlaSaklamaYili"
-               @bind="_form.SaklamaYili" />
-        <p class="soluk aciklama">
-            Faturası kesilmiş bir müşterinin kişisel verisi bu süre dolmadan silinemez; son işlemi bu süreden eski olan
-            müşteriler Kişisel Veriler sayfasında listelenir. Varsayılan on yıl, ticari defter ve belgelerin saklama süresidir.
-        </p>
-
-        <label for="i-aydinlatma">Aydınlatma metni (kabul formuna yazılır)</label>
-        <textarea id="i-aydinlatma" rows="5" maxlength="2000" @bind="_form.AydinlatmaMetni" @bind:event="oninput"
-                  placeholder="Boş bırakılırsa genel bir metin kullanılır."></textarea>
-        <p class="soluk aciklama">
-            Genel metin hukuki danışmanlık yerine geçmez; işletmenizin faaliyetine göre bir hukukçuyla gözden geçirmeniz önerilir.
-        </p>
-
         @if (_hata is not null)
         {
             <p class="hata" role="alert">@_hata</p>
@@ -123,8 +106,6 @@ else
         public string VergiNo { get; set; } = "";
         public string KdvOrani { get; set; } = "20";
         public string ServisKosullari { get; set; } = "";
-        public int SaklamaYili { get; set; } = IsletmeKurallari.VarsayilanSaklamaYili;
-        public string AydinlatmaMetni { get; set; } = "";
     }
 
     private IsletmeFormu? _form;
@@ -171,9 +152,7 @@ else
             VergiDairesi = isletme.VergiDairesi ?? "",
             VergiNo = isletme.VergiNo ?? "",
             KdvOrani = isletme.KdvOrani.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("tr-TR")),
-            ServisKosullari = isletme.ServisKosullari ?? "",
-            SaklamaYili = isletme.SaklamaYili,
-            AydinlatmaMetni = isletme.AydinlatmaMetni ?? ""
+            ServisKosullari = isletme.ServisKosullari ?? ""
         };
     }
 
@@ -252,8 +231,7 @@ else
 
         var istek = new IsletmeProfilIstegi(_form.Ad.Trim(), Metin.BosIseNull(_form.Adres), Metin.BosIseNull(_form.Telefon),
             Metin.BosIseNull(_form.Eposta), Metin.BosIseNull(_form.VergiDairesi), Metin.BosIseNull(_form.VergiNo), kdv,
-            _yeniLogo?.Veri, _yeniLogo?.Tur, _logoKaldirilacak, Metin.BosIseNull(_form.ServisKosullari),
-            _form.SaklamaYili, Metin.BosIseNull(_form.AydinlatmaMetni));
+            _yeniLogo?.Veri, _yeniLogo?.Tur, _logoKaldirilacak, Metin.BosIseNull(_form.ServisKosullari));
 
         _kaydediliyor = true;
         var sonuc = await Api.Guncelle<IsletmeYaniti>("api/isletme", istek);
