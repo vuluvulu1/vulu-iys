@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using Microsoft.Win32;
+using Vulu.Desktop.Servisler;
 
 namespace Vulu.Desktop;
 
-// "Program ekle/kaldır" listesinden çağrılır: kurulumun bıraktığı kısayolları, kaydı ve program klasörünü siler.
+// "Program ekle/kaldır" listesinden çağrılır: kurulumun bıraktığı kısayolları, kaydı, program klasörünü ve
+// uygulamanın bu kullanıcı için tuttuğu veriyi (tercihler, tarayıcı önbelleği) siler. Geride bir şey kalmaz.
 [SupportedOSPlatform("windows")]
 internal static class Kaldirici
 {
@@ -37,7 +39,7 @@ internal static class Kaldirici
         // Çalışan bir program kendi dosyalarını silemez; klasörü, bu süreç kapandıktan sonra komut satırı siler.
         using var silici = Process.Start(new ProcessStartInfo("cmd.exe")
         {
-            Arguments = $"/c ping -n 3 127.0.0.1 >nul & rmdir /s /q \"{klasor}\"",
+            Arguments = $"/c ping -n 3 127.0.0.1 >nul & rmdir /s /q \"{klasor}\" & rmdir /s /q \"{YerelAyarlar.Klasor}\"",
             WorkingDirectory = Path.GetTempPath(),
             CreateNoWindow = true,
             UseShellExecute = false

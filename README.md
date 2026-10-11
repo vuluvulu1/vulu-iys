@@ -108,12 +108,11 @@ src/
   Vulu.Shared      API ile masaüstünün paylaştığı istek/yanıt türleri ve kurallar
   Vulu.Desktop     Photino.Blazor masaüstü istemcisi
 tests/
-  Vulu.Tests       Testler (232 test; GuvenlikTestleri.cs saldırı denemeleridir)
+  Vulu.Tests       Otomatik testler (233 test; GuvenlikTestleri.cs saldırı denemeleridir)
 tools/
-  Vulu.Baslatici   Test paketinin API ile masaüstünü birlikte açan başlatıcısı
   Vulu.Kurulum     Kullanıcıya verilen kurulum programı
   ikon-uret.ps1    Logodan pencere ve exe simgesi üretir
-paketle.ps1        Test paketini ve dağıtım paketini üretir
+paketle.ps1        Kurulum dosyasını üretir
 Dockerfile         API'nin barındırma imajı
 render.yaml        Render kurulum tanımı (Blueprint)
 ```
@@ -213,19 +212,6 @@ Belge bilgilendirme amaçlıdır: e-Fatura / e-Arşiv Fatura değildir ve resmî
 PDF üretimi QuestPDF ile yapılır; Community lisansı yıllık geliri 1 milyon ABD dolarının altındaki işletmeler
 için ücretsizdir.
 
-## Test paketi
-
-Tek tıkla denemek için:
-
-```bash
-powershell -ExecutionPolicy Bypass -File .\paketle.ps1
-```
-
-`dist\Vulu\Vulu.exe` çift tıklanınca API'yi arka planda başlatır, masaüstü uygulamasını açar ve pencere
-kapanınca API'yi kapatır. API çıktısı `dist\Vulu\api.log` dosyasına yazılır. Paket bu makinedeki .NET 10 ile
-çalışır ve `appsettings.Local.json` içindeki ayarları (veritabanı bağlantısı dahil) taşır; dağıtım paketi
-değildir, paylaşılmamalıdır.
-
 ## Dağıtım
 
 Hedef: Windows 10 ve 11 (64 bit). API Render'da, veritabanı MongoDB Atlas'ta çalışır.
@@ -263,7 +249,7 @@ Bilinmesi gerekenler:
 ### Masaüstü
 
 ```bash
-powershell -ExecutionPolicy Bypass -File .\paketle.ps1 -Dagitim -ApiAdresi https://<servis-adi>.onrender.com/ -Surum 0.2.0
+powershell -ExecutionPolicy Bypass -File .\paketle.ps1 -ApiAdresi https://<servis-adi>.onrender.com/ -Surum 0.2.0
 ```
 
 `dist\Vulu-Kurulum.exe` dosyasını üretir; kullanıcıya verilen tek dosya budur. Çalıştırılınca:

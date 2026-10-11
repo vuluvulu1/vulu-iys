@@ -8,7 +8,6 @@
     <Project Path="tests/Vulu.Tests/Vulu.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
-    <Project Path="tools/Vulu.Baslatici/Vulu.Baslatici.csproj" />
     <Project Path="tools/Vulu.Kurulum/Vulu.Kurulum.csproj" />
   </Folder>
 </Solution>

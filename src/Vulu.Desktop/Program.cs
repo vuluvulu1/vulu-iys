@@ -55,6 +55,9 @@ internal static class Program
         app.MainWindow
             .SetTitle("vulu Teknik Servis Yönetim Sistemi")
             .SetIconFile(Path.Combine(AppContext.BaseDirectory, "logo.ico"))
+            // Tarayıcı bileşeni önbelleğini varsayılan olarak bütün Photino uygulamalarının paylaştığı bir klasöre
+            // yazar; uygulamanın kendi klasörüne alınır ki kaldırılınca geride bir şey kalmasın.
+            .SetTemporaryFilesPath(YerelAyarlar.TarayiciVerisi)
             .SetSize(1280, 800)
             .SetMinSize(900, 600)
             .Center();

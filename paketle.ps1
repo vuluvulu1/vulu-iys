@@ -1,76 +1,58 @@
-﻿# İki tür paket üretir:
+﻿# Kullanıcıya verilen kurulum dosyasını üretir: dist\Vulu-Kurulum.exe
 #
-#   .\paketle.ps1
-#       Test paketi: dist\Vulu\Vulu.exe çift tıklanınca API'yi ve masaüstü uygulamasını birlikte açar.
-#       Bu makinedeki .NET 10 ile çalışır; gizli ayarları ve veritabanı bağlantısını (appsettings.Local.json) içerir;
-#       paylaşılmamalıdır.
+#   .\paketle.ps1 -ApiAdresi https://ornek.onrender.com/ -Surum 0.2.0
 #
-#   .\paketle.ps1 -Dagitim -ApiAdresi https://ornek.onrender.com/ -Surum 0.2.0
-#       Dağıtım paketi: dist\Vulu-Kurulum.exe. Kullanıcıya verilen tek dosyadır; uygulamayı kurar, Başlat menüsü
-#       ve masaüstü kısayolu oluşturur. .NET kurulumu gerektirmez (Windows 10/11, 64 bit), verilen adresteki
-#       API'ye bağlanır ve içinde gizli ayar yoktur. Ara ürün olarak dist\Vulu-win-x64 klasörü ve .zip de kalır.
+# Kurulum dosyası uygulamayı içinde taşır; çalıştırılınca kurar, Başlat menüsü ve masaüstü kısayolu oluşturur.
+# .NET kurulumu gerektirmez (Windows 10/11, 64 bit), verilen adresteki API'ye bağlanır ve içinde gizli ayar yoktur.
 
 param(
-    [switch]$Dagitim,
-    [string]$ApiAdresi,
-    [string]$Surum = '0.0.0'
+    [Parameter(Mandatory)][string]$ApiAdresi,
+    [Parameter(Mandatory)][string]$Surum
 )
 
 $ErrorActionPreference = 'Stop'
 $kok = $PSScriptRoot
+$dist = Join-Path $kok 'dist'
 
-function Yayimla([string]$proje, [string]$cikti, [string[]]$ekSecenekler = @()) {
-    dotnet publish (Join-Path $kok $proje) -c Release -o $cikti --nologo -v quiet @ekSecenekler
+$adres = $null
+if (-not [Uri]::TryCreate($ApiAdresi, [UriKind]::Absolute, [ref]$adres)) {
+    throw "ApiAdresi geçerli bir adres değil: $ApiAdresi"
+}
+# Şifre ve tokenlar bu bağlantıdan geçer; uygulama da şifresiz adresi reddeder.
+if ($adres.Scheme -ne 'https' -and -not $adres.IsLoopback) {
+    throw "ApiAdresi https ile başlamalı: $ApiAdresi"
+}
+if ($Surum -notmatch '^\d+\.\d+\.\d+$') {
+    throw "Surum 1.2.3 biçiminde olmalı: $Surum"
+}
+
+function Yayimla([string]$proje, [string]$cikti, [string[]]$secenekler) {
+    dotnet publish (Join-Path $kok $proje) -c Release -o $cikti --nologo -v quiet "-p:Version=$Surum" @secenekler
     if ($LASTEXITCODE -ne 0) { throw "$proje yayımlanamadı." }
 }
 
-function Temizle([string]$klasor) {
-    # Açık kalan bir paket dosyaları kilitler.
-    Get-Process -Name 'Vulu', 'Vulu.Api', 'Vulu.Desktop' -ErrorAction SilentlyContinue |
-        Where-Object { $_.Path -and $_.Path.StartsWith($klasor, [StringComparison]::OrdinalIgnoreCase) } |
-        Stop-Process -Force
-    if (Test-Path $klasor) { Remove-Item $klasor -Recurse -Force }
-}
+# Ara ürünler geçici bir klasörde üretilir ve iş bitince silinir; dist içinde yalnızca kurulum dosyası kalır.
+$ara = Join-Path $dist 'ara'
+if (Test-Path $ara) { Remove-Item $ara -Recurse -Force }
 
-if ($Dagitim) {
-    $adres = $null
-    if (-not [Uri]::TryCreate($ApiAdresi, [UriKind]::Absolute, [ref]$adres)) {
-        throw "-ApiAdresi gerekli, örn: -ApiAdresi https://ornek.onrender.com/"
-    }
-    if ($adres.Scheme -ne 'https' -and -not $adres.IsLoopback) {
-        throw "ApiAdresi https ile başlamalı: $ApiAdresi"
-    }
-
-    $hedef = Join-Path $kok 'dist\Vulu-win-x64'
-    Temizle $hedef
-    if ($Surum -notmatch '^\d+\.\d+\.\d+$') { throw "-Surum 1.2.3 biçiminde olmalı: $Surum" }
-
-    Yayimla 'src\Vulu.Desktop' $hedef @('-r', 'win-x64', '--self-contained', 'true', '-p:DebugType=none', "-p:Version=$Surum")
+try {
+    $uygulama = Join-Path $ara 'uygulama'
+    Yayimla 'src\Vulu.Desktop' $uygulama @('-r', 'win-x64', '--self-contained', 'true', '-p:DebugType=none')
 
     @{ ApiAdresi = $adres.AbsoluteUri } | ConvertTo-Json |
-        Set-Content (Join-Path $hedef 'appsettings.json') -Encoding utf8
+        Set-Content (Join-Path $uygulama 'appsettings.json') -Encoding utf8
 
-    $zip = "$hedef.zip"
-    if (Test-Path $zip) { Remove-Item $zip -Force }
-    Compress-Archive -Path (Join-Path $hedef '*') -DestinationPath $zip
+    $zip = Join-Path $ara 'uygulama.zip'
+    Compress-Archive -Path (Join-Path $uygulama '*') -DestinationPath $zip
 
-    # Kurulum programı, az önce üretilen zip'i içine gömerek tek dosya olarak yayımlanır.
-    $kurulumKlasoru = Join-Path $kok 'dist\kurulum'
-    Temizle $kurulumKlasoru
-    Yayimla 'tools\Vulu.Kurulum' $kurulumKlasoru @("-p:UygulamaZip=$zip", "-p:Version=$Surum")
+    # Kurulum programı, uygulamayı içine gömerek tek dosya olarak yayımlanır.
+    $kurulumKlasoru = Join-Path $ara 'kurulum'
+    Yayimla 'tools\Vulu.Kurulum' $kurulumKlasoru @("-p:UygulamaZip=$zip")
 
-    $kurulum = Join-Path $kok 'dist\Vulu-Kurulum.exe'
+    $kurulum = Join-Path $dist 'Vulu-Kurulum.exe'
     Move-Item (Join-Path $kurulumKlasoru 'Vulu-Kurulum.exe') $kurulum -Force
-    Remove-Item $kurulumKlasoru -Recurse -Force
-
     Write-Host "Hazır: $kurulum"
-    return
 }
-
-$hedef = Join-Path $kok 'dist\Vulu'
-Temizle $hedef
-Yayimla 'tools\Vulu.Baslatici' $hedef
-Yayimla 'src\Vulu.Api' (Join-Path $hedef 'api')
-Yayimla 'src\Vulu.Desktop' (Join-Path $hedef 'desktop')
-
-Write-Host "Hazır: $(Join-Path $hedef 'Vulu.exe')"
+finally {
+    if (Test-Path $ara) { Remove-Item $ara -Recurse -Force }
+}
