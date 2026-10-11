@@ -53,7 +53,7 @@ internal static class Program
         var app = builder.Build();
 
         app.MainWindow
-            .SetTitle("vulu Teknik Servis Yönetim Sistemi")
+            .SetTitle(Urun.Ad)
             .SetIconFile(Path.Combine(AppContext.BaseDirectory, "logo.ico"))
             // Tarayıcı bileşeni önbelleğini varsayılan olarak bütün Photino uygulamalarının paylaştığı bir klasöre
             // yazar; uygulamanın kendi klasörüne alınır ki kaldırılınca geride bir şey kalmasın.

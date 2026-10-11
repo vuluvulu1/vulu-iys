@@ -1,7 +1,7 @@
-# vulu Teknik Servis Yönetim Sistemi
+# vulu İşletme Yönetim Sistemi
 
-Teknik servis işletmelerine hizmet olarak sunulan yönetim paneli. Tek bir API birden çok işletmeye hizmet
-verir; her işletmenin verisi kendi veritabanında durur.
+Servis ve onarım işi yapan işletmelere hizmet olarak sunulan yönetim paneli. Tek bir API birden çok işletmeye
+hizmet verir; her işletmenin verisi kendi veritabanında durur.
 
 Bir işletme bu sistemle şunları yapar:
 

@@ -147,7 +147,7 @@ public class PersonelTestleri : IClassFixture<ApiFabrikasi>
 public sealed class GecisTestleri : IAsyncLifetime, IDisposable
 {
     private readonly MongoClient _istemci = new(ApiFabrikasi.MongoAdresi);
-    private readonly string _ad = "vulu_tsys_test_" + Guid.NewGuid().ToString("N");
+    private readonly string _ad = "vulu_iys_test_" + Guid.NewGuid().ToString("N");
     private IMongoDatabase Db => _istemci.GetDatabase(_ad);
 
     public Task InitializeAsync() => Task.CompletedTask;

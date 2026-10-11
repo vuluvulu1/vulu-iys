@@ -23,7 +23,7 @@ internal static class Kaldirici
             return;
         }
 
-        if (!sessiz && !WindowsUyumlulugu.Sor($"{KurulumBilgisi.UrunAdi} bu bilgisayardan kaldırılsın mı?"))
+        if (!sessiz && !WindowsUyumlulugu.Sor($"{Urun.Ad} bu bilgisayardan kaldırılsın mı?"))
             return;
 
         if (BaskaKopyaCalisiyor())
@@ -46,7 +46,7 @@ internal static class Kaldirici
         });
 
         if (!sessiz)
-            WindowsUyumlulugu.BilgiGoster($"{KurulumBilgisi.UrunAdi} kaldırıldı.");
+            WindowsUyumlulugu.BilgiGoster($"{Urun.Ad} kaldırıldı.");
     }
 
     private static bool BaskaKopyaCalisiyor()

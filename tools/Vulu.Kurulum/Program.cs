@@ -24,7 +24,7 @@ internal static class Program
         try
         {
             if (!sessiz && !WindowsUyumlulugu.Sor(
-                    $"{KurulumBilgisi.UrunAdi} {surum} bu bilgisayara kurulacak.\n\nKlasör: {KurulumBilgisi.Klasor}\n\nDevam edilsin mi?"))
+                    $"{Urun.Ad} {surum} bu bilgisayara kurulacak.\n\nKlasör: {KurulumBilgisi.Klasor}\n\nDevam edilsin mi?"))
                 return 1;
 
             if (UygulamaAcik())
@@ -35,8 +35,9 @@ internal static class Program
             else IletiKutusu.Calistir("Kuruluyor…\n\nDosyalar yerleştiriliyor, lütfen bekleyin.", DosyalariYerlestir);
 
             foreach (var kisayol in KurulumBilgisi.Kisayollar)
-                Kisayol.Olustur(kisayol, KurulumBilgisi.UygulamaYolu, KurulumBilgisi.UrunAdi);
+                Kisayol.Olustur(kisayol, KurulumBilgisi.UygulamaYolu, Urun.Ad);
             KaldirmaKaydiniYaz(surum);
+            EskiAdinIzleriniSil();
 
             if (sessiz) return 0;
 
@@ -86,15 +87,22 @@ internal static class Program
     private static void KaldirmaKaydiniYaz(string surum)
     {
         using var anahtar = Registry.CurrentUser.CreateSubKey(KurulumBilgisi.KaldirmaAnahtari);
-        anahtar.SetValue("DisplayName", KurulumBilgisi.UrunAdi);
+        anahtar.SetValue("DisplayName", Urun.Ad);
         anahtar.SetValue("DisplayVersion", surum);
-        anahtar.SetValue("Publisher", KurulumBilgisi.Yayinci);
+        anahtar.SetValue("Publisher", Urun.Yayinci);
         anahtar.SetValue("InstallLocation", KurulumBilgisi.Klasor);
         anahtar.SetValue("DisplayIcon", KurulumBilgisi.UygulamaYolu);
         anahtar.SetValue("UninstallString", $"\"{KurulumBilgisi.UygulamaYolu}\" {KurulumBilgisi.KaldirmaSecenegi}");
         anahtar.SetValue("NoModify", 1, RegistryValueKind.DWord);
         anahtar.SetValue("NoRepair", 1, RegistryValueKind.DWord);
         anahtar.SetValue("EstimatedSize", KlasorBoyutuKb(KurulumBilgisi.Klasor), RegistryValueKind.DWord);
+    }
+
+    private static void EskiAdinIzleriniSil()
+    {
+        foreach (var kisayol in KurulumBilgisi.EskiKisayollar)
+            File.Delete(kisayol);
+        Registry.CurrentUser.DeleteSubKeyTree(KurulumBilgisi.EskiKaldirmaAnahtari, throwOnMissingSubKey: false);
     }
 
     private static int KlasorBoyutuKb(string klasor) =>

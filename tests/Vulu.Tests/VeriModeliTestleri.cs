@@ -10,7 +10,7 @@ namespace Vulu.Tests;
 public sealed class VeriModeliTestleri : IAsyncLifetime, IDisposable
 {
     private readonly MongoClient _istemci;
-    private readonly string _veritabaniAdi = "vulu_tsys_test_" + Guid.NewGuid().ToString("N");
+    private readonly string _veritabaniAdi = "vulu_iys_test_" + Guid.NewGuid().ToString("N");
     private readonly IMongoDatabase _db;
     private readonly MongoBaglami _baglam;
 

@@ -524,7 +524,7 @@ public class ServisGenislemeTestleri : IClassFixture<ApiFabrikasi>
     public async Task Gecis_eski_kayitlara_acilis_sirasina_gore_numara_ve_takip_kodu_verir()
     {
         var istemci = new MongoClient(ApiFabrikasi.MongoAdresi);
-        var ad = "vulu_tsys_test_" + Guid.NewGuid().ToString("N");
+        var ad = "vulu_iys_test_" + Guid.NewGuid().ToString("N");
         try
         {
             var db = istemci.GetDatabase(ad);
