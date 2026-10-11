@@ -27,6 +27,47 @@ public static class BelgeAcici
         }
     }
 
+    // Kullanıcının saklamak üzere istediği dosyalar (Excel dökümleri) İndirilenler klasörüne kaydedilir ve açılır.
+    // Kaydedilen dosyanın adını ya da hata mesajını döner; aynı adlı dosya başka bir programda açıksa yeni bir ad
+    // denenir.
+    public static (string? DosyaAdi, string? Hata) KaydetVeAc(string dosyaAdi, byte[] icerik)
+    {
+        const int EnFazlaDeneme = 20;
+
+        try
+        {
+            var klasor = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            if (!Directory.Exists(klasor)) klasor = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+            var ad = Path.GetFileNameWithoutExtension(dosyaAdi);
+            var uzanti = Path.GetExtension(dosyaAdi);
+            for (var deneme = 1; ; deneme++)
+            {
+                var yol = Path.Combine(klasor, deneme == 1 ? ad + uzanti : $"{ad} ({deneme}){uzanti}");
+                try
+                {
+                    File.WriteAllBytes(yol, icerik);
+                }
+                catch (IOException) when (deneme < EnFazlaDeneme)
+                {
+                    continue;
+                }
+
+                using var surec = Process.Start(new ProcessStartInfo(yol) { UseShellExecute = true });
+                return (Path.GetFileName(yol), null);
+            }
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Dosya kaydedildi ama bu bilgisayarda onu açacak bir program yok.
+            return (dosyaAdi, null);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return (null, $"Dosya kaydedilemedi: {ex.Message}");
+        }
+    }
+
     // Açılan belgeler müşteri bilgisi içerir; bilgisayarda birikmesinler diye uygulama açılırken ve kapanırken
     // silinir. O an bir görüntüleyicide açık olan dosya silinemez; bir sonraki seferde silinir.
     public static void GeciciBelgeleriSil()

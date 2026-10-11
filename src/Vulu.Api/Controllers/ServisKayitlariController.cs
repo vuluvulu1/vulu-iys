@@ -42,7 +42,36 @@ public class ServisKayitlariController : ControllerBase
         CancellationToken iptal = default)
     {
         var sayfalama = Sayfalama.Olustur(sayfa, boyut, EnFazlaSayfaBoyutu);
+        var filtre = Filtre(arama, durum, fatura, musteriId, teknisyenId, seriNo);
 
+        var toplam = await _db.ServisKayitlari.CountDocumentsAsync(filtre, cancellationToken: iptal);
+        var kayitlar = await _db.ServisKayitlari.Find(filtre)
+            .SortByDescending(s => s.OlusturmaTarihi)
+            .Skip(sayfalama.Atla)
+            .Limit(sayfalama.Boyut)
+            .ToListAsync(iptal);
+
+        return new Sayfa<ServisKaydiYaniti>(kayitlar.Select(k => k.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
+    }
+
+    // Listenin süzülmüş hali, Excel dosyası olarak. Toplu kişisel veri olduğu için yalnızca yönetici alır.
+    [HttpGet("disa-aktar")]
+    [Authorize(Roles = nameof(KullaniciRol.Admin))]
+    public async Task<IActionResult> DisaAktar(
+        [FromQuery, StringLength(AramaMetni.EnFazlaUzunluk, ErrorMessage = AramaMetni.UzunlukMesaji)] string? arama, [FromQuery] ServisDurumu? durum,
+        [FromQuery] FaturaSuzgeci fatura = FaturaSuzgeci.Hepsi, CancellationToken iptal = default)
+    {
+        var kayitlar = await _db.ServisKayitlari.Find(Filtre(arama, durum, fatura, null, null, null))
+            .SortByDescending(s => s.OlusturmaTarihi)
+            .Limit(DisaAktarim.EnFazlaSatir)
+            .ToListAsync(iptal);
+
+        return File(ExcelYazici.Olustur(DisaAktarim.ServisKayitlari(kayitlar)), ExcelYazici.IcerikTuru, DisaAktarim.DosyaAdi("Servis-kayitlari"));
+    }
+
+    private static FilterDefinition<ServisKaydi> Filtre(string? arama, ServisDurumu? durum, FaturaSuzgeci fatura,
+        string? musteriId, string? teknisyenId, string? seriNo)
+    {
         var f = Builders<ServisKaydi>.Filter;
         var filtre = f.Eq(s => s.SilinmeTarihi, null);
 
@@ -67,14 +96,7 @@ public class ServisKayitlariController : ControllerBase
             filtre &= f.Or(f.Regex(s => s.AramaMetni, desen), f.Regex(s => s.Musteri.AramaMetni, desen));
         }
 
-        var toplam = await _db.ServisKayitlari.CountDocumentsAsync(filtre, cancellationToken: iptal);
-        var kayitlar = await _db.ServisKayitlari.Find(filtre)
-            .SortByDescending(s => s.OlusturmaTarihi)
-            .Skip(sayfalama.Atla)
-            .Limit(sayfalama.Boyut)
-            .ToListAsync(iptal);
-
-        return new Sayfa<ServisKaydiYaniti>(kayitlar.Select(k => k.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
+        return filtre;
     }
 
     [HttpGet("{id:oid}")]

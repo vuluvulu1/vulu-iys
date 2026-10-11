@@ -58,6 +58,18 @@ public class ParcalarController : ControllerBase
         return new Sayfa<ParcaYaniti>(parcalar.Select(p => p.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
     }
 
+    [HttpGet("disa-aktar")]
+    public async Task<IActionResult> DisaAktar(CancellationToken iptal)
+    {
+        var parcalar = await _db.Parcalar
+            .Find(p => p.SilinmeTarihi == null, new FindOptions { Collation = MongoBaglami.TurkceSiralama })
+            .SortBy(p => p.Ad)
+            .Limit(DisaAktarim.EnFazlaSatir)
+            .ToListAsync(iptal);
+
+        return File(ExcelYazici.Olustur(DisaAktarim.Parcalar(parcalar)), ExcelYazici.IcerikTuru, DisaAktarim.DosyaAdi("Stok"));
+    }
+
     [HttpGet("{id:oid}")]
     public async Task<ActionResult<ParcaYaniti>> Getir(string id, CancellationToken iptal)
     {

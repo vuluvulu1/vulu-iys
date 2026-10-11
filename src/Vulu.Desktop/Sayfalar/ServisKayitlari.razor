@@ -1,5 +1,6 @@
 @page "/servis-kayitlari"
 @inject ApiIstemcisi Api
+@inject OturumServisi Oturum
 
 <h1>Servis Kayıtları</h1>
 
@@ -20,6 +21,12 @@
         <option value="@FaturaSuzgeci.Odenmemis">Ödenmemiş faturalar</option>
         <option value="@FaturaSuzgeci.Odenmis">Ödenmiş faturalar</option>
     </select>
+
+    @if (Oturum.AdminMi)
+    {
+        @* Liste hangi süzgeçle görünüyorsa o haliyle aktarılır. *@
+        <ExcelDugmesi Yol="@($"api/servis-kayitlari/disa-aktar?{Suzgec}")" DosyaAdi="Servis-kayitlari" />
+    }
 
     <AramaKutusu YerTutucu="Müşteri, kayıt no, cihaz, seri no ara" Etiket="Servis kaydı ara" Arandi="Ara" />
 </div>
@@ -113,6 +120,10 @@ else if (_acik is not null)
     private ServisKaydiYaniti? _duzenlenen;
     private bool _formAcik;
 
+    // Listeleme ve dışa aktarma aynı süzgeci kullanır.
+    private string Suzgec =>
+        $"arama={Uri.EscapeDataString(_arama)}&fatura={_fatura}" + (_durum.Length > 0 ? $"&durum={_durum}" : "");
+
     private bool SuzgecVar => _arama.Length > 0 || _durum.Length > 0 || _fatura != FaturaSuzgeci.Hepsi;
     private int SayfaSayisi => _sayfa?.SayfaSayisi ?? 1;
 
@@ -120,8 +131,7 @@ else if (_acik is not null)
 
     private async Task Yukle()
     {
-        var sorgu = $"arama={Uri.EscapeDataString(_arama)}&fatura={_fatura}&sayfa={_sayfaNo}&boyut={SayfaBoyutu}";
-        if (_durum.Length > 0) sorgu += $"&durum={_durum}";
+        var sorgu = $"{Suzgec}&sayfa={_sayfaNo}&boyut={SayfaBoyutu}";
 
         _yukleniyor = true;
         var sonuc = await Api.Getir<Sayfa<ServisKaydiYaniti>>($"api/servis-kayitlari?{sorgu}");

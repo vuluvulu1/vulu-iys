@@ -31,3 +31,6 @@ dotnet_diagnostic.CA1000.severity = none
 [tests/**.cs]
 # Test adları cümle gibi okunur: Yanlis_sifre_ve_olmayan_kullanici_ayni_yaniti_alir.
 dotnet_diagnostic.CA1707.severity = none
+
+# Beklenen değerler testin içinde, doğrulandıkları yerde okunur; ayrı alanlara taşımak testi zorlaştırır.
+dotnet_diagnostic.CA1861.severity = none
