@@ -3,8 +3,7 @@ using Vulu.Shared;
 
 namespace Vulu.Api.Altyapi;
 
-// Listelerin Excel'e aktarılırken hangi sütunlarla yazılacağı. Aynı sayfa birden fazla yerde kullanılır
-// (servis kayıtları hem kendi listesinden hem müşteri veri dökümünden dışa aktarılır).
+// Listelerin Excel'e aktarılırken hangi sütunlarla yazılacağı.
 public static class DisaAktarim
 {
     // Tek dosyaya yazılan en fazla satır; daha fazlası için liste süzülerek aktarılır.
