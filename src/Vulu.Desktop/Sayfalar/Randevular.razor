@@ -5,7 +5,7 @@
 <h1>Randevular</h1>
 
 <div class="arac-cubugu">
-    <button @onclick="() => YeniAc(null)">Yeni randevu</button>
+    <button @onclick="() => YeniAc(null)">Randevu kaydı</button>
 
     <div class="gorunum-secimi" role="group" aria-label="Görünüm">
         <button class="@(_takvim ? "ikincil" : "")" aria-pressed="@(_takvim ? "false" : "true")" @onclick="() => GorunumSec(false)">Liste</button>
@@ -126,7 +126,7 @@ else
 
 @if (_formAcik)
 {
-    <Pencere Baslik="@(_duzenlenen is null ? "Yeni randevu" : "Randevuyu düzenle")" Genis="true" KapatIstendi="FormuKapat">
+    <Pencere Baslik="@(_duzenlenen is null ? "Randevu kaydı" : "Randevuyu düzenle")" Genis="true" KapatIstendi="FormuKapat">
         <form @onsubmit="Kaydet">
             <label>Müşteri</label>
             <MusteriSecici Secili="_musteri" SeciliChanged="MusteriSecildi" />
@@ -216,7 +216,7 @@ else
         _arama.Length > 0 ? "Aramayla eşleşen randevu yok."
         : _durum == RandevuDurumu.Planlandi.ToString() ? "Planlanmış randevu yok."
         : _durum.Length > 0 ? "Bu durumda randevu yok."
-        : "Henüz randevu yok.";
+        : "Kayıtlı randevu bulunmuyor.";
 
     protected override Task OnInitializedAsync() => Yukle();
 

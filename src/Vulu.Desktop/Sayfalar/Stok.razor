@@ -7,7 +7,7 @@
 <div class="arac-cubugu">
     @if (Oturum.AdminMi)
     {
-        <button @onclick="YeniAc">Yeni parça</button>
+        <button @onclick="YeniAc">Stok kartı</button>
     }
 
     <select class="suzgec" aria-label="Stok durumuna göre süz" @bind="_yalnizAzalan" @bind:after="SuzgecDegisti">
@@ -30,8 +30,8 @@
 else if (_sayfa.Ogeler.Count == 0)
 {
     <p class="soluk">
-        @(_arama.Length > 0 || _yalnizAzalan ? "Süzgeçle eşleşen parça yok."
-            : Oturum.AdminMi ? "Henüz stok kartı yok. “Yeni parça” ile ekleyin." : "Henüz stok kartı yok.")
+        @(_arama.Length > 0 || _yalnizAzalan ? "Süzgeçle eşleşen parça bulunamadı."
+            : Oturum.AdminMi ? "Kayıtlı stok kartı bulunmuyor. “Stok kartı” düğmesiyle ekleyebilirsiniz." : "Kayıtlı stok kartı bulunmuyor.")
     </p>
 }
 else
@@ -79,7 +79,7 @@ else
 
 @if (_form is not null)
 {
-    <Pencere Baslik="@(_duzenlenen is null ? "Yeni parça" : "Parçayı düzenle")" KapatIstendi="FormuKapat">
+    <Pencere Baslik="@(_duzenlenen is null ? "Stok kartı" : "Parçayı düzenle")" KapatIstendi="FormuKapat">
         <form @onsubmit="Kaydet">
             <label for="p-ad">Parça adı</label>
             <input id="p-ad" @bind="_form.Ad" @bind:event="oninput" maxlength="120" autocomplete="off" />

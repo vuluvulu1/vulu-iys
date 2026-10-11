@@ -5,7 +5,7 @@
 <h1>Vulu Yöneticileri</h1>
 
 <div class="arac-cubugu">
-    <button @onclick="YeniAc">Yeni yönetici</button>
+    <button @onclick="YeniAc">Yönetici kaydı</button>
     <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
 </div>
 
@@ -64,7 +64,7 @@ else
 
 @if (_form is not null)
 {
-    <Pencere Baslik="@(_duzenlenen is null ? "Yeni vulu yöneticisi" : "Vulu yöneticisini düzenle")" KapatIstendi="FormuKapat">
+    <Pencere Baslik="@(_duzenlenen is null ? "Vulu yöneticisi kaydı" : "Vulu yöneticisini düzenle")" KapatIstendi="FormuKapat">
         <form @onsubmit="Kaydet">
             <label for="v-adsoyad">Ad soyad</label>
             <input id="v-adsoyad" @bind="_form.AdSoyad" @bind:event="oninput" autocomplete="off" />
