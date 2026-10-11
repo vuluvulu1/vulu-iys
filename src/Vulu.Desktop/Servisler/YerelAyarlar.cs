@@ -6,8 +6,14 @@ namespace Vulu.Desktop.Servisler;
 // uygulama tercihsiz de çalışır.
 public static class YerelAyarlar
 {
-    private static readonly string Dosya = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "vulu", "ayarlar.json");
+    // Uygulamanın bu kullanıcı için tuttuğu her şey (tercihler ve tarayıcı bileşeninin önbelleği) bu klasördedir;
+    // uygulama kaldırılırken klasör de silinir.
+    public static readonly string Klasor = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "vulu");
+
+    public static readonly string TarayiciVerisi = Path.Combine(Klasor, "tarayici");
+
+    private static readonly string Dosya = Path.Combine(Klasor, "ayarlar.json");
 
     private sealed record Icerik(string? SonIsletmeKodu);
 
