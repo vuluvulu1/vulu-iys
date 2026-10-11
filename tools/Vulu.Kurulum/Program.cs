@@ -30,7 +30,10 @@ internal static class Program
             if (UygulamaAcik())
                 return Hata("Uygulama şu an açık. Kapatıp kurulumu yeniden çalıştırın.");
 
-            DosyalariYerlestir();
+            // Dosyaların açılması birkaç saniye sürer; bu sırada bekleme penceresi gösterilir.
+            if (sessiz) DosyalariYerlestir();
+            else IletiKutusu.Calistir("Kuruluyor…\n\nDosyalar yerleştiriliyor, lütfen bekleyin.", DosyalariYerlestir);
+
             foreach (var kisayol in KurulumBilgisi.Kisayollar)
                 Kisayol.Olustur(kisayol, KurulumBilgisi.UygulamaYolu, KurulumBilgisi.UrunAdi);
             KaldirmaKaydiniYaz(surum);

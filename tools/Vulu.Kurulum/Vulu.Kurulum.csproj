@@ -31,6 +31,7 @@
     <!-- Kısayol, klasör ve kayıt tanımları ile ileti kutuları uygulamayla ortaktır. -->
     <Compile Include="..\..\src\Vulu.Desktop\KurulumBilgisi.cs" Link="Ortak\KurulumBilgisi.cs" />
     <Compile Include="..\..\src\Vulu.Desktop\WindowsUyumlulugu.cs" Link="Ortak\WindowsUyumlulugu.cs" />
+    <Compile Include="..\..\src\Vulu.Desktop\IletiKutusu.cs" Link="Ortak\IletiKutusu.cs" />
   </ItemGroup>
 
   <ItemGroup>
