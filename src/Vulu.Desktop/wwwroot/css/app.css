@@ -1134,3 +1134,23 @@ a.ozet-kutusu:hover {
     color: var(--soluk-metin);
     font-weight: 600;
 }
+
+/* İndirme ilerlemesi (güncelleme). */
+progress {
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    margin-top: 12px;
+    border: 1px solid var(--kenar);
+    border-radius: var(--kose);
+    background: var(--arka-plan);
+    overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+    background: var(--arka-plan);
+}
+
+progress::-webkit-progress-value {
+    background: var(--vurgu);
+}

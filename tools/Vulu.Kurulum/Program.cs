@@ -10,15 +10,18 @@ namespace Vulu.Kurulum;
 // masaüstü kısayollarını oluşturur ve "Program ekle/kaldır" listesine kaydeder. Her şey o kullanıcıya özeldir;
 // yönetici izni gerekmez. Yeniden çalıştırılırsa kurulu sürümün üzerine yazar (güncelleme).
 //
-// "/sessiz" ile çalıştırılırsa soru sormaz ve uygulamayı açmaz.
+// "/sessiz" ile çalıştırılırsa soru sormaz ve uygulamayı açmaz. "/guncelle" ile (uygulama kendini güncellerken)
+// uygulamanın kapanmasını bekler, soru sormadan kurar ve uygulamayı yeniden açar.
 internal static class Program
 {
     private const string GomuluUygulama = "uygulama.zip";
+    private static readonly TimeSpan KapanmaBeklemesi = TimeSpan.FromSeconds(30);
 
     [STAThread]
     private static int Main(string[] args)
     {
-        var sessiz = args.Contains(KurulumBilgisi.SessizSecenegi, StringComparer.OrdinalIgnoreCase);
+        var guncelleme = args.Contains(KurulumBilgisi.GuncellemeSecenegi, StringComparer.OrdinalIgnoreCase);
+        var sessiz = guncelleme || args.Contains(KurulumBilgisi.SessizSecenegi, StringComparer.OrdinalIgnoreCase);
         var surum = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
 
         try
@@ -27,18 +30,34 @@ internal static class Program
                     $"{Urun.Ad} {surum} bu bilgisayara kurulacak.\n\nKlasör: {KurulumBilgisi.Klasor}\n\nDevam edilsin mi?"))
                 return 1;
 
-            if (UygulamaAcik())
-                return Hata("Uygulama şu an açık. Kapatıp kurulumu yeniden çalıştırın.");
+            if (guncelleme)
+            {
+                // Kurulumu başlatan uygulama bu sırada kapanıyor; dosyaları ancak o kapanınca değiştirilebilir.
+                var kapandi = false;
+                IletiKutusu.Calistir($"{Urun.Ad} {surum} sürümüne güncelleniyor…\n\nLütfen bekleyin, uygulama yeniden açılacak.", () =>
+                {
+                    kapandi = UygulamaninKapanmasiniBekle();
+                    if (kapandi) DosyalariYerlestir();
+                });
+                if (!kapandi)
+                    return Hata("Uygulama kapanmadığı için güncellenemedi. Uygulamayı kapatıp yeniden açın.");
+            }
+            else
+            {
+                if (UygulamaAcik())
+                    return Hata("Uygulama şu an açık. Kapatıp kurulumu yeniden çalıştırın.");
 
-            // Dosyaların açılması birkaç saniye sürer; bu sırada bekleme penceresi gösterilir.
-            if (sessiz) DosyalariYerlestir();
-            else IletiKutusu.Calistir("Kuruluyor…\n\nDosyalar yerleştiriliyor, lütfen bekleyin.", DosyalariYerlestir);
+                // Dosyaların açılması birkaç saniye sürer; bu sırada bekleme penceresi gösterilir.
+                if (sessiz) DosyalariYerlestir();
+                else IletiKutusu.Calistir("Kuruluyor…\n\nDosyalar yerleştiriliyor, lütfen bekleyin.", DosyalariYerlestir);
+            }
 
             foreach (var kisayol in KurulumBilgisi.Kisayollar)
                 Kisayol.Olustur(kisayol, KurulumBilgisi.UygulamaYolu, Urun.Ad);
             KaldirmaKaydiniYaz(surum);
             EskiAdinIzleriniSil();
 
+            if (guncelleme) UygulamayiAc();
             if (sessiz) return 0;
 
             if (!WindowsUyumlulugu.WebView2Kurulu())
@@ -49,7 +68,7 @@ internal static class Program
             }
 
             if (WindowsUyumlulugu.Sor("Kurulum tamamlandı. Başlat menüsüne ve masaüstüne kısayol eklendi.\n\nUygulama şimdi açılsın mı?"))
-                using (Process.Start(new ProcessStartInfo(KurulumBilgisi.UygulamaYolu) { WorkingDirectory = KurulumBilgisi.Klasor })) { }
+                UygulamayiAc();
 
             return 0;
         }
@@ -82,6 +101,23 @@ internal static class Program
 
         if (Directory.Exists(hedef)) Directory.Delete(hedef, recursive: true);
         Directory.Move(gecici, hedef);
+    }
+
+    private static void UygulamayiAc()
+    {
+        using var uygulama = Process.Start(new ProcessStartInfo(KurulumBilgisi.UygulamaYolu) { WorkingDirectory = KurulumBilgisi.Klasor });
+    }
+
+    private static bool UygulamaninKapanmasiniBekle()
+    {
+        var bitis = DateTime.UtcNow + KapanmaBeklemesi;
+        while (UygulamaAcik())
+        {
+            if (DateTime.UtcNow > bitis) return false;
+            Thread.Sleep(250);
+        }
+
+        return true;
     }
 
     private static void KaldirmaKaydiniYaz(string surum)

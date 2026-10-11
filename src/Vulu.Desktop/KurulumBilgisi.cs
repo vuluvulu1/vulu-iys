@@ -16,6 +16,10 @@ internal static class KurulumBilgisi
     // Kurulum ve kaldırma bu seçenekle soru sormadan çalışır.
     public const string SessizSecenegi = "/sessiz";
 
+    // Uygulama kendini güncellerken kurulumu bu seçenekle başlatır: kurulum, uygulamanın kapanmasını bekler,
+    // soru sormadan kurar ve uygulamayı yeniden açar.
+    public const string GuncellemeSecenegi = "/guncelle";
+
     // Kayıt yalnızca bu kullanıcı içindir (HKEY_CURRENT_USER); kurulum yönetici izni istemez.
     public const string KaldirmaAnahtari = UygulamalarAnahtari + "VuluIsletmeYonetim";
 

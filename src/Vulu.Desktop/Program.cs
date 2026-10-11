@@ -81,6 +81,7 @@ internal static class Program
                 (hata.ExceptionObject as Exception)?.Message ?? "Uygulama beklenmeyen bir hatayla karşılaştı.");
 
         BelgeAcici.GeciciBelgeleriSil();
+        Guncelleyici.ArtiklariSil();
         try
         {
             app.Run();
