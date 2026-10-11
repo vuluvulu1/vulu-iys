@@ -76,7 +76,8 @@ public class VeritabaniHazirlamaServisi : BackgroundService
             await _platform.Yoneticiler.InsertOneAsync(new PlatformYoneticisi
             {
                 KullaniciAdi = KullaniciAdlari.Normalle(_ilkYonetici.KullaniciAdi),
-                SifreHash = BCrypt.Net.BCrypt.HashPassword(_ilkYonetici.Sifre),
+                SifreHash = Sifreler.Hashle(_ilkYonetici.Sifre!),
+                OturumDamgasi = Sifreler.YeniOturumDamgasi(),
                 AdSoyad = "Vulu Yöneticisi"
             }, cancellationToken: iptal);
             _log.LogInformation("İlk vulu yöneticisi oluşturuldu: {KullaniciAdi}", _ilkYonetici.KullaniciAdi);

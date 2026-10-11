@@ -1,5 +1,5 @@
+using System.Globalization;
 using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
 using Vulu.Api.Altyapi;
 using Vulu.Api.Veri.Belgeler;
 using static Vulu.Api.Pdf.BelgeOrtak;
@@ -68,7 +68,7 @@ public static class FaturaBelgesi
                             foreach (var ayrinti in kalem.Ayrintilar)
                                 aciklama.Item().Text(ayrinti).FontSize(9).FontColor(Soluk);
                         });
-                        tablo.Cell().Element(Hucre).AlignRight().Text(kalem.Adet?.ToString() ?? "");
+                        tablo.Cell().Element(Hucre).AlignRight().Text(kalem.Adet?.ToString(CultureInfo.InvariantCulture) ?? "");
                         tablo.Cell().Element(Hucre).AlignRight().Text(kalem.BirimFiyat is { } birim ? Zaman.Para(birim) : "");
                         tablo.Cell().Element(Hucre).AlignRight().Text(Zaman.Para(kalem.Tutar));
                     }
@@ -99,7 +99,7 @@ public static class FaturaBelgesi
         })).GeneratePdf();
     }
 
-    private record Kalem(string Ad, IReadOnlyList<string> Ayrintilar, int? Adet, decimal? BirimFiyat, decimal Tutar);
+    private sealed record Kalem(string Ad, IReadOnlyList<string> Ayrintilar, int? Adet, decimal? BirimFiyat, decimal Tutar);
 
     // Fatura tek bir tutar olarak girilir. Kullanılan parçalar ayrı satırlarda gösterilir, tutarın kalanı
     // işçiliktir. Tutar parçaların toplamından azsa (indirim yapılmışsa) döküm tutmaz; tek satır yazılır.
@@ -111,7 +111,7 @@ public static class FaturaBelgesi
         if (kayit.TeknisyenAdi is not null) ayrintilar.Add($"Teknisyen: {kayit.TeknisyenAdi}");
         if (kayit.TamamlanmaTarihi is { } tamamlanma) ayrintilar.Add($"Tamamlanma: {Zaman.Tarih(tamamlanma)}");
 
-        var hizmetAdi = $"Teknik servis – {ServisFormu.CihazAdi(kayit)}";
+        var hizmetAdi = $"Teknik servis – {kayit.CihazAdi}";
         var parcaToplami = kayit.Parcalar.Sum(p => p.Adet * p.BirimFiyat);
 
         if (kayit.Parcalar.Count == 0 || parcaToplami > tutar)

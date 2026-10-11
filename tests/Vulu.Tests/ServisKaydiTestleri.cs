@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using MongoDB.Driver;
-using Vulu.Api.Veri.Belgeler;
 using Vulu.Shared;
 
 namespace Vulu.Tests;

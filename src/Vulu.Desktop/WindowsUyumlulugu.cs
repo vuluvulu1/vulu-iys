@@ -42,7 +42,7 @@ internal static class WindowsUyumlulugu
 
     // Desteklenmeyen ayarlar hata kodu döndürür ve yok sayılır; pencere varsayılan görünümüyle kalır.
     private static void Ayarla(IntPtr pencere, int ayar, int deger) =>
-        DwmSetWindowAttribute(pencere, ayar, ref deger, sizeof(int));
+        _ = DwmSetWindowAttribute(pencere, ayar, ref deger, sizeof(int));
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
@@ -50,7 +50,7 @@ internal static class WindowsUyumlulugu
     public static void HataGoster(string mesaj)
     {
         const uint HataSimgesi = 0x10;
-        MessageBoxW(IntPtr.Zero, mesaj, "vulu", HataSimgesi);
+        _ = MessageBoxW(IntPtr.Zero, mesaj, "vulu", HataSimgesi);
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]

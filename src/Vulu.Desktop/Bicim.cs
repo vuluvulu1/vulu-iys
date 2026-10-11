@@ -89,15 +89,6 @@ public static partial class Bicim
         _ => "etiket iptal"
     };
 
-    // Marka ve model girilmişse cihaz adının yanında gösterilir.
-    public static string Cihaz(ServisKaydiYaniti kayit)
-    {
-        var markaModel = string.Join(' ', new[] { kayit.Marka, kayit.Model }.Where(b => !string.IsNullOrWhiteSpace(b)));
-        return markaModel.Length == 0 || kayit.CihazBilgisi.Contains(markaModel, StringComparison.OrdinalIgnoreCase)
-            ? kayit.CihazBilgisi
-            : $"{kayit.CihazBilgisi} – {markaModel}";
-    }
-
     public static string Islem(IslemTuru tur) => tur switch
     {
         IslemTuru.KayitAcildi => "Kayıt açıldı",

@@ -1,6 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
 using Vulu.Api.Kurallar;
@@ -25,17 +25,17 @@ public class RandevularController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<Sayfa<RandevuYaniti>>> Listele(
-        [FromQuery] string? arama, [FromQuery] RandevuDurumu? durum,
-        [FromQuery] string? musteriId = null, [FromQuery] string? teknisyenId = null,
+        [FromQuery, StringLength(AramaMetni.EnFazlaUzunluk, ErrorMessage = AramaMetni.UzunlukMesaji)] string? arama, [FromQuery] RandevuDurumu? durum,
+        [FromQuery, RegularExpression(KimlikKurallari.Desen, ErrorMessage = "Geçersiz süzgeç.")] string? musteriId = null,
+        [FromQuery, RegularExpression(KimlikKurallari.Desen, ErrorMessage = "Geçersiz süzgeç.")] string? teknisyenId = null,
         [FromQuery] DateTime? baslangic = null, [FromQuery] DateTime? bitis = null,
         [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25,
         CancellationToken iptal = default)
     {
-        if (!KimlikGecerli(musteriId) || !KimlikGecerli(teknisyenId))
-            return Problem(detail: "Geçersiz süzgeç.", statusCode: StatusCodes.Status400BadRequest);
+        if ((baslangic is { } ilk && !Zaman.MakulMu(ilk)) || (bitis is { } son && !Zaman.MakulMu(son)))
+            return Gecersiz(Zaman.MakulDegilMesaji);
 
-        sayfa = Math.Max(1, sayfa);
-        boyut = Math.Clamp(boyut, 1, EnFazlaSayfaBoyutu);
+        var sayfalama = Sayfalama.Olustur(sayfa, boyut, EnFazlaSayfaBoyutu);
 
         var f = Builders<Randevu>.Filter;
         var filtre = f.Empty;
@@ -51,11 +51,11 @@ public class RandevularController : ControllerBase
         var toplam = await _db.Randevular.CountDocumentsAsync(filtre, cancellationToken: iptal);
         var randevular = await _db.Randevular.Find(filtre)
             .SortBy(r => r.RandevuTarihi)
-            .Skip((sayfa - 1) * boyut)
-            .Limit(boyut)
+            .Skip(sayfalama.Atla)
+            .Limit(sayfalama.Boyut)
             .ToListAsync(iptal);
 
-        return new Sayfa<RandevuYaniti>(randevular.Select(r => r.YanitaCevir()).ToList(), toplam, sayfa, boyut);
+        return new Sayfa<RandevuYaniti>(randevular.Select(r => r.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
     }
 
     [HttpGet("{id:oid}")]
@@ -69,7 +69,7 @@ public class RandevularController : ControllerBase
     public async Task<ActionResult<RandevuYaniti>> Ekle(RandevuIstegi istek, CancellationToken iptal)
     {
         if (Zaman.UtcYap(istek.RandevuTarihi) < DateTime.UtcNow - GecmisToleransi)
-            return Problem(detail: "Randevu tarihi geçmişte olamaz.", statusCode: StatusCodes.Status400BadRequest);
+            return Gecersiz("Randevu tarihi geçmişte olamaz.");
 
         var randevu = new Randevu();
         if (await Uygula(randevu, istek, iptal) is { } hata) return hata;
@@ -119,6 +119,8 @@ public class RandevularController : ControllerBase
     // İstekteki alanları randevuya işler; müşteri ve teknisyenin güncel ad bilgisini kopyalar.
     private async Task<ObjectResult?> Uygula(Randevu randevu, RandevuIstegi istek, CancellationToken iptal)
     {
+        if (!Zaman.MakulMu(istek.RandevuTarihi)) return Gecersiz(Zaman.MakulDegilMesaji);
+
         var musteri = await _db.Musteriler
             .Find(m => m.Id == istek.MusteriId && m.SilinmeTarihi == null).FirstOrDefaultAsync(iptal);
         if (musteri is null) return Gecersiz("Seçilen müşteri bulunamadı.");
@@ -184,8 +186,6 @@ public class RandevularController : ControllerBase
 
         return randevu.YanitaCevir();
     }
-
-    private static bool KimlikGecerli(string? kimlik) => kimlik is null || ObjectId.TryParse(kimlik, out _);
 
     private ObjectResult Bulunamadi() =>
         Problem(detail: "Randevu bulunamadı.", statusCode: StatusCodes.Status404NotFound);

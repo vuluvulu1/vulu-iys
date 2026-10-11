@@ -24,11 +24,7 @@
             }
         </nav>
 
-        <div class="oturum">
-            <div class="oturum-adi">@Oturum.Kullanici?.AdSoyad</div>
-            <div class="oturum-rol">@RolAdi</div>
-            <button class="ikincil" @onclick="Oturum.CikisYap">Çıkış yap</button>
-        </div>
+        <OturumKutusu Rol="@RolAdi" />
     </aside>
 
     <main class="icerik">

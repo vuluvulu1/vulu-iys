@@ -1101,3 +1101,7 @@ a.ozet-kutusu:hover {
     color: #fff;
     margin-left: 8px;
 }
+
+.oturum button + button {
+    margin-top: 8px;
+}

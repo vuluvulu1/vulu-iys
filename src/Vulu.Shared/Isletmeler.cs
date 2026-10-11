@@ -49,7 +49,7 @@ public record IsletmeOlusturIstegi(
     [RegularExpression(KullaniciKurallari.AdDeseni, ErrorMessage = KullaniciKurallari.AdDeseniMesaji)]
     string YoneticiKullaniciAdi,
     [Required(ErrorMessage = "Yönetici şifresi gerekli.")]
-    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    [Sifre]
     string YoneticiSifre,
     [Required(ErrorMessage = "Yönetici ad soyadı gerekli.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
@@ -77,7 +77,7 @@ public record IsletmeYoneticisiOzeti(string Id, string KullaniciAdi, string AdSo
 
 public record SifreSifirlamaIstegi(
     [Required(ErrorMessage = "Yeni şifre gerekli.")]
-    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    [Sifre]
     string YeniSifre);
 
 // İşletme yöneticisinin kendi işletmesi için düzenlediği bilgiler.
@@ -114,7 +114,7 @@ public record VuluYoneticisiOlusturIstegi(
     [RegularExpression(KullaniciKurallari.AdDeseni, ErrorMessage = KullaniciKurallari.AdDeseniMesaji)]
     string KullaniciAdi,
     [Required(ErrorMessage = "Şifre gerekli.")]
-    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    [Sifre]
     string Sifre,
     [Required(ErrorMessage = "Ad soyad gerekli.")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
@@ -125,7 +125,7 @@ public record VuluYoneticisiGuncelleIstegi(
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad soyad 2-100 karakter olmalı.")]
     string AdSoyad,
     bool AktifMi,
-    [StringLength(128, MinimumLength = KullaniciKurallari.EnAzSifreUzunlugu, ErrorMessage = KullaniciKurallari.SifreMesaji)]
+    [Sifre]
     string? YeniSifre);
 
 public static class IsletmeKurallari

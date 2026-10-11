@@ -1,5 +1,4 @@
-@* Vulu yöneticisinin ekranı: işletmeler ve vulu yöneticisi hesapları. *@
-@inject OturumServisi Oturum
+@* Vulu yöneticisinin ekranı: işletmeler, vulu yöneticisi hesapları ve sunucu denetimi. *@
 
 <div class="kabuk">
     <aside class="yan-menu">
@@ -9,29 +8,42 @@
         </div>
 
         <nav>
-            <a href="" class="@(_yoneticiler ? "" : "active")" @onclick="() => _yoneticiler = false" @onclick:preventDefault>İşletmeler</a>
-            <a href="" class="@(_yoneticiler ? "active" : "")" @onclick="() => _yoneticiler = true" @onclick:preventDefault>Vulu Yöneticileri</a>
+            @foreach (var bolum in Enum.GetValues<Bolum>())
+            {
+                <a href="" class="@(bolum == _bolum ? "active" : "")" @onclick="() => _bolum = bolum" @onclick:preventDefault>
+                    @BolumAdi(bolum)
+                </a>
+            }
         </nav>
 
-        <div class="oturum">
-            <div class="oturum-adi">@Oturum.Kullanici?.AdSoyad</div>
-            <div class="oturum-rol">Vulu yöneticisi</div>
-            <button class="ikincil" @onclick="Oturum.CikisYap">Çıkış yap</button>
-        </div>
+        <OturumKutusu Rol="Vulu yöneticisi" />
     </aside>
 
     <main class="icerik">
-        @if (_yoneticiler)
+        @switch (_bolum)
         {
-            <VuluYoneticiler />
-        }
-        else
-        {
-            <VuluIsletmeler />
+            case Bolum.Isletmeler:
+                <VuluIsletmeler />
+                break;
+            case Bolum.Yoneticiler:
+                <VuluYoneticiler />
+                break;
+            default:
+                <VuluSunucu />
+                break;
         }
     </main>
 </div>
 
 @code {
-    private bool _yoneticiler;
+    private enum Bolum { Isletmeler, Yoneticiler, Sunucu }
+
+    private Bolum _bolum = Bolum.Isletmeler;
+
+    private static string BolumAdi(Bolum bolum) => bolum switch
+    {
+        Bolum.Isletmeler => "İşletmeler",
+        Bolum.Yoneticiler => "Vulu Yöneticileri",
+        _ => "Sunucu"
+    };
 }

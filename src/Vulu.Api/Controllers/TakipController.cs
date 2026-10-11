@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authorization;
@@ -5,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
-using Vulu.Api.Pdf;
 using Vulu.Api.Veri;
 using Vulu.Api.Veri.Belgeler;
 using Vulu.Shared;
@@ -37,8 +37,8 @@ public class TakipController : ControllerBase
         Response.Headers.XContentTypeOptions = "nosniff";
         Response.Headers["Referrer-Policy"] = "no-referrer";
 
-        var isletme = await _platform.Isletmeler
-            .Find(i => i.Kod == isletmeKodu.ToLowerInvariant() && i.AktifMi).FirstOrDefaultAsync(iptal);
+        var aranan = isletmeKodu.ToLowerInvariant();
+        var isletme = await _platform.Isletmeler.Find(i => i.Kod == aranan && i.AktifMi).FirstOrDefaultAsync(iptal);
         if (isletme is null)
             return Sayfa(StatusCodes.Status404NotFound, "Cihaz durumu", "<p class=\"uyari\">Sayfa bulunamadı.</p>");
 
@@ -65,7 +65,7 @@ public class TakipController : ControllerBase
             }
         }
 
-        govde.Append($"""
+        govde.Append(CultureInfo.InvariantCulture, $"""
             <form method="get">
               <label for="kod">Takip kodu</label>
               <input id="kod" name="kod" value="{Kodla(takipKodu)}" maxlength="20" autocomplete="off" required>
@@ -75,7 +75,7 @@ public class TakipController : ControllerBase
 
         var iletisim = string.Join(" · ", new[] { isletme.Telefon, isletme.Adres }.Where(b => !string.IsNullOrWhiteSpace(b)));
         if (iletisim.Length > 0)
-            govde.Append($"<p class=\"iletisim\">{Kodla(iletisim)}</p>");
+            govde.Append(CultureInfo.InvariantCulture, $"<p class=\"iletisim\">{Kodla(iletisim)}</p>");
 
         return Sayfa(durumKodu, isletme.Ad, govde.ToString());
     }
@@ -99,7 +99,7 @@ public class TakipController : ControllerBase
               <p class="durum">{Kodla(kayit.Durum.Ad())}</p>
               <p>{Kodla(aciklama)}</p>
               <dl>
-                <dt>Cihaz</dt><dd>{Kodla(ServisFormu.CihazAdi(kayit))}</dd>
+                <dt>Cihaz</dt><dd>{Kodla(kayit.CihazAdi)}</dd>
                 <dt>Kayıt no</dt><dd>{Kodla(kayit.No)}</dd>
                 <dt>Kabul tarihi</dt><dd>{Kodla(Zaman.Tarih(kayit.OlusturmaTarihi))}</dd>
               </dl>
@@ -107,7 +107,7 @@ public class TakipController : ControllerBase
             """;
     }
 
-    private ContentResult Sayfa(int durumKodu, string baslik, string govde) => new()
+    private static ContentResult Sayfa(int durumKodu, string baslik, string govde) => new()
     {
         StatusCode = durumKodu,
         ContentType = "text/html; charset=utf-8",

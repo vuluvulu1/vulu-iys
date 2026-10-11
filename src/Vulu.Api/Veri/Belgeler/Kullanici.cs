@@ -15,6 +15,10 @@ public class Kullanici
     public string SifreHash { get; set; } = string.Empty;
     public KullaniciRol Rol { get; set; } = KullaniciRol.Teknisyen;
     public bool AktifMi { get; set; } = true;
+
+    // Erişim tokenına da yazılır; şifre, rol ya da aktiflik değişince yenilenir ve eski tokenlar geçersiz kalır
+    // (bkz. Altyapi.OturumDogrulayici).
+    public string OturumDamgasi { get; set; } = string.Empty;
     public DateTime OlusturmaTarihi { get; set; } = DateTime.UtcNow;
 
     public string AdSoyad { get; set; } = string.Empty;

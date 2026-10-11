@@ -2,6 +2,9 @@ namespace Vulu.Shared;
 
 public record SaglikYaniti(bool VeritabaniErisilebilir, string? Hata, int SozlesmeSurumu);
 
+// IletilenAdresSayisi: vekilin işlemediği, X-Forwarded-For başlığında kalan adres sayısı.
+public record BaglantiYaniti(string? IstemciAdresi, bool Https, int IletilenAdresSayisi);
+
 public static class ApiSozlesmesi
 {
     // API ile masaüstü arasındaki istek/yanıt biçimi geriye uyumsuz değiştiğinde artırılır.

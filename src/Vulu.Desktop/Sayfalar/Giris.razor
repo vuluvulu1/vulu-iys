@@ -1,5 +1,4 @@
 @inject OturumServisi Oturum
-@inject YerelAyarlar Ayarlar
 @inject HttpClient Http
 
 <div class="giris-kabugu">
@@ -62,7 +61,7 @@
 
     protected override Task OnInitializedAsync()
     {
-        _isletmeKodu = Ayarlar.SonIsletmeKodu;
+        _isletmeKodu = YerelAyarlar.SonIsletmeKodu;
         return SunucuyuKontrolEt();
     }
 
@@ -95,6 +94,6 @@
         _bekliyor = false;
 
         if (_hata is null)
-            Ayarlar.SonIsletmeKodu = _isletmeKodu.Trim().ToLowerInvariant();
+            YerelAyarlar.SonIsletmeKodu = _isletmeKodu.Trim().ToLowerInvariant();
     }
 }

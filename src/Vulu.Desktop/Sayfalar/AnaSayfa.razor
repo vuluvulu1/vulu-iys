@@ -88,7 +88,7 @@ else
                     {
                         <li @key="kayit.Id">
                             <span class="dar">@Bicim.Tarih(kayit.OlusturmaTarihi)</span>
-                            <span>@kayit.MusteriAdi – @Bicim.Cihaz(kayit)</span>
+                            <span>@kayit.MusteriAdi – @kayit.CihazAdi</span>
                             <span class="@Bicim.DurumSinifi(kayit.Durum)">@Bicim.Durum(kayit.Durum)</span>
                         </li>
                     }

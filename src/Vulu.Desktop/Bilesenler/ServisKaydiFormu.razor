@@ -102,8 +102,8 @@
         }
 
         var istek = new ServisKaydiIstegi(_musteri.Id, _teknisyenId.Length > 0 ? _teknisyenId : null,
-            _cihaz.Trim(), _sorun.Trim(), BosIseNull(_marka), BosIseNull(_model), BosIseNull(_seriNo), _garanti,
-            BosIseNull(_aksesuarlar), BosIseNull(_fizikselDurum));
+            _cihaz.Trim(), _sorun.Trim(), Metin.BosIseNull(_marka), Metin.BosIseNull(_model), Metin.BosIseNull(_seriNo), _garanti,
+            Metin.BosIseNull(_aksesuarlar), Metin.BosIseNull(_fizikselDurum));
 
         _kaydediliyor = true;
         var sonuc = Kayit is null
@@ -119,6 +119,4 @@
 
         await Kaydedildi.InvokeAsync(sonuc.Deger);
     }
-
-    private static string? BosIseNull(string deger) => string.IsNullOrWhiteSpace(deger) ? null : deger.Trim();
 }

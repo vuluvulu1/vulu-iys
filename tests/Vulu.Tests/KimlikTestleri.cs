@@ -15,7 +15,7 @@ public class KimlikTestleri : IClassFixture<ApiFabrikasi>
 
     private static string YeniAd() => "k" + Guid.NewGuid().ToString("N")[..12];
 
-    private async Task<KullaniciOzeti> KullaniciOlustur(HttpClient admin, KullaniciRol rol, string? ad = null)
+    private static async Task<KullaniciOzeti> KullaniciOlustur(HttpClient admin, KullaniciRol rol, string? ad = null)
     {
         using var yanit = await admin.PostAsJsonAsync("api/kullanicilar",
             new KullaniciOlusturIstegi(ad ?? YeniAd(), Sifre, rol, "Test Personeli"));

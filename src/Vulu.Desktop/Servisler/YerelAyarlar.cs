@@ -4,15 +4,15 @@ namespace Vulu.Desktop.Servisler;
 
 // Bu bilgisayara özgü küçük tercihler (gizli bilgi içermez). Okunamaz ya da yazılamazsa sessizce yok sayılır;
 // uygulama tercihsiz de çalışır.
-public class YerelAyarlar
+public static class YerelAyarlar
 {
     private static readonly string Dosya = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "vulu", "ayarlar.json");
 
-    private record Icerik(string? SonIsletmeKodu);
+    private sealed record Icerik(string? SonIsletmeKodu);
 
     // Giriş ekranında işletme kodunun her seferinde yeniden yazılmaması için hatırlanır.
-    public string SonIsletmeKodu
+    public static string SonIsletmeKodu
     {
         get
         {

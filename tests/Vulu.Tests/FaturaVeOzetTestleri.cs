@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -48,7 +49,7 @@ public class FaturaBelgesiTestleri : IClassFixture<ApiFabrikasi>
         Assert.Equal(Sira(ilk.Fatura.No) + 1, Sira(ikinci.Fatura!.No));
         Assert.Equal(ilk.Fatura.No, guncellenen.Fatura!.No);
 
-        static int Sira(string no) => int.Parse(no[^6..]);
+        static int Sira(string no) => int.Parse(no[^6..], CultureInfo.InvariantCulture);
     }
 
     [Fact]

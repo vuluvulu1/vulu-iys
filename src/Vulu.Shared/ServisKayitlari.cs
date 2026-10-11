@@ -112,7 +112,22 @@ public record ServisKaydiYaniti(
     // Müşterinin cihaz durumunu sorgulama sayfasında kullandığı kod.
     string TakipKodu)
 {
+    public string CihazAdi => CihazAdlari.Birlestir(CihazBilgisi, Marka, Model);
+
     public decimal ParcaToplami => Parcalar.Sum(p => p.Adet * p.BirimFiyat);
+}
+
+public static class CihazAdlari
+{
+    // Marka ve model girilmişse cihaz adının yanına eklenir (örn. "Laptop – Dell XPS 13"). Kullanıcı markayı
+    // cihaz alanına da yazdıysa yinelenmez.
+    public static string Birlestir(string cihaz, string? marka, string? model)
+    {
+        var markaModel = string.Join(' ', new[] { marka, model }.Where(b => !string.IsNullOrWhiteSpace(b)));
+        return markaModel.Length == 0 || cihaz.Contains(markaModel, StringComparison.OrdinalIgnoreCase)
+            ? cihaz
+            : $"{cihaz} – {markaModel}";
+    }
 }
 
 // Liste süzgeci: kayıtları fatura durumuna göre daraltır.

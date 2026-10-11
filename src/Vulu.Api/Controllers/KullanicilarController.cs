@@ -17,12 +17,17 @@ namespace Vulu.Api.Controllers;
 public class KullanicilarController : ControllerBase
 {
     private readonly MongoBaglami _db;
-    private readonly PlatformBaglami _platform;
+    private readonly GecerliIsletme _isletme;
+    private readonly Oturumlar _oturumlar;
+    private readonly ILogger<KullanicilarController> _log;
 
-    public KullanicilarController(MongoBaglami db, PlatformBaglami platform)
+    public KullanicilarController(MongoBaglami db, GecerliIsletme isletme, Oturumlar oturumlar,
+        ILogger<KullanicilarController> log)
     {
         _db = db;
-        _platform = platform;
+        _isletme = isletme;
+        _oturumlar = oturumlar;
+        _log = log;
     }
 
     [HttpGet]
@@ -41,7 +46,8 @@ public class KullanicilarController : ControllerBase
         var kullanici = new Kullanici
         {
             KullaniciAdi = KullaniciAdlari.Normalle(istek.KullaniciAdi),
-            SifreHash = BCrypt.Net.BCrypt.HashPassword(istek.Sifre),
+            SifreHash = Sifreler.Hashle(istek.Sifre),
+            OturumDamgasi = Sifreler.YeniOturumDamgasi(),
             Rol = istek.Rol,
             AdSoyad = istek.AdSoyad.Trim(),
             Telefon = Metin.BosIseNull(istek.Telefon),
@@ -81,7 +87,12 @@ public class KullanicilarController : ControllerBase
         kullanici.Telefon = Metin.BosIseNull(istek.Telefon);
         kullanici.Uzmanlik = Metin.BosIseNull(istek.Uzmanlik);
         if (!string.IsNullOrEmpty(istek.YeniSifre))
-            kullanici.SifreHash = BCrypt.Net.BCrypt.HashPassword(istek.YeniSifre);
+            kullanici.SifreHash = Sifreler.Hashle(istek.YeniSifre);
+
+        // Yetkisi ya da şifresi değişen hesabın açık oturumları geçersiz kalır: damga değişince eski erişim
+        // tokenları reddedilir, yenileme tokenları da aşağıda silinir.
+        if (oturumlarKapansin)
+            kullanici.OturumDamgasi = Sifreler.YeniOturumDamgasi();
 
         try
         {
@@ -92,9 +103,12 @@ public class KullanicilarController : ControllerBase
             return KullaniciAdiKullaniliyor();
         }
 
-        // Yetkisi değişen hesap eski yenileme tokenıyla oturumunu sürdüremesin.
         if (oturumlarKapansin)
-            await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.KullaniciId == id, iptal);
+        {
+            await _oturumlar.KapatAsync(_isletme.Zorunlu.Id, id, iptal);
+            _log.LogInformation("Personel hesabının oturumları kapatıldı (rol, şifre ya da aktiflik değişti): {Kullanici}, işletme {Kod}",
+                id, _isletme.Zorunlu.Kod);
+        }
 
         // Servis kayıtları ve randevular atanan kişinin adının kopyasını taşır; ad değiştiyse onlar da güncellenir.
         if (adDegisti)
@@ -126,7 +140,7 @@ public class KullanicilarController : ControllerBase
         var sonuc = await _db.Kullanicilar.DeleteOneAsync(k => k.Id == id, iptal);
         if (sonuc.DeletedCount == 0) return Bulunamadi();
 
-        await _platform.YenilemeTokenlari.DeleteManyAsync(t => t.KullaniciId == id, iptal);
+        await _oturumlar.KapatAsync(_isletme.Zorunlu.Id, id, iptal);
         return NoContent();
     }
 

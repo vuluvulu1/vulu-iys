@@ -1,0 +1,205 @@
+@* Servis kaydı penceresinin "Teklif ve parçalar" sekmesi. *@
+
+<section class="bolum ilk">
+    <h3>Fiyat teklifi</h3>
+    @if (Kayit.Teklif is { } teklif)
+    {
+        <dl class="ayrinti">
+            <dt>Tutar</dt>
+            <dd><strong>@Bicim.Para(teklif.Tutar)</strong> <span class="soluk">KDV dahil</span></dd>
+            @if (teklif.Aciklama is not null)
+            {
+                <dt>Açıklama</dt>
+                <dd class="cok-satirli">@teklif.Aciklama</dd>
+            }
+            <dt>Verildi</dt>
+            <dd>@Bicim.Tarih(teklif.Tarih)</dd>
+            <dt>Yanıt</dt>
+            <dd>
+                <span class="@TeklifSinifi(teklif.Durum)">@teklif.Durum.Ad()</span>
+                @if (teklif.YanitTarihi is { } yanit)
+                {
+                    <span class="soluk bosluklu">@Bicim.Tarih(yanit)</span>
+                }
+                @if (teklif.YanitNotu is not null)
+                {
+                    <span class="soluk bosluklu">– @teklif.YanitNotu</span>
+                }
+            </dd>
+        </dl>
+    }
+
+    @if (Kayit.Teklif is { Durum: TeklifDurumu.Bekliyor } && Kayit.Durum.AcikMi())
+    {
+        <div class="fatura-formu">
+            <input class="genis-girdi" @bind="_yanitNotu" @bind:event="oninput" maxlength="300" aria-label="Yanıt notu"
+                   placeholder="Onay nasıl alındı? (örn. telefonla)" autocomplete="off" />
+            <button type="button" disabled="@Islemler.Mesgul" @onclick="() => TeklifiYanitla(true)">Müşteri onayladı</button>
+            <button type="button" class="tehlike" disabled="@Islemler.Mesgul" @onclick="() => TeklifiYanitla(false)">Müşteri reddetti</button>
+        </div>
+        <p class="soluk aciklama">Onaylanınca iş “Devam ediyor” olur; reddedilince kayıt iptal edilir.</p>
+    }
+
+    @if (Kayit.Durum.AcikMi())
+    {
+        <div class="fatura-formu">
+            <label for="d-teklif">Tutar (₺)</label>
+            <input id="d-teklif" @bind="_teklifTutari" @bind:event="oninput" inputmode="decimal" placeholder="1500" autocomplete="off" />
+            <input class="genis-girdi" @bind="_teklifAciklamasi" @bind:event="oninput" maxlength="500" aria-label="Teklif açıklaması"
+                   placeholder="Açıklama (isteğe bağlı)" autocomplete="off" />
+            <button type="button" class="@(Kayit.Teklif is null ? "" : "ikincil")" disabled="@Islemler.Mesgul" @onclick="TeklifVer">
+                @(Kayit.Teklif is null ? "Teklif ver" : "Yeni teklif ver")
+            </button>
+        </div>
+        <p class="soluk aciklama">Teklif verilince kayıt “Onay bekliyor” durumuna geçer.</p>
+    }
+    else if (Kayit.Teklif is null)
+    {
+        <p class="soluk aciklama">Bu kayıt için teklif verilmedi.</p>
+    }
+</section>
+
+<section class="bolum">
+    <h3>Kullanılan parçalar</h3>
+    @if (Kayit.Parcalar.Count == 0)
+    {
+        <p class="soluk aciklama">Henüz parça kullanılmadı.</p>
+    }
+    else
+    {
+        <table class="tablo sik">
+            <thead>
+                <tr><th>Parça</th><th>Adet</th><th>Birim fiyat</th><th>Tutar</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var satir in Kayit.Parcalar)
+                {
+                    <tr @key="satir.Id">
+                        <td>@satir.Ad</td>
+                        <td class="dar">@satir.Adet</td>
+                        <td class="dar">@Bicim.Para(satir.BirimFiyat)</td>
+                        <td class="dar">@Bicim.Para(satir.Adet * satir.BirimFiyat)</td>
+                        <td class="islemler">
+                            <button type="button" class="ikincil" disabled="@(Islemler.Mesgul || Kayit.Fatura is not null)"
+                                    @onclick="() => ParcaCikar(satir)">Çıkar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr><td colspan="3">Parça toplamı</td><td class="dar"><strong>@Bicim.Para(Kayit.ParcaToplami)</strong></td><td></td></tr>
+            </tfoot>
+        </table>
+    }
+
+    @if (Kayit.Fatura is not null)
+    {
+        <p class="soluk aciklama">Faturası olan kaydın parçaları değiştirilemez.</p>
+    }
+    else if (Kayit.Durum != ServisDurumu.IptalEdildi)
+    {
+        <div class="fatura-formu">
+            <AramaKutusu YerTutucu="Stokta parça ara" Etiket="Stokta parça ara" Arandi="ParcaAra" />
+            <select class="genis-girdi" aria-label="Parça" @bind="_secilenParcaId">
+                <option value="">@(_parcalar is null ? "Yükleniyor…" : _parcalar.Count == 0 ? "Parça bulunamadı" : "Parça seçin")</option>
+                @foreach (var parca in _parcalar ?? [])
+                {
+                    <option value="@parca.Id" disabled="@(parca.StokAdedi <= 0)">
+                        @parca.Ad – @Bicim.Para(parca.BirimFiyat) (stok: @parca.StokAdedi)
+                    </option>
+                }
+            </select>
+            <label for="d-adet">Adet</label>
+            <input id="d-adet" class="dar-girdi" type="number" min="1" max="1000" @bind="_parcaAdedi" />
+            <button type="button" disabled="@(Islemler.Mesgul || _secilenParcaId.Length == 0)" @onclick="ParcaEkle">Ekle</button>
+        </div>
+        <p class="soluk aciklama">Eklenen parça stoktan düşer; çıkarılırsa stoğa geri döner.</p>
+    }
+</section>
+
+@code {
+    private const int ParcaListesiBoyutu = 50;
+
+    [Parameter, EditorRequired] public ServisKaydiYaniti Kayit { get; set; } = null!;
+    [Parameter, EditorRequired] public KayitIslemleri Islemler { get; set; } = null!;
+
+    private string _teklifTutari = "";
+    private string _teklifAciklamasi = "";
+    private string _yanitNotu = "";
+    private string _parcaAramasi = "";
+    private string _secilenParcaId = "";
+    private int _parcaAdedi = 1;
+    private IReadOnlyList<ParcaYaniti>? _parcalar;
+
+    private static string TeklifSinifi(TeklifDurumu durum) => durum switch
+    {
+        TeklifDurumu.Onaylandi => "durum iyi",
+        TeklifDurumu.Reddedildi => "durum kotu",
+        _ => "soluk"
+    };
+
+    protected override Task OnInitializedAsync() => ParcalariYukle();
+
+    private Task ParcaAra(string arama)
+    {
+        _parcaAramasi = arama;
+        return ParcalariYukle();
+    }
+
+    // Listeyi yüklerken pencerenin hata mesajına dokunulmaz: liste, başarısız bir işlemden sonra da yenilenir
+    // ve o işlemin hatası ekranda kalmalıdır.
+    private async Task ParcalariYukle()
+    {
+        var sonuc = await Islemler.Api.Getir<Sayfa<ParcaYaniti>>(
+            $"api/parcalar?arama={Uri.EscapeDataString(_parcaAramasi)}&boyut={ParcaListesiBoyutu}");
+        if (sonuc is not { Basarili: true, Deger: not null }) return;
+
+        _parcalar = sonuc.Deger.Ogeler;
+        if (_parcalar.All(p => p.Id != _secilenParcaId)) _secilenParcaId = "";
+    }
+
+    private async Task TeklifVer()
+    {
+        if (!Bicim.ParaOku(_teklifTutari, out var tutar) || tutar <= 0)
+        {
+            Islemler.HatayiGoster("Geçerli bir teklif tutarı girin (örn. 1500).");
+            return;
+        }
+
+        var istek = new TeklifIstegi(tutar, Metin.BosIseNull(_teklifAciklamasi));
+        if (await Islemler.Degistir(api => api.Guncelle<ServisKaydiYaniti>($"{Islemler.Yol}/teklif", istek)))
+        {
+            _teklifTutari = "";
+            _teklifAciklamasi = "";
+        }
+    }
+
+    private async Task TeklifiYanitla(bool onaylandi)
+    {
+        var istek = new TeklifYanitIstegi(onaylandi, Metin.BosIseNull(_yanitNotu));
+        if (await Islemler.Degistir(api => api.Guncelle<ServisKaydiYaniti>($"{Islemler.Yol}/teklif/yanit", istek)))
+            _yanitNotu = "";
+    }
+
+    private async Task ParcaEkle()
+    {
+        if (_parcaAdedi < 1)
+        {
+            Islemler.HatayiGoster("Adet en az 1 olmalı.");
+            return;
+        }
+
+        var istek = new ParcaKullanimIstegi(_secilenParcaId, _parcaAdedi);
+        if (await Islemler.Degistir(api => api.Ekle<ServisKaydiYaniti>($"{Islemler.Yol}/parcalar", istek)))
+            _parcaAdedi = 1;
+
+        // Stok sayıları değişti; istek başarısız olduysa da güncel stok görünsün.
+        await ParcalariYukle();
+    }
+
+    private async Task ParcaCikar(KullanilanParcaYaniti satir)
+    {
+        if (await Islemler.Degistir(api => api.Sil<ServisKaydiYaniti>($"{Islemler.Yol}/parcalar/{satir.Id}")))
+            await ParcalariYukle();
+    }
+}

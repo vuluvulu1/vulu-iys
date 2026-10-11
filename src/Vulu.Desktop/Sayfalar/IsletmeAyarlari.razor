@@ -229,9 +229,9 @@ else
             return;
         }
 
-        var istek = new IsletmeProfilIstegi(_form.Ad.Trim(), BosIseNull(_form.Adres), BosIseNull(_form.Telefon),
-            BosIseNull(_form.Eposta), BosIseNull(_form.VergiDairesi), BosIseNull(_form.VergiNo), kdv,
-            _yeniLogo?.Veri, _yeniLogo?.Tur, _logoKaldirilacak, BosIseNull(_form.ServisKosullari));
+        var istek = new IsletmeProfilIstegi(_form.Ad.Trim(), Metin.BosIseNull(_form.Adres), Metin.BosIseNull(_form.Telefon),
+            Metin.BosIseNull(_form.Eposta), Metin.BosIseNull(_form.VergiDairesi), Metin.BosIseNull(_form.VergiNo), kdv,
+            _yeniLogo?.Veri, _yeniLogo?.Tur, _logoKaldirilacak, Metin.BosIseNull(_form.ServisKosullari));
 
         _kaydediliyor = true;
         var sonuc = await Api.Guncelle<IsletmeYaniti>("api/isletme", istek);
@@ -245,6 +245,4 @@ else
         // Yan menüdeki ad ve logo da yenilensin.
         Oturum.IsletmeyiAyarla(sonuc.Deger);
     }
-
-    private static string? BosIseNull(string deger) => string.IsNullOrWhiteSpace(deger) ? null : deger.Trim();
 }

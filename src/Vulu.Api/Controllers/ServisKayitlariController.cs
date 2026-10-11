@@ -1,6 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using Vulu.Api.Altyapi;
 using Vulu.Api.Kurallar;
@@ -33,18 +33,15 @@ public class ServisKayitlariController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<Sayfa<ServisKaydiYaniti>>> Listele(
-        [FromQuery] string? arama, [FromQuery] ServisDurumu? durum,
+        [FromQuery, StringLength(AramaMetni.EnFazlaUzunluk, ErrorMessage = AramaMetni.UzunlukMesaji)] string? arama, [FromQuery] ServisDurumu? durum,
         [FromQuery] FaturaSuzgeci fatura = FaturaSuzgeci.Hepsi,
-        [FromQuery] string? musteriId = null, [FromQuery] string? teknisyenId = null,
+        [FromQuery, RegularExpression(KimlikKurallari.Desen, ErrorMessage = "Geçersiz süzgeç.")] string? musteriId = null,
+        [FromQuery, RegularExpression(KimlikKurallari.Desen, ErrorMessage = "Geçersiz süzgeç.")] string? teknisyenId = null,
         [FromQuery] string? seriNo = null,
         [FromQuery] int sayfa = 1, [FromQuery] int boyut = 25,
         CancellationToken iptal = default)
     {
-        if (!KimlikGecerli(musteriId) || !KimlikGecerli(teknisyenId))
-            return Problem(detail: "Geçersiz süzgeç.", statusCode: StatusCodes.Status400BadRequest);
-
-        sayfa = Math.Max(1, sayfa);
-        boyut = Math.Clamp(boyut, 1, EnFazlaSayfaBoyutu);
+        var sayfalama = Sayfalama.Olustur(sayfa, boyut, EnFazlaSayfaBoyutu);
 
         var f = Builders<ServisKaydi>.Filter;
         var filtre = f.Eq(s => s.SilinmeTarihi, null);
@@ -73,11 +70,11 @@ public class ServisKayitlariController : ControllerBase
         var toplam = await _db.ServisKayitlari.CountDocumentsAsync(filtre, cancellationToken: iptal);
         var kayitlar = await _db.ServisKayitlari.Find(filtre)
             .SortByDescending(s => s.OlusturmaTarihi)
-            .Skip((sayfa - 1) * boyut)
-            .Limit(boyut)
+            .Skip(sayfalama.Atla)
+            .Limit(sayfalama.Boyut)
             .ToListAsync(iptal);
 
-        return new Sayfa<ServisKaydiYaniti>(kayitlar.Select(k => k.YanitaCevir()).ToList(), toplam, sayfa, boyut);
+        return new Sayfa<ServisKaydiYaniti>(kayitlar.Select(k => k.YanitaCevir()).ToList(), toplam, sayfalama.Sayfa, sayfalama.Boyut);
     }
 
     [HttpGet("{id:oid}")]
@@ -100,7 +97,7 @@ public class ServisKayitlariController : ControllerBase
         AramaMetniniYenile(kayit);
 
         await _db.ServisKayitlari.InsertOneAsync(kayit, cancellationToken: iptal);
-        await _gunluk.YazAsync(kayit.Id, IslemTuru.KayitAcildi, ServisFormu.CihazAdi(kayit), iptal);
+        await _gunluk.YazAsync(kayit.Id, IslemTuru.KayitAcildi, kayit.CihazAdi, iptal);
 
         return CreatedAtAction(nameof(Getir), new { id = kayit.Id }, kayit.YanitaCevir());
     }
@@ -198,7 +195,10 @@ public class ServisKayitlariController : ControllerBase
 
         kayit.Parcalar.Add(new KullanilanParca
         {
-            ParcaId = parca.Id, Ad = parca.Ad, Adet = istek.Adet, BirimFiyat = parca.BirimFiyat
+            ParcaId = parca.Id,
+            Ad = parca.Ad,
+            Adet = istek.Adet,
+            BirimFiyat = parca.BirimFiyat
         });
 
         if (!await Yaz(kayit, iptal))
@@ -481,8 +481,6 @@ public class ServisKayitlariController : ControllerBase
 
         return degisenler.Count == 0 ? null : string.Join("; ", degisenler);
     }
-
-    private static bool KimlikGecerli(string? kimlik) => kimlik is null || ObjectId.TryParse(kimlik, out _);
 
     private ObjectResult Bulunamadi() =>
         Problem(detail: "Servis kaydı bulunamadı.", statusCode: StatusCodes.Status404NotFound);

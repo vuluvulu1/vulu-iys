@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
@@ -34,6 +35,9 @@ public class ApiFabrikasi : WebApplicationFactory<Program>, IAsyncLifetime
 
     protected virtual int DakikadaGirisDenemesi => 10_000;
 
+    // Belirli bir sınırı ya da ayarı deneyen test sınıfları buradan ek ayar verir.
+    protected virtual IReadOnlyDictionary<string, string> EkAyarlar => new Dictionary<string, string>();
+
     public PlatformBaglami Platform => Services.GetRequiredService<PlatformBaglami>();
 
     // Varsayılan test işletmesinin veritabanı.
@@ -47,7 +51,9 @@ public class ApiFabrikasi : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Jwt:Anahtar", JwtAnahtari);
         builder.UseSetting("IlkAdmin:KullaniciAdi", YoneticiAdi);
         builder.UseSetting("IlkAdmin:Sifre", YoneticiSifresi);
-        builder.UseSetting("GirisSiniri:DakikadaDeneme", DakikadaGirisDenemesi.ToString());
+        builder.UseSetting("GirisSiniri:DakikadaDeneme", DakikadaGirisDenemesi.ToString(CultureInfo.InvariantCulture));
+        foreach (var (anahtar, deger) in EkAyarlar)
+            builder.UseSetting(anahtar, deger);
     }
 
     public async Task InitializeAsync()

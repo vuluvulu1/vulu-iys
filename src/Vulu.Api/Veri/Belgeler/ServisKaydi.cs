@@ -32,6 +32,10 @@ public class ServisKaydi
     public string? Marka { get; set; }
     public string? Model { get; set; }
 
+    // Formlarda ve listelerde gösterilen ad: cihaz, marka ve model birlikte.
+    [BsonIgnore]
+    public string CihazAdi => CihazAdlari.Birlestir(CihazBilgisi, Marka, Model);
+
     // Seri numarası ya da IMEI; büyük harfle saklanır ki aynı cihazın kayıtları birebir eşleşsin.
     public string? SeriNo { get; set; }
     public bool GarantiKapsaminda { get; set; }

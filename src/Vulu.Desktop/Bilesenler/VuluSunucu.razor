@@ -1,0 +1,57 @@
+@* Vulu yöneticisinin, canlı ortamda sunucunun istekleri doğru gördüğünü denetlediği ekran. *@
+@inject ApiIstemcisi Api
+
+<h1>Sunucu</h1>
+
+<div class="arac-cubugu">
+    <button class="ikincil" @onclick="Yukle" disabled="@_yukleniyor">Yenile</button>
+</div>
+
+@if (_hata is not null)
+{
+    <p class="hata" role="alert">@_hata</p>
+}
+else if (_baglanti is null)
+{
+    <p class="soluk">Yükleniyor…</p>
+}
+else
+{
+    <section class="kart">
+        <h2>Bağlantı denetimi</h2>
+        <dl class="ayrinti">
+            <dt>Görülen adres</dt>
+            <dd><code>@(_baglanti.IstemciAdresi ?? "bilinmiyor")</code></dd>
+            <dt>Şifreli bağlantı</dt>
+            <dd>
+                <span class="@(_baglanti.Https ? "durum iyi" : "durum kotu")">@(_baglanti.Https ? "Evet (HTTPS)" : "Hayır")</span>
+            </dd>
+            <dt>İşlenmeyen vekil</dt>
+            <dd>@_baglanti.IletilenAdresSayisi</dd>
+        </dl>
+        <p class="soluk aciklama">
+            “Görülen adres” bu bilgisayarın internet adresi olmalı. Burada barındırma şirketine ait bir adres
+            görünüyorsa bütün kullanıcılar tek adres sayılır ve giriş deneme sınırı herkesi birden etkiler;
+            sunucudaki <code>Vekil__AtlamaSayisi</code> ayarını bir artırın. Aynı bilgisayarda çalışan test
+            paketinde adres <code>127.0.0.1</code> ya da <code>::1</code>, şifreli bağlantı “Hayır” görünür; bu beklenen durumdur.
+        </p>
+    </section>
+}
+
+@code {
+    private BaglantiYaniti? _baglanti;
+    private string? _hata;
+    private bool _yukleniyor;
+
+    protected override Task OnInitializedAsync() => Yukle();
+
+    private async Task Yukle()
+    {
+        _yukleniyor = true;
+        var sonuc = await Api.Getir<BaglantiYaniti>("api/saglik/baglanti");
+        _yukleniyor = false;
+
+        _hata = sonuc.Hata;
+        if (sonuc.Basarili) _baglanti = sonuc.Deger;
+    }
+}

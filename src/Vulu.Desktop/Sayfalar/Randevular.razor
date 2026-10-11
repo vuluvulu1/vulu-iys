@@ -121,15 +121,7 @@ else
         </tbody>
     </table>
 
-    <div class="sayfalama">
-        <span class="soluk">@_sayfa.Toplam kayıt</span>
-        @if (SayfaSayisi > 1)
-        {
-            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo - 1)" disabled="@(_sayfaNo <= 1)">Önceki</button>
-            <span>@_sayfaNo / @SayfaSayisi</span>
-            <button class="ikincil" @onclick="() => SayfayaGit(_sayfaNo + 1)" disabled="@(_sayfaNo >= SayfaSayisi)">Sonraki</button>
-        }
-    </div>
+    <SayfaGezgini Sayfa="_sayfa" Birim="kayıt" SayfaIstendi="SayfayaGit" />
 }
 
 @if (_formAcik)
@@ -215,7 +207,7 @@ else
     private RandevuYaniti? _silinecek;
     private string? _silmeHatasi;
 
-    private int SayfaSayisi => _sayfa is null ? 1 : (int)Math.Max(1, Math.Ceiling(_sayfa.Toplam / (double)_sayfa.Boyut));
+    private int SayfaSayisi => _sayfa?.SayfaSayisi ?? 1;
 
     // Düzenlenen randevunun süresi standart seçeneklerden biri değilse listeye eklenir ki kaybolmasın.
     private IEnumerable<int> SureSecenekleri => StandartSureler.Append(_sure).Distinct().Order();
@@ -362,7 +354,7 @@ else
             _servisKaydiId.Length > 0 ? _servisKaydiId : null,
             tarih,
             _sure,
-            string.IsNullOrWhiteSpace(_aciklama) ? null : _aciklama.Trim());
+            Metin.BosIseNull(_aciklama));
 
         _kaydediliyor = true;
         var sonuc = _duzenlenen is null

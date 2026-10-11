@@ -15,8 +15,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /uygulama
 COPY --from=derleme /uygulama .
 
-# API bir ters vekilin arkasında çalışır: gerçek istemci adresi ve HTTPS bilgisi X-Forwarded-* başlıklarından okunur.
-ENV ASPNETCORE_FORWARDEDHEADERS_ENABLED=true \
+# API bir ters vekilin arkasında çalışır: gerçek istemci adresi ve HTTPS bilgisi X-Forwarded-* başlıklarından
+# okunur. Kaç vekile güvenileceği Vekil__AtlamaSayisi ile verilir (bkz. Program.cs).
+ENV Vekil__AtlamaSayisi=1 \
     ASPNETCORE_HTTPS_PORT=443
 
 USER $APP_UID

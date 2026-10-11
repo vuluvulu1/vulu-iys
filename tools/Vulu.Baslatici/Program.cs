@@ -116,7 +116,7 @@ internal static class Program
     private static int Hata(string mesaj)
     {
         const uint HataSimgesi = 0x10;
-        MessageBoxW(IntPtr.Zero, mesaj, "vulu", HataSimgesi);
+        _ = MessageBoxW(IntPtr.Zero, mesaj, "vulu", HataSimgesi);
         return 1;
     }
 

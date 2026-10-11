@@ -23,8 +23,9 @@ public class OzetController : ControllerBase
     public async Task<ActionResult<OzetYaniti>> Getir(
         [FromQuery] DateTime gunBaslangici, [FromQuery] DateTime ayBaslangici, CancellationToken iptal)
     {
-        if (gunBaslangici == default || ayBaslangici == default)
-            return Problem(detail: "gunBaslangici ve ayBaslangici gerekli.", statusCode: StatusCodes.Status400BadRequest);
+        if (!Zaman.MakulMu(gunBaslangici) || !Zaman.MakulMu(ayBaslangici))
+            return Problem(detail: $"gunBaslangici ve ayBaslangici gerekli. {Zaman.MakulDegilMesaji}",
+                statusCode: StatusCodes.Status400BadRequest);
 
         var gun = Zaman.UtcYap(gunBaslangici);
         var ay = Zaman.UtcYap(ayBaslangici);

@@ -18,6 +18,12 @@ public static class Zaman
 
     public static string Para(decimal tutar) => tutar.ToString("N2", Turkce) + " ₺";
 
+    // İstemciden gelen tarihler bu aralıkta olmalıdır. Aralığın dışındaki değerler (0001 ya da 9999 yılı gibi)
+    // anlamsızdır ve üzerlerine süre eklenince taşarlar.
+    public static bool MakulMu(DateTime tarih) => tarih.Year is >= 2000 and <= 2100;
+
+    public const string MakulDegilMesaji = "Tarih 2000 ile 2100 yılları arasında olmalı.";
+
     // İstemciden gelen tarihleri UTC'ye çevirir; saat dilimi belirtilmemiş olanlar UTC sayılır.
     public static DateTime UtcYap(DateTime tarih) => tarih.Kind switch
     {
