@@ -639,6 +639,31 @@ public class GuvenlikTestleri : IClassFixture<ApiFabrikasi>
         Assert.Equal(HttpStatusCode.OK, form.StatusCode);
     }
 
+    // --- Günlüğe ya da hata mesajına düşebilecek gizli alanlar ---
+
+    [Fact]
+    public void Sifre_ya_da_token_tasiyan_turler_metne_cevrilince_icerigini_yazmaz()
+    {
+        // Yeni bir tür şifre ya da token alanı taşıyıp ToString'i ezmezse bu test kırılır.
+        var gizliAlanliTurler = typeof(GirisIstegi).Assembly.GetTypes()
+            .Where(tur => tur.GetProperties().Any(alan =>
+                alan.PropertyType == typeof(string)
+                && (alan.Name.Contains("Sifre", StringComparison.Ordinal) || alan.Name.Contains("Token", StringComparison.Ordinal))))
+            .ToList();
+
+        Assert.Contains(typeof(GirisIstegi), gizliAlanliTurler);
+        Assert.Contains(typeof(OturumYaniti), gizliAlanliTurler);
+
+        foreach (var tur in gizliAlanliTurler)
+        {
+            var yontem = tur.GetMethod(nameof(ToString), Type.EmptyTypes)!;
+            var derleyiciUretti = yontem.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), false);
+            Assert.False(derleyiciUretti, $"{tur.Name} içeriğini ToString ile yazdırıyor.");
+        }
+
+        Assert.DoesNotContain("cok-gizli", new GirisIstegi("isletme", "kullanici", "cok-gizli").ToString());
+    }
+
     // --- Yanıt başlıkları ve hata ayrıntısı ---
 
     [Fact]

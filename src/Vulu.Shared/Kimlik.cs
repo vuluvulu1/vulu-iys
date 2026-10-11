@@ -12,12 +12,18 @@ public record GirisIstegi(
     string KullaniciAdi,
     [Required(ErrorMessage = "Şifre gerekli.")]
     [StringLength(KullaniciKurallari.EnFazlaGirdiUzunlugu, ErrorMessage = "Şifre çok uzun.")]
-    string Sifre);
+    string Sifre)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 public record YenilemeIstegi(
     [Required(ErrorMessage = "Yenileme tokeni gerekli.")]
     [StringLength(KullaniciKurallari.EnFazlaGirdiUzunlugu, ErrorMessage = "Yenileme tokeni geçersiz.")]
-    string YenilemeTokeni);
+    string YenilemeTokeni)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 // Oturumdaki kişinin kendi şifresini değiştirmesi; mevcut şifre, oturumu ele geçiren birinin şifreyi
 // değiştirip hesabı sahiplenmesini önler.
@@ -27,7 +33,10 @@ public record SifreDegistirmeIstegi(
     string MevcutSifre,
     [Required(ErrorMessage = "Yeni şifre gerekli.")]
     [Sifre]
-    string YeniSifre);
+    string YeniSifre)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 // Isletme boşsa oturum bir işletme personeline değil vulu yöneticisine aittir.
 public record OturumYaniti(
@@ -35,7 +44,10 @@ public record OturumYaniti(
     DateTime ErisimBitis,
     string YenilemeTokeni,
     KullaniciOzeti Kullanici,
-    IsletmeOzeti? Isletme);
+    IsletmeOzeti? Isletme)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 // Personel kaydı: sisteme giriş yapan hesap ile işlerin atandığı kişi aynı kayıttır.
 public record KullaniciOzeti(
@@ -65,7 +77,10 @@ public record KullaniciOlusturIstegi(
     [RegularExpression(TelefonKurallari.Desen, ErrorMessage = TelefonKurallari.Mesaj)]
     string? Telefon = null,
     [StringLength(100, ErrorMessage = "Uzmanlık en fazla 100 karakter olabilir.")]
-    string? Uzmanlik = null);
+    string? Uzmanlik = null)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 public record KullaniciGuncelleIstegi(
     [Required(ErrorMessage = "Kullanıcı adı gerekli.")]
@@ -82,7 +97,10 @@ public record KullaniciGuncelleIstegi(
     [RegularExpression(TelefonKurallari.Desen, ErrorMessage = TelefonKurallari.Mesaj)]
     string? Telefon = null,
     [StringLength(100, ErrorMessage = "Uzmanlık en fazla 100 karakter olabilir.")]
-    string? Uzmanlik = null);
+    string? Uzmanlik = null)
+{
+    public override string ToString() => GizliIcerik.Ad(this);
+}
 
 public static class KullaniciKurallari
 {
@@ -115,4 +133,11 @@ public sealed class SifreAttribute : ValidationAttribute
         || (value is string sifre
             && sifre.Length >= KullaniciKurallari.EnAzSifreUzunlugu
             && System.Text.Encoding.UTF8.GetByteCount(sifre) <= KullaniciKurallari.EnFazlaSifreBayti);
+}
+
+// Şifre ya da token taşıyan türler metne çevrilince içeriklerini yazmaz. Kayıt türlerinin kendiliğinden üretilen
+// ToString'i bütün alanları döker; böyle bir nesne günlüğe ya da bir hata mesajına düşerse şifre de düşerdi.
+public static class GizliIcerik
+{
+    public static string Ad(object nesne) => $"{nesne.GetType().Name} {{ gizli }}";
 }

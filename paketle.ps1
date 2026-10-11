@@ -2,7 +2,7 @@
 #
 #   .\paketle.ps1
 #       Test paketi: dist\Vulu\Vulu.exe çift tıklanınca API'yi ve masaüstü uygulamasını birlikte açar.
-#       Bu makinedeki .NET 10 ve yerel MongoDB ile çalışır, gizli ayarları (appsettings.Local.json) içerir;
+#       Bu makinedeki .NET 10 ile çalışır; gizli ayarları ve veritabanı bağlantısını (appsettings.Local.json) içerir;
 #       paylaşılmamalıdır.
 #
 #   .\paketle.ps1 -Dagitim -ApiAdresi https://ornek.onrender.com/
