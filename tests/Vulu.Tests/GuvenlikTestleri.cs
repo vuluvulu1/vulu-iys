@@ -154,7 +154,7 @@ public class GuvenlikTestleri : IClassFixture<ApiFabrikasi>
     // --- Sahte ve oynanmış tokenlar ---
 
     private static string TokenUret(string anahtar, string algoritma, string rol, string? isletmeId, DateTime? bitis = null,
-        string yayinci = "vulu-tsys", string hedef = "vulu-tsys-istemci")
+        string yayinci = "vulu-iys", string hedef = "vulu-iys-istemci")
     {
         var talepler = new List<Claim> { new("sub", Olmayan), new("name", "saldirgan"), new("role", rol) };
         if (isletmeId is not null) talepler.Add(new Claim("isletme", isletmeId));

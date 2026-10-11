@@ -8,8 +8,6 @@ namespace Vulu.Desktop;
 [SupportedOSPlatform("windows")]
 internal static class KurulumBilgisi
 {
-    public const string UrunAdi = "vulu Teknik Servis Yönetim Sistemi";
-    public const string Yayinci = "vulu";
     public const string UygulamaExe = "Vulu.Desktop.exe";
 
     // Uygulama bu seçenekle çalıştırılınca kendini kaldırır.
@@ -19,18 +17,29 @@ internal static class KurulumBilgisi
     public const string SessizSecenegi = "/sessiz";
 
     // Kayıt yalnızca bu kullanıcı içindir (HKEY_CURRENT_USER); kurulum yönetici izni istemez.
-    public const string KaldirmaAnahtari = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\VuluTeknikServis";
+    public const string KaldirmaAnahtari = UygulamalarAnahtari + "VuluIsletmeYonetim";
 
-    private const string KisayolAdi = "vulu Teknik Servis.lnk";
+    // Ürünün adı "vulu Teknik Servis Yönetim Sistemi" iken (0.2 sürümleri) kurulumun bıraktığı izler. Yeni kurulum
+    // bunları temizler; yoksa eski kısayol ve "Uygulamalar" listesindeki eski satır yenisinin yanında kalırdı.
+    public const string EskiKaldirmaAnahtari = UygulamalarAnahtari + "VuluTeknikServis";
+    private const string EskiKisayolAdi = "vulu Teknik Servis.lnk";
+
+    private const string UygulamalarAnahtari = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\";
+    private const string KisayolAdi = Urun.Ad + ".lnk";
 
     public static string Klasor =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Vulu");
 
     public static string UygulamaYolu => Path.Combine(Klasor, UygulamaExe);
 
-    public static string[] Kisayollar =>
+    public static string[] Kisayollar => KisayolYollari(KisayolAdi);
+
+    public static string[] EskiKisayollar => KisayolYollari(EskiKisayolAdi);
+
+    // Başlat menüsü ve masaüstü.
+    private static string[] KisayolYollari(string ad) =>
     [
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), KisayolAdi),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), KisayolAdi)
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), ad),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), ad)
     ];
 }

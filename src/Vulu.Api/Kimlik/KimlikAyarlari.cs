@@ -6,8 +6,8 @@ public class JwtAyarlari
     public const int EnAzAnahtarUzunlugu = 32;
 
     public string Anahtar { get; set; } = string.Empty;
-    public string Yayinci { get; set; } = "vulu-tsys";
-    public string Hedef { get; set; } = "vulu-tsys-istemci";
+    public string Yayinci { get; set; } = "vulu-iys";
+    public string Hedef { get; set; } = "vulu-iys-istemci";
     public int ErisimDakika { get; set; } = 15;
     public int YenilemeGun { get; set; } = 7;
 }

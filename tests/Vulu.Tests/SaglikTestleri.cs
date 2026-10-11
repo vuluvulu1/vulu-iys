@@ -13,7 +13,7 @@ public class SaglikTestleri
         await using var fabrika = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
         {
             b.UseSetting("Mongo:BaglantiDizesi", "mongodb://127.0.0.1:1");
-            b.UseSetting("Mongo:VeritabaniAdi", "vulu_tsys_test");
+            b.UseSetting("Mongo:VeritabaniAdi", "vulu_iys_test");
             b.UseSetting("Jwt:Anahtar", ApiFabrikasi.JwtAnahtari);
         });
         using var istemci = fabrika.CreateClient();
