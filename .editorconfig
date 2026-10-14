@@ -5,10 +5,10 @@ charset = utf-8
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{cs,razor,css,html,json,props,csproj,yaml,ps1}]
+[*.{cs,js,css,html,json,props,csproj,yaml,ps1}]
 indent_style = space
 
-[*.{cs,razor,css,html,ps1}]
+[*.{cs,js,css,html,ps1}]
 indent_size = 4
 
 [*.{json,props,csproj,yaml}]
@@ -24,9 +24,6 @@ dotnet_diagnostic.CA1873.severity = none
 
 # "Vulu.Shared" ad alanı yalnızca C# projelerinden kullanılır.
 dotnet_diagnostic.CA1716.severity = none
-
-# ApiSonucu<T>.Tamam / Basarisiz gibi üretici yöntemler genel türün üzerinde okunaklıdır.
-dotnet_diagnostic.CA1000.severity = none
 
 [tests/**.cs]
 # Test adları cümle gibi okunur: Yanlis_sifre_ve_olmayan_kullanici_ayni_yaniti_alir.
