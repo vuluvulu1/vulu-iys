@@ -150,3 +150,32 @@ body {
     overflow: auto;
     padding: 24px 32px;
 }
+
+/* Liste sayfaları */
+
+.arama {
+    max-width: 320px;
+}
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: var(--bs-tertiary-bg);
+}
+
+.modal {
+    --bs-modal-bg: var(--bs-tertiary-bg);
+}
+
+.btn-danger {
+    --bs-btn-bg: #e5604d;
+    --bs-btn-border-color: #e5604d;
+    --bs-btn-hover-bg: #c94a38;
+    --bs-btn-hover-border-color: #c94a38;
+}
+
+.btn-outline-danger {
+    --bs-btn-color: #e5604d;
+    --bs-btn-border-color: #e5604d;
+    --bs-btn-hover-bg: #e5604d;
+    --bs-btn-hover-border-color: #e5604d;
+}

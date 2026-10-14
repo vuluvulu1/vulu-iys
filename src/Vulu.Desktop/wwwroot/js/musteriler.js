@@ -1,0 +1,163 @@
+// Müşteriler sayfası: liste, arama, kayıt ekleme/düzenleme, silme ve Excel'e aktarma.
+
+let oturum = null;        // giriş yapan kişi (ortak.js'ten gelir)
+let arama = "";           // arama kutusundaki metin
+let sayfaNo = 1;          // listenin kaçıncı sayfası açık
+let duzenlenen = null;    // düzenlenen müşteri; yeni kayıtta null
+let silinecek = null;     // silme penceresinde gösterilen müşteri
+
+const formPenceresi = new bootstrap.Modal(document.getElementById("form-penceresi"));
+const silmePenceresi = new bootstrap.Modal(document.getElementById("silme-penceresi"));
+
+async function listele() {
+    const cevap = await kopruyeSor("musteri_listele", { arama: arama, sayfa: sayfaNo });
+    if (!cevap.basarili) {
+        hataGoster("liste-hatasi", cevap.hata);
+        return;
+    }
+    hataGoster("liste-hatasi", "");
+
+    const sayfa = cevap.veri;
+
+    // Son sayfadaki tek kayıt silindiyse boş sayfada kalmamak için bir önceki sayfaya dönülür.
+    if (sayfa.ogeler.length === 0 && sayfaNo > 1) {
+        sayfaNo = sayfa.sayfaSayisi;
+        await listele();
+        return;
+    }
+
+    const satirlar = document.getElementById("satirlar");
+    satirlar.innerHTML = "";
+
+    for (const musteri of sayfa.ogeler) {
+        const satir = document.createElement("tr");
+        hucreEkle(satir, musteri.adSoyad);
+        hucreEkle(satir, bosIseTire(musteri.telefon));
+        hucreEkle(satir, bosIseTire(musteri.email));
+        hucreEkle(satir, bosIseTire(musteri.adres));
+
+        const islemler = hucreEkle(satir, "");
+        islemler.className = "text-end text-nowrap";
+
+        const duzenle = document.createElement("button");
+        duzenle.className = "btn btn-outline-secondary btn-sm";
+        duzenle.textContent = "Düzenle";
+        duzenle.addEventListener("click", function () { formuAc(musteri); });
+        islemler.appendChild(duzenle);
+
+        // Müşteriyi yalnızca yönetici silebilir (sunucu da aynı kuralı uygular).
+        if (oturum.adminMi) {
+            const sil = document.createElement("button");
+            sil.className = "btn btn-outline-danger btn-sm ms-2";
+            sil.textContent = "Sil";
+            sil.addEventListener("click", function () { silmeyiAc(musteri); });
+            islemler.appendChild(sil);
+        }
+
+        satirlar.appendChild(satir);
+    }
+
+    const bos = sayfa.ogeler.length === 0;
+    document.getElementById("tablo").hidden = bos;
+    document.getElementById("bos-mesaji").hidden = !bos;
+    document.getElementById("bos-mesaji").textContent =
+        arama === "" ? "Kayıtlı müşteri bulunmuyor." : "Aramayla eşleşen müşteri bulunamadı.";
+
+    sayfalamayiCiz("sayfalama", sayfa, "kayıt", function (yeniSayfa) {
+        sayfaNo = yeniSayfa;
+        listele();
+    });
+}
+
+// musteri verilirse düzenleme, verilmezse yeni kayıt penceresi açılır.
+function formuAc(musteri) {
+    duzenlenen = musteri || null;
+    document.getElementById("form-basligi").textContent = musteri ? "Müşteriyi düzenle" : "Müşteri kaydı";
+    document.getElementById("ad-soyad").value = musteri ? musteri.adSoyad : "";
+    document.getElementById("telefon").value = musteri ? (musteri.telefon || "") : "";
+    document.getElementById("email").value = musteri ? (musteri.email || "") : "";
+    document.getElementById("adres").value = musteri ? (musteri.adres || "") : "";
+    hataGoster("form-hatasi", "");
+    formPenceresi.show();
+}
+
+async function kaydet(olay) {
+    olay.preventDefault();
+    const dugme = document.getElementById("kaydet-dugmesi");
+    dugme.disabled = true;
+
+    const cevap = await kopruyeSor("musteri_kaydet", {
+        id: duzenlenen ? duzenlenen.id : "",
+        adSoyad: document.getElementById("ad-soyad").value,
+        telefon: document.getElementById("telefon").value,
+        email: document.getElementById("email").value,
+        adres: document.getElementById("adres").value
+    });
+
+    dugme.disabled = false;
+    if (!cevap.basarili) {
+        hataGoster("form-hatasi", cevap.hata);
+        return;
+    }
+
+    formPenceresi.hide();
+    await listele();
+}
+
+function silmeyiAc(musteri) {
+    silinecek = musteri;
+    document.getElementById("silinecek-ad").textContent = musteri.adSoyad;
+    hataGoster("silme-hatasi", "");
+    silmePenceresi.show();
+}
+
+async function sil() {
+    const dugme = document.getElementById("sil-dugmesi");
+    dugme.disabled = true;
+    const cevap = await kopruyeSor("musteri_sil", { id: silinecek.id });
+    dugme.disabled = false;
+
+    if (!cevap.basarili) {
+        hataGoster("silme-hatasi", cevap.hata);
+        return;
+    }
+
+    silmePenceresi.hide();
+    await listele();
+}
+
+async function exceleAktar() {
+    const dugme = document.getElementById("excel-dugmesi");
+    const bilgi = document.getElementById("excel-bilgisi");
+    dugme.disabled = true;
+    bilgi.textContent = "Hazırlanıyor…";
+
+    const cevap = await kopruyeSor("musteri_excel");
+
+    dugme.disabled = false;
+    bilgi.textContent = cevap.basarili
+        ? "İndirilenler klasörüne kaydedildi: " + cevap.veri.dosyaAdi
+        : cevap.hata;
+}
+
+async function baslat() {
+    oturum = await sayfayiHazirla();
+    if (!oturum) return;
+
+    // Müşteri listesini Excel'e yalnızca yönetici aktarabilir.
+    document.getElementById("excel-dugmesi").hidden = !oturum.adminMi;
+
+    document.getElementById("yeni-dugmesi").addEventListener("click", function () { formuAc(null); });
+    document.getElementById("excel-dugmesi").addEventListener("click", exceleAktar);
+    document.getElementById("musteri-formu").addEventListener("submit", kaydet);
+    document.getElementById("sil-dugmesi").addEventListener("click", sil);
+    aramaKutusunuBagla("arama", function (metin) {
+        arama = metin;
+        sayfaNo = 1;
+        listele();
+    });
+
+    await listele();
+}
+
+baslat();

@@ -97,6 +97,17 @@ public static class Kopru
             case "oturum_bilgisi":
                 return await OturumBilgisi();
 
+            // --- Müşteriler ---
+            case "musteri_listele":
+                return ApiCevabi(await _api.Getir<JsonElement>(
+                    $"api/musteriler?arama={Uri.EscapeDataString(Yazi(veri, "arama"))}&sayfa={SayfaNo(veri)}&boyut={SayfaBoyutu}"));
+            case "musteri_kaydet":
+                return await MusteriKaydet(veri);
+            case "musteri_sil":
+                return ApiCevabi(await _api.Sil<JsonElement>($"api/musteriler/{Kimlik(veri)}"));
+            case "musteri_excel":
+                return await ExceleAktar("api/musteriler/disa-aktar", "Musteriler");
+
             default:
                 return Basarisiz("Bilinmeyen işlem: " + islem);
         }
@@ -195,13 +206,66 @@ public static class Kopru
         });
     }
 
+    // Ad soyad ve telefon zorunlu; e-posta ve adres boş bırakılabilir. Kimlik varsa kayıt güncellenir, yoksa yenisi eklenir.
+    private static async Task<Cevap> MusteriKaydet(JsonElement veri)
+    {
+        var istek = new MusteriIstegi(
+            Yazi(veri, "adSoyad").Trim(),
+            Yazi(veri, "telefon").Trim(),
+            BosIseNull(Yazi(veri, "email")),
+            BosIseNull(Yazi(veri, "adres")));
+
+        var id = Kimlik(veri);
+        if (id == "")
+            return ApiCevabi(await _api.Ekle<JsonElement>("api/musteriler", istek));
+        return ApiCevabi(await _api.Guncelle<JsonElement>($"api/musteriler/{id}", istek));
+    }
+
+    // Listeyi Excel dosyası olarak indirir, İndirilenler klasörüne kaydeder ve açar.
+    private static async Task<Cevap> ExceleAktar(string yol, string dosyaAdi)
+    {
+        var sonuc = await _api.Indir(yol);
+        if (!sonuc.Basarili || sonuc.Deger is null)
+            return ApiCevabi(ApiSonucu<JsonElement>.Basarisiz(sonuc.Hata ?? "Dosya indirilemedi."));
+
+        var (kaydedilen, hata) = BelgeAcici.KaydetVeAc($"{dosyaAdi}-{DateTime.Today:yyyy-MM-dd}.xlsx", sonuc.Deger);
+        if (hata is not null)
+            return Basarisiz(hata);
+        return Tamam(new { dosyaAdi = kaydedilen });
+    }
+
     // --- Yardımcılar ---
+
+    // Listeler sayfa sayfa gelir; her sayfada bu kadar satır olur.
+    private const int SayfaBoyutu = 20;
+
+    // API'nin cevabını JS'e olduğu gibi iletir. İstek oturum düştüğü için başarısız olduysa JS giriş ekranına döner.
+    private static Cevap ApiCevabi(ApiSonucu<JsonElement> sonuc)
+    {
+        if (sonuc.Basarili)
+            return Tamam(sonuc.Deger.ValueKind == JsonValueKind.Undefined ? null : sonuc.Deger);
+        if (!_oturum.GirisYapildi)
+            return OturumYok();
+        return Basarisiz(sonuc.Hata ?? "İşlem başarısız oldu.");
+    }
 
     private static Cevap Tamam(object? veri) => new() { Basarili = true, Veri = veri };
 
     private static Cevap Basarisiz(string hata) => new() { Basarili = false, Hata = hata };
 
     private static Cevap OturumYok() => new() { Basarili = false, Hata = "Oturum kapandı.", OturumKapandi = true };
+
+    // Kaydın kimliği adrese yazılacağı için kodlanır; geçersizse sunucu "bulunamadı" der.
+    private static string Kimlik(JsonElement veri) => Uri.EscapeDataString(Yazi(veri, "id"));
+
+    // Formlardaki isteğe bağlı alanlar boş bırakıldıysa API'ye hiç gönderilmez.
+    private static string? BosIseNull(string metin) => string.IsNullOrWhiteSpace(metin) ? null : metin.Trim();
+
+    // Listelerde istenen sayfa; gönderilmediyse ilk sayfa.
+    private static int SayfaNo(JsonElement veri) =>
+        veri.ValueKind == JsonValueKind.Object && veri.TryGetProperty("sayfa", out var deger) && deger.TryGetInt32(out var sayi)
+            ? sayi
+            : 1;
 
     // JS'ten gelen verideki bir metin alanı; yoksa boş metin.
     private static string Yazi(JsonElement veri, string ad) =>
