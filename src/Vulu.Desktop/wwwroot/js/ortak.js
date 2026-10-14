@@ -3,7 +3,8 @@
 // Menüde görünen sayfalar. sadeceYonetici: yalnızca işletme yöneticisi görür.
 // Yeni bir sayfa taşındıkça buraya eklenir.
 const menuSayfalari = [
-    { adres: "anasayfa.html", ad: "Ana Sayfa", sadeceYonetici: false }
+    { adres: "anasayfa.html", ad: "Ana Sayfa", sadeceYonetici: false },
+    { adres: "musteriler.html", ad: "Müşteriler", sadeceYonetici: false }
 ];
 
 // Her sayfa açılınca çağırır: oturumu sorar ve menüyü çizer. Oturum bilgisini geri döner.
@@ -57,4 +58,71 @@ function menuyuCiz(oturum) {
         await kopruyeSor("cikis_yap");
         window.location.href = "giris.html";
     });
+}
+
+// --- Liste sayfalarının ortak yardımcıları ---
+
+// Boş değerler tabloda "—" olarak görünür.
+function bosIseTire(deger) {
+    if (deger === null || deger === undefined || deger === "") return "—";
+    return deger;
+}
+
+// Tablo satırına bir hücre ekler. Metin textContent ile yazılır; içinde HTML olsa bile çalışmaz.
+function hucreEkle(satir, metin) {
+    const hucre = document.createElement("td");
+    hucre.textContent = metin;
+    satir.appendChild(hucre);
+    return hucre;
+}
+
+// Kutuya hata mesajı yazar; mesaj boşsa kutuyu gizler.
+function hataGoster(kutuId, mesaj) {
+    const kutu = document.getElementById(kutuId);
+    kutu.textContent = mesaj || "";
+    kutu.hidden = !mesaj;
+}
+
+// Arama kutusu: yazma durduktan kısa süre sonra arar, her tuşta sunucuya istek gitmez.
+function aramaKutusunuBagla(kutuId, aramaYap) {
+    let zamanlayici = null;
+    document.getElementById(kutuId).addEventListener("input", function (olay) {
+        clearTimeout(zamanlayici);
+        zamanlayici = setTimeout(function () {
+            aramaYap(olay.target.value.trim());
+        }, 300);
+    });
+}
+
+// Listenin altındaki "toplam / önceki / sonraki" kısmı. sayfa: API'den gelen sayfa bilgisi.
+function sayfalamayiCiz(kutuId, sayfa, birim, sayfayaGit) {
+    const kutu = document.getElementById(kutuId);
+    kutu.innerHTML = "";
+
+    const toplam = document.createElement("span");
+    toplam.className = "text-secondary me-3";
+    toplam.textContent = sayfa.toplam + " " + birim;
+    kutu.appendChild(toplam);
+
+    if (sayfa.sayfaSayisi <= 1) return;
+
+    const onceki = document.createElement("button");
+    onceki.className = "btn btn-outline-secondary btn-sm";
+    onceki.textContent = "Önceki";
+    onceki.disabled = sayfa.sayfaNo <= 1;
+    onceki.addEventListener("click", function () { sayfayaGit(sayfa.sayfaNo - 1); });
+
+    const konum = document.createElement("span");
+    konum.className = "mx-2";
+    konum.textContent = sayfa.sayfaNo + " / " + sayfa.sayfaSayisi;
+
+    const sonraki = document.createElement("button");
+    sonraki.className = "btn btn-outline-secondary btn-sm";
+    sonraki.textContent = "Sonraki";
+    sonraki.disabled = sayfa.sayfaNo >= sayfa.sayfaSayisi;
+    sonraki.addEventListener("click", function () { sayfayaGit(sayfa.sayfaNo + 1); });
+
+    kutu.appendChild(onceki);
+    kutu.appendChild(konum);
+    kutu.appendChild(sonraki);
 }

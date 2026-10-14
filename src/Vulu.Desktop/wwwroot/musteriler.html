@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>Müşteriler</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">Müşteriler</h1>
+
+            <div class="d-flex gap-2 mb-3 align-items-center">
+                <button type="button" id="yeni-dugmesi" class="btn btn-primary">Müşteri kaydı</button>
+                <button type="button" id="excel-dugmesi" class="btn btn-outline-secondary" hidden>Excel'e aktar</button>
+                <span id="excel-bilgisi" class="small text-secondary"></span>
+                <input type="search" id="arama" class="form-control ms-auto arama" placeholder="Ad, telefon veya e-posta ara" />
+            </div>
+
+            <p id="liste-hatasi" class="text-danger" hidden></p>
+            <p id="bos-mesaji" class="text-secondary" hidden></p>
+
+            <table class="table table-hover align-middle" id="tablo" hidden>
+                <thead>
+                    <tr>
+                        <th>Ad soyad</th>
+                        <th>Telefon</th>
+                        <th>E-posta</th>
+                        <th>Adres</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="satirlar"></tbody>
+            </table>
+
+            <div id="sayfalama" class="d-flex align-items-center"></div>
+        </main>
+    </div>
+
+    <!-- Müşteri kaydı / düzenleme penceresi -->
+    <div class="modal fade" id="form-penceresi" tabindex="-1">
+        <div class="modal-dialog">
+            <form class="modal-content" id="musteri-formu">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="form-basligi">Müşteri kaydı</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="ad-soyad" class="form-label">Ad soyad</label>
+                    <input id="ad-soyad" class="form-control mb-3" autocomplete="off" />
+
+                    <label for="telefon" class="form-label">Telefon</label>
+                    <input id="telefon" class="form-control mb-3" inputmode="numeric" maxlength="11" placeholder="05551234567" autocomplete="off" />
+
+                    <label for="email" class="form-label">E-posta (isteğe bağlı)</label>
+                    <input id="email" type="email" class="form-control mb-3" autocomplete="off" />
+
+                    <label for="adres" class="form-label">Adres (isteğe bağlı)</label>
+                    <textarea id="adres" class="form-control" rows="3"></textarea>
+
+                    <p id="form-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="kaydet-dugmesi" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Silme onayı -->
+    <div class="modal fade" id="silme-penceresi" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5">Müşteriyi sil</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong id="silinecek-ad"></strong> müşteri listesinden kaldırılacak. Geçmiş servis kayıtları korunur.</p>
+                    <p id="silme-hatasi" class="text-danger mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" id="sil-dugmesi" class="btn btn-danger">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/musteriler.js"></script>
+</body>
+</html>
