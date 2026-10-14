@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Photino.Blazor;
+using Photino.NET;
 using Vulu.Desktop.Servisler;
 
 namespace Vulu.Desktop;
@@ -10,6 +9,7 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // Kaldırma, Windows'un "Uygulamalar" listesinden bu seçenekle başlatılır; pencere açılmaz.
         if (OperatingSystem.IsWindows() && args.Contains(KurulumBilgisi.KaldirmaSecenegi))
         {
             Kaldirici.Calistir(sessiz: args.Contains(KurulumBilgisi.SessizSecenegi, StringComparer.OrdinalIgnoreCase));
@@ -41,18 +41,7 @@ internal static class Program
             return;
         }
 
-        var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
-
-        builder.Services.AddLogging();
-        builder.Services.AddSingleton(new HttpClient { BaseAddress = apiAdresi });
-        builder.Services.AddSingleton<OturumServisi>();
-        builder.Services.AddSingleton<ApiIstemcisi>();
-
-        builder.RootComponents.Add<App>("app");
-
-        var app = builder.Build();
-
-        app.MainWindow
+        var pencere = new PhotinoWindow()
             .SetTitle(Urun.Ad)
             .SetIconFile(Path.Combine(AppContext.BaseDirectory, "logo.ico"))
             // Tarayıcı bileşeni önbelleğini varsayılan olarak bütün Photino uygulamalarının paylaştığı bir klasöre
@@ -62,29 +51,28 @@ internal static class Program
             .SetMinSize(900, 600)
             .Center();
 
-        app.MainWindow.WindowCreated += (_, _) =>
+        pencere.RegisterWindowCreatedHandler((_, _) =>
         {
             if (OperatingSystem.IsWindows())
-                WindowsUyumlulugu.BaslikCubugunuBoya(app.MainWindow.WindowHandle);
-        };
+                WindowsUyumlulugu.BaslikCubugunuBoya(pencere.WindowHandle);
+        });
 
 #if !DEBUG
         // Dağıtılan sürümde tarayıcı geliştirici araçları ve sağ tık menüsü kapalıdır.
-        app.MainWindow
+        pencere
             .SetDevToolsEnabled(false)
             .SetContextMenuEnabled(false);
 #endif
 
-        // Kullanıcıya iç ayrıntı (çağrı yığını) değil, yalnızca hatanın kendisi gösterilir.
-        AppDomain.CurrentDomain.UnhandledException += (_, hata) =>
-            app.MainWindow.ShowMessage("Beklenmeyen hata",
-                (hata.ExceptionObject as Exception)?.Message ?? "Uygulama beklenmeyen bir hatayla karşılaştı.");
+        // Ekranlardan (JS) gelen bütün istekler köprüden geçer.
+        Kopru.Baslat(pencere, apiAdresi);
 
         BelgeAcici.GeciciBelgeleriSil();
         Guncelleyici.ArtiklariSil();
         try
         {
-            app.Run();
+            pencere.Load(Path.Combine(AppContext.BaseDirectory, "wwwroot", "giris.html"));
+            pencere.WaitForClose();
         }
         finally
         {

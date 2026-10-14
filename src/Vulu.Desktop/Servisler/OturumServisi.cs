@@ -27,8 +27,6 @@ public sealed class OturumServisi : IDisposable
     // İşletmenin adı, logosu ve iletişim bilgileri; girişten sonra yüklenir, ayarlar değişince yenilenir.
     public IsletmeYaniti? Isletme { get; private set; }
 
-    public event Action? Degisti;
-
     // Başarılıysa null, değilse kullanıcıya gösterilecek hata mesajını döner.
     public async Task<string?> GirisYap(string isletmeKodu, string kullaniciAdi, string sifre)
     {
@@ -109,19 +107,16 @@ public sealed class OturumServisi : IDisposable
     public void OturumuYenile(OturumYaniti yeni)
     {
         Oturum = yeni;
-        Degisti?.Invoke();
     }
 
     public void IsletmeyiAyarla(IsletmeYaniti isletme)
     {
         Isletme = isletme;
-        Degisti?.Invoke();
     }
 
     private void Ayarla(OturumYaniti? oturum)
     {
         Oturum = oturum;
         Isletme = null;
-        Degisti?.Invoke();
     }
 }
