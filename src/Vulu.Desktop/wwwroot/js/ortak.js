@@ -82,12 +82,21 @@ function menuyuCiz(oturum) {
     for (const sayfa of sayfalar) {
         if (sayfa.sadeceYonetici && !oturum.adminMi) continue;
 
-        const baglanti = document.createElement("a");
+        const baglanti = document.createElement("button");
+        baglanti.type = "button";
         baglanti.className = "nav-link";
-        baglanti.href = sayfa.adres;
+        baglanti.dataset.adres = sayfa.adres;
         baglanti.textContent = sayfa.ad;
         if (sayfa.adres === acikSayfa) baglanti.classList.add("active");
         baglantilar.appendChild(baglanti);
+    }
+
+    // Sayfa geçişleri: "data-adres" taşıyan her öğe tıklanınca o sayfaya gider. Düz bağlantı (href) kullanılmaz,
+    // çünkü pencerenin içindeki tarayıcı, fare bağlantının üstüne gelince sol altta dosyanın adresini gösterir.
+    for (const oge of document.querySelectorAll("[data-adres]")) {
+        oge.addEventListener("click", function () {
+            window.location.href = oge.dataset.adres;
+        });
     }
 
     document.getElementById("sifre-dugmesi").addEventListener("click", sifrePenceresiniAc);
