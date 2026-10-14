@@ -5,10 +5,15 @@ using System.Text.Json;
 
 namespace Vulu.Desktop.Servisler;
 
-public record ApiSonucu<T>(bool Basarili, T? Deger, string? Hata)
+// Bir API isteğinin sonucu. Başarılıysa Veri (JSON) ya da Dosya (PDF, Excel) doludur, değilse Hata.
+public class ApiSonucu
 {
-    public static ApiSonucu<T> Tamam(T? deger) => new(true, deger, null);
-    public static ApiSonucu<T> Basarisiz(string hata) => new(false, default, hata);
+    public bool Basarili { get; set; }
+    public JsonElement Veri { get; set; }
+    public byte[]? Dosya { get; set; }
+    public string? Hata { get; set; }
+
+    public static ApiSonucu Basarisiz(string hata) => new() { Basarili = false, Hata = hata };
 }
 
 // Oturum gerektiren tüm API çağrıları buradan geçer: tokenı ekler, süresi dolduysa yeniler.
@@ -25,49 +30,43 @@ public class ApiIstemcisi
         _oturum = oturum;
     }
 
-    public Task<ApiSonucu<T>> Getir<T>(string yol) => Calistir<T>(HttpMethod.Get, yol, null);
-    public Task<ApiSonucu<T>> Ekle<T>(string yol, object govde) => Calistir<T>(HttpMethod.Post, yol, govde);
-    public Task<ApiSonucu<T>> Guncelle<T>(string yol, object govde) => Calistir<T>(HttpMethod.Put, yol, govde);
-    public Task<ApiSonucu<object>> Sil(string yol) => Calistir<object>(HttpMethod.Delete, yol, null);
-    public Task<ApiSonucu<T>> Sil<T>(string yol) => Calistir<T>(HttpMethod.Delete, yol, null);
+    public Task<ApiSonucu> Getir(string yol) => Calistir(HttpMethod.Get, yol, null, dosyaMi: false);
+    public Task<ApiSonucu> Ekle(string yol, object govde) => Calistir(HttpMethod.Post, yol, govde, dosyaMi: false);
+    public Task<ApiSonucu> Guncelle(string yol, object govde) => Calistir(HttpMethod.Put, yol, govde, dosyaMi: false);
+    public Task<ApiSonucu> Sil(string yol) => Calistir(HttpMethod.Delete, yol, null, dosyaMi: false);
 
-    // Dosya yanıtları (örn. fatura PDF'i) için: gövdeyi olduğu gibi döner.
-    public async Task<ApiSonucu<byte[]>> Indir(string yol)
-    {
-        try
-        {
-            using var yanit = await Yolla(HttpMethod.Get, yol, null);
-            return yanit.IsSuccessStatusCode
-                ? ApiSonucu<byte[]>.Tamam(await yanit.Content.ReadAsByteArrayAsync())
-                : ApiSonucu<byte[]>.Basarisiz(await ApiHatasi.Oku(yanit));
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            return ApiSonucu<byte[]>.Basarisiz(ApiHatasi.SunucuyaUlasilamadi);
-        }
-    }
+    // Dosya yanıtları (PDF, Excel, logo) için: gövde Dosya alanına olduğu gibi konur.
+    public Task<ApiSonucu> Indir(string yol) => Calistir(HttpMethod.Get, yol, null, dosyaMi: true);
 
-    private async Task<ApiSonucu<T>> Calistir<T>(HttpMethod yontem, string yol, object? govde)
+    private async Task<ApiSonucu> Calistir(HttpMethod yontem, string yol, object? govde, bool dosyaMi)
     {
         try
         {
             using var yanit = await Yolla(yontem, yol, govde);
 
             if (!yanit.IsSuccessStatusCode)
-                return ApiSonucu<T>.Basarisiz(await ApiHatasi.Oku(yanit));
+                return ApiSonucu.Basarisiz(await ApiHatasi.Oku(yanit));
 
-            if (yanit.StatusCode == HttpStatusCode.NoContent || yanit.Content.Headers.ContentLength == 0)
-                return ApiSonucu<T>.Tamam(default);
-
-            return ApiSonucu<T>.Tamam(await yanit.Content.ReadFromJsonAsync<T>());
+            var sonuc = new ApiSonucu { Basarili = true };
+            if (dosyaMi)
+            {
+                sonuc.Dosya = await yanit.Content.ReadAsByteArrayAsync();
+            }
+            else if (yanit.StatusCode != HttpStatusCode.NoContent && yanit.Content.Headers.ContentLength != 0)
+            {
+                // Gövde JSON olarak okunur; hangi alanların kullanılacağına çağıran karar verir.
+                using var belge = JsonDocument.Parse(await yanit.Content.ReadAsStringAsync());
+                sonuc.Veri = belge.RootElement.Clone();
+            }
+            return sonuc;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            return ApiSonucu<T>.Basarisiz(ApiHatasi.SunucuyaUlasilamadi);
+            return ApiSonucu.Basarisiz(ApiHatasi.SunucuyaUlasilamadi);
         }
         catch (JsonException)
         {
-            return ApiSonucu<T>.Basarisiz("Sunucudan geçersiz yanıt alındı.");
+            return ApiSonucu.Basarisiz("Sunucudan geçersiz yanıt alındı.");
         }
     }
 
@@ -117,11 +116,15 @@ public static class ApiHatasi
 
             if (govde.TryGetProperty("errors", out var hatalar) && hatalar.ValueKind == JsonValueKind.Object)
             {
-                var mesajlar = hatalar.EnumerateObject()
-                    .SelectMany(alan => alan.Value.EnumerateArray())
-                    .Select(m => m.GetString())
-                    .Where(m => !string.IsNullOrWhiteSpace(m))
-                    .ToList();
+                var mesajlar = new List<string>();
+                foreach (var alan in hatalar.EnumerateObject())
+                {
+                    foreach (var mesaj in alan.Value.EnumerateArray())
+                    {
+                        if (!string.IsNullOrWhiteSpace(mesaj.GetString()))
+                            mesajlar.Add(mesaj.GetString()!);
+                    }
+                }
                 if (mesajlar.Count > 0) return string.Join(" ", mesajlar);
             }
 

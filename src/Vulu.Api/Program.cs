@@ -21,6 +21,10 @@ var kaynaklar = builder.Configuration.Sources;
 var sonJson = kaynaklar.Select((kaynak, sira) => kaynak is JsonConfigurationSource ? sira : -1).Max();
 kaynaklar.Insert(sonJson + 1, new JsonConfigurationSource { Path = "appsettings.Local.json", Optional = true });
 
+// ASP.NET'in çerez ve form şifreleme anahtarları (Data Protection) bu API'de kullanılmaz: giriş, kendi anahtarıyla
+// imzalanan tokenla yapılır. Anahtarların kapsayıcıyla birlikte kaybolacağını söyleyen uyarılar bu yüzden gizlenir.
+builder.Logging.AddFilter("Microsoft.AspNetCore.DataProtection", LogLevel.Error);
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
