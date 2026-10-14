@@ -47,6 +47,10 @@ internal static class Program
             // Tarayıcı bileşeni önbelleğini varsayılan olarak bütün Photino uygulamalarının paylaştığı bir klasöre
             // yazar; uygulamanın kendi klasörüne alınır ki kaldırılınca geride bir şey kalmasın.
             .SetTemporaryFilesPath(YerelAyarlar.TarayiciVerisi)
+            // Photino varsayılan olarak boyutu ve konumu Windows'a bırakır; aşağıdaki boyut ve ortalama ancak
+            // bu kapatılınca uygulanır.
+            .SetUseOsDefaultSize(false)
+            .SetUseOsDefaultLocation(false)
             .SetSize(1280, 800)
             .SetMinSize(900, 600)
             .Center();
