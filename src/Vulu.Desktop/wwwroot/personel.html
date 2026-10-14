@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>Personel</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">Personel</h1>
+
+            <div class="d-flex gap-2 mb-3">
+                <button type="button" id="yeni-dugmesi" class="btn btn-primary">Personel kaydı</button>
+            </div>
+
+            <p id="liste-hatasi" class="text-danger" hidden></p>
+
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Ad soyad</th>
+                        <th>Kullanıcı adı</th>
+                        <th>Telefon</th>
+                        <th>Uzmanlık</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="satirlar"></tbody>
+            </table>
+        </main>
+    </div>
+
+    <!-- Personel kaydı / düzenleme -->
+    <div class="modal fade" id="form-penceresi" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form class="modal-content" id="personel-formu">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="form-basligi">Personel kaydı</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="f-adsoyad" class="form-label">Ad soyad</label>
+                    <input id="f-adsoyad" class="form-control mb-3" autocomplete="off" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col">
+                            <label for="f-telefon" class="form-label">Telefon (isteğe bağlı)</label>
+                            <input id="f-telefon" class="form-control" inputmode="numeric" maxlength="11" placeholder="05551234567" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label for="f-uzmanlik" class="form-label">Uzmanlık (isteğe bağlı)</label>
+                            <input id="f-uzmanlik" class="form-control" autocomplete="off" />
+                        </div>
+                    </div>
+
+                    <h3 class="h6 mt-4">Giriş bilgileri</h3>
+                    <div class="row g-3 mb-3">
+                        <div class="col">
+                            <label for="f-ad" class="form-label">Kullanıcı adı</label>
+                            <input id="f-ad" class="form-control" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label for="f-sifre" class="form-label" id="sifre-etiketi">Şifre</label>
+                            <input id="f-sifre" type="password" class="form-control" autocomplete="new-password" />
+                        </div>
+                    </div>
+
+                    <label for="f-rol" class="form-label">Rol</label>
+                    <select id="f-rol" class="form-select mb-3">
+                        <option value="Teknisyen">Teknisyen</option>
+                        <option value="Admin">Yönetici</option>
+                    </select>
+
+                    <!-- Yöneticiler stoğu zaten yönetir; kutu yalnızca diğer personel için görünür. -->
+                    <div class="form-check mb-2" id="stok-kutusu">
+                        <input id="f-stok" type="checkbox" class="form-check-input" />
+                        <label for="f-stok" class="form-check-label">Stok yetkisi (stok kartı açabilir, düzenleyebilir ve stok girişi yapabilir)</label>
+                    </div>
+
+                    <div class="form-check" id="aktif-kutusu">
+                        <input id="f-aktif" type="checkbox" class="form-check-input" />
+                        <label for="f-aktif" class="form-check-label">Hesap aktif (devre dışı bırakılan personel giriş yapamaz ve yeni iş atanamaz)</label>
+                    </div>
+
+                    <p id="form-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="kaydet-dugmesi" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Silme onayı -->
+    <div class="modal fade" id="silme-penceresi" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5">Personeli sil</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="silme-metni"></p>
+                    <p>Üzerinde iş geçmişi olan personel silinemez; onun yerine hesabı devre dışı bırakın.</p>
+                    <p id="silme-hatasi" class="text-danger mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" id="sil-dugmesi" class="btn btn-danger">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/personel.js"></script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>Servis Kayıtları</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">Servis Kayıtları</h1>
+
+            <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+                <button type="button" id="yeni-dugmesi" class="btn btn-primary">Servis kaydı</button>
+                <select id="durum-suzgeci" class="form-select w-auto">
+                    <option value="">Tüm durumlar</option>
+                    <option value="Beklemede">Beklemede</option>
+                    <option value="OnayBekliyor">Onay bekliyor</option>
+                    <option value="DevamEdiyor">Devam ediyor</option>
+                    <option value="Tamamlandi">Tamamlandı</option>
+                    <option value="TeslimEdildi">Teslim edildi</option>
+                    <option value="IptalEdildi">İptal edildi</option>
+                </select>
+                <select id="fatura-suzgeci" class="form-select w-auto">
+                    <option value="Hepsi">Tüm kayıtlar</option>
+                    <option value="Faturali">Faturası olanlar</option>
+                    <option value="Odenmemis">Ödenmemiş faturalar</option>
+                    <option value="Odenmis">Ödenmiş faturalar</option>
+                </select>
+                <button type="button" id="excel-dugmesi" class="btn btn-outline-secondary" hidden>Excel'e aktar</button>
+                <span id="excel-bilgisi" class="small text-secondary"></span>
+                <input type="search" id="arama" class="form-control ms-auto arama" placeholder="Müşteri, kayıt no, cihaz, seri no ara" />
+            </div>
+
+            <p id="liste-hatasi" class="text-danger" hidden></p>
+            <p id="bos-mesaji" class="text-secondary" hidden></p>
+
+            <table class="table table-hover align-middle" id="tablo" hidden>
+                <thead>
+                    <tr>
+                        <th>Kayıt</th>
+                        <th>Müşteri</th>
+                        <th>Cihaz</th>
+                        <th>Teknisyen</th>
+                        <th>Durum</th>
+                        <th>Fatura</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="satirlar"></tbody>
+            </table>
+
+            <div id="sayfalama" class="d-flex align-items-center"></div>
+        </main>
+    </div>
+
+    <!-- Servis kaydı açma / düzenleme -->
+    <div class="modal fade" id="form-penceresi" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form class="modal-content" id="kayit-formu">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="form-basligi">Servis kaydı</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Müşteri</label>
+                    <div id="musteri-secici" class="mb-3"></div>
+
+                    <label for="s-teknisyen" class="form-label">Teknisyen (isteğe bağlı)</label>
+                    <select id="s-teknisyen" class="form-select mb-3"></select>
+
+                    <h3 class="h6 mt-4">Cihaz</h3>
+                    <label for="s-cihaz" class="form-label">Cihaz</label>
+                    <input id="s-cihaz" class="form-control mb-3" placeholder="Örn. Laptop, cep telefonu, yazıcı" autocomplete="off" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col">
+                            <label for="s-marka" class="form-label">Marka (isteğe bağlı)</label>
+                            <input id="s-marka" class="form-control" maxlength="60" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label for="s-model" class="form-label">Model (isteğe bağlı)</label>
+                            <input id="s-model" class="form-control" maxlength="60" autocomplete="off" />
+                        </div>
+                    </div>
+
+                    <label for="s-seri" class="form-label">Seri no / IMEI (isteğe bağlı)</label>
+                    <input id="s-seri" class="form-control" maxlength="60" autocomplete="off" />
+                    <p class="small text-secondary">Seri no girilirse aynı cihazın önceki kayıtları ayrıntı penceresinde listelenir.</p>
+
+                    <div class="form-check mb-3">
+                        <input id="s-garanti" type="checkbox" class="form-check-input" />
+                        <label for="s-garanti" class="form-check-label">Garanti kapsamında</label>
+                    </div>
+
+                    <label for="s-aksesuar" class="form-label">Teslim alınan aksesuarlar (isteğe bağlı)</label>
+                    <input id="s-aksesuar" class="form-control mb-3" maxlength="300" placeholder="Örn. şarj aleti, çanta" autocomplete="off" />
+
+                    <label for="s-fiziksel" class="form-label">Cihazın teslim alındığı andaki durumu (isteğe bağlı)</label>
+                    <textarea id="s-fiziksel" class="form-control mb-3" rows="2" maxlength="500" placeholder="Örn. ekranın sol üstünde çatlak, kasada çizikler"></textarea>
+
+                    <label for="s-sorun" class="form-label">Müşterinin bildirdiği sorun</label>
+                    <textarea id="s-sorun" class="form-control" rows="3"></textarea>
+
+                    <p id="form-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="kaydet-dugmesi" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kayıt ayrıntısı: dört sekme -->
+    <div class="modal fade" id="detay-penceresi" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="detay-basligi">Servis kaydı</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3">
+                        <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#sekme-genel">Genel</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#sekme-teklif">Teklif ve parçalar</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#sekme-fatura">Fatura</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#sekme-gecmis" id="gecmis-sekmesi">Geçmiş</button></li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Genel -->
+                        <div class="tab-pane active" id="sekme-genel">
+                            <dl class="row" id="genel-bilgiler"></dl>
+
+                            <h3 class="h6 mt-3">Durum</h3>
+                            <div class="d-flex flex-wrap gap-1" id="durum-dugmeleri"></div>
+                            <p class="small text-secondary mt-1" id="durum-notu" hidden>Faturası olan kayıt yeniden açılamaz ya da iptal edilemez.</p>
+
+                            <h3 class="h6 mt-3">Yapılan işlem</h3>
+                            <textarea id="d-islem" class="form-control" rows="2" maxlength="1000" placeholder="Cihazda ne yapıldı? Teslim formuna ve faturaya yazılır."></textarea>
+                            <button type="button" id="islem-kaydet" class="btn btn-outline-secondary btn-sm mt-2">Kaydet</button>
+
+                            <h3 class="h6 mt-3">Belgeler</h3>
+                            <button type="button" id="kabul-formu" class="btn btn-outline-secondary btn-sm">Kabul formu</button>
+                            <button type="button" id="teslim-formu" class="btn btn-outline-secondary btn-sm">Teslim formu</button>
+                            <p class="small text-secondary mt-1" id="teslim-notu">Teslim formu, kayıt tamamlandığında ya da iptal edildiğinde alınabilir.</p>
+
+                            <h3 class="h6 mt-3">Müşteriyi bilgilendir</h3>
+                            <button type="button" class="btn btn-outline-secondary btn-sm bildirim" data-kanal="WhatsApp">WhatsApp'ta aç</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm bildirim" data-kanal="Eposta">E-posta yaz</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm bildirim" data-kanal="Telefon">Telefonla arandı</button>
+                            <p class="small text-secondary mt-1">
+                                Kaydın durumuna göre hazırlanan mesaj bu bilgisayardaki WhatsApp ya da e-posta programında açılır; göndermek size kalır.
+                                Takip kodu: <code id="takip-kodu"></code>
+                            </p>
+                            <textarea id="bildirim-metni" class="form-control" rows="4" readonly hidden></textarea>
+                        </div>
+
+                        <!-- Teklif ve parçalar -->
+                        <div class="tab-pane" id="sekme-teklif">
+                            <h3 class="h6">Fiyat teklifi</h3>
+                            <dl class="row" id="teklif-bilgileri"></dl>
+
+                            <div id="teklif-yanit-kutusu" class="mb-2">
+                                <div class="d-flex gap-2">
+                                    <input id="yanit-notu" class="form-control" maxlength="300" placeholder="Onay nasıl alındı? (örn. telefonla)" autocomplete="off" />
+                                    <button type="button" id="teklif-onay" class="btn btn-primary text-nowrap">Müşteri onayladı</button>
+                                    <button type="button" id="teklif-red" class="btn btn-outline-danger text-nowrap">Müşteri reddetti</button>
+                                </div>
+                                <p class="small text-secondary mt-1">Onaylanınca iş “Devam ediyor” olur; reddedilince kayıt iptal edilir.</p>
+                            </div>
+
+                            <div id="teklif-ver-kutusu">
+                                <div class="d-flex gap-2">
+                                    <input id="teklif-tutari" class="form-control w-auto" inputmode="decimal" placeholder="Tutar (₺)" autocomplete="off" />
+                                    <input id="teklif-aciklamasi" class="form-control" maxlength="500" placeholder="Açıklama (isteğe bağlı)" autocomplete="off" />
+                                    <button type="button" id="teklif-ver" class="btn btn-primary text-nowrap">Teklif ver</button>
+                                </div>
+                                <p class="small text-secondary mt-1">Teklif verilince kayıt “Onay bekliyor” durumuna geçer.</p>
+                            </div>
+                            <p class="small text-secondary" id="teklif-yok" hidden>Bu kayıt için teklif verilmedi.</p>
+
+                            <h3 class="h6 mt-4">Kullanılan parçalar</h3>
+                            <p class="small text-secondary" id="parca-yok">Bu kayıtta parça kullanılmadı.</p>
+                            <table class="table table-sm" id="parca-tablosu" hidden>
+                                <thead>
+                                    <tr><th>Parça</th><th>Adet</th><th>Birim fiyat</th><th>Tutar</th><th></th></tr>
+                                </thead>
+                                <tbody id="parca-satirlari"></tbody>
+                                <tfoot>
+                                    <tr><td colspan="3">Parça toplamı</td><td><strong id="parca-toplami"></strong></td><td></td></tr>
+                                </tfoot>
+                            </table>
+                            <p class="small text-secondary" id="parca-kilitli" hidden>Faturası olan kaydın parçaları değiştirilemez.</p>
+
+                            <div id="parca-ekle-kutusu">
+                                <div class="d-flex gap-2">
+                                    <input type="search" id="parca-arama" class="form-control w-auto" placeholder="Stokta parça ara" />
+                                    <select id="parca-secimi" class="form-select"></select>
+                                    <input id="parca-adedi" type="number" min="1" max="1000" value="1" class="form-control adet-kutusu" aria-label="Adet" />
+                                    <button type="button" id="parca-ekle" class="btn btn-primary">Ekle</button>
+                                </div>
+                                <p class="small text-secondary mt-1">Eklenen parça stoktan düşer; çıkarılırsa stoğa geri döner.</p>
+                            </div>
+                        </div>
+
+                        <!-- Fatura -->
+                        <div class="tab-pane" id="sekme-fatura">
+                            <p class="small text-secondary" id="fatura-once-tamamla">Fatura kesmek için kaydı önce “Tamamlandı” olarak işaretleyin.</p>
+                            <div id="fatura-kutusu">
+                                <dl class="row" id="fatura-bilgileri"></dl>
+                                <div class="d-flex gap-2 align-items-center flex-wrap">
+                                    <label for="fatura-tutari" class="form-label mb-0">Tutar (₺)</label>
+                                    <input id="fatura-tutari" class="form-control w-auto" inputmode="decimal" placeholder="750,50" autocomplete="off" />
+                                    <div class="form-check mb-0">
+                                        <input id="fatura-odendi" type="checkbox" class="form-check-input" />
+                                        <label for="fatura-odendi" class="form-check-label">Ödendi</label>
+                                    </div>
+                                    <button type="button" id="fatura-kaydet" class="btn btn-primary">Fatura kes</button>
+                                    <button type="button" id="fatura-pdf" class="btn btn-outline-secondary">PDF olarak aç</button>
+                                    <button type="button" id="fatura-sil" class="btn btn-outline-danger">Faturayı sil</button>
+                                </div>
+                                <p class="small text-secondary mt-2" id="fatura-notu"></p>
+                            </div>
+                        </div>
+
+                        <!-- Geçmiş -->
+                        <div class="tab-pane" id="sekme-gecmis">
+                            <h3 class="h6">Not ekle</h3>
+                            <div class="d-flex gap-2 mb-3">
+                                <input id="not-metni" class="form-control" maxlength="500" placeholder="Örn. müşteri arandı, parça siparişi verildi" autocomplete="off" />
+                                <button type="button" id="not-ekle" class="btn btn-primary">Ekle</button>
+                            </div>
+                            <h3 class="h6">İşlem geçmişi</h3>
+                            <ul class="list-unstyled" id="gecmis"></ul>
+                        </div>
+                    </div>
+
+                    <p id="detay-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="kayit-sil" class="btn btn-outline-danger me-auto">Kaydı sil</button>
+                    <button type="button" id="duzenle-dugmesi" class="btn btn-outline-secondary">Düzenle</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/servis-kayitlari.js"></script>
+</body>
+</html>

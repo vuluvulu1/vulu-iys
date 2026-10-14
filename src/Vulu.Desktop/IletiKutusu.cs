@@ -9,7 +9,7 @@ namespace Vulu.Desktop;
 // arayüzüyle (user32 / gdi32) çizilir; bunun dışında bir bileşene bağlı değildir, Windows 10 ve 11'de aynı çalışır.
 // Düğmeler gerçek Windows düğmeleridir (yalnızca görünümleri bizden): klavye ve ekran okuyucu ile kullanılabilir.
 //
-// Kurulum programı da bu dosyayı kullanır (tools/Vulu.Kurulum); Blazor arayüzü açılmadan önceki iletiler de buradadır.
+// Kurulum programı da bu dosyayı kullanır (tools/Vulu.Kurulum); arayüz açılmadan önceki iletiler de buradadır.
 [SupportedOSPlatform("windows")]
 internal static class IletiKutusu
 {

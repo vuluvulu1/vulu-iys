@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>Stok</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">Stok</h1>
+
+            <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+                <button type="button" id="yeni-dugmesi" class="btn btn-primary" hidden>Stok kartı</button>
+                <select id="suzgec" class="form-select w-auto">
+                    <option value="false">Tüm parçalar</option>
+                    <option value="true">Stoğu azalanlar</option>
+                </select>
+                <button type="button" id="excel-dugmesi" class="btn btn-outline-secondary">Excel'e aktar</button>
+                <span id="excel-bilgisi" class="small text-secondary"></span>
+                <input type="search" id="arama" class="form-control ms-auto arama" placeholder="Parça adı veya stok kodu ara" />
+            </div>
+
+            <p id="liste-hatasi" class="text-danger" hidden></p>
+            <p id="bos-mesaji" class="text-secondary" hidden></p>
+
+            <table class="table table-hover align-middle" id="tablo" hidden>
+                <thead>
+                    <tr>
+                        <th>Parça</th>
+                        <th>Stok kodu</th>
+                        <th>Birim fiyat</th>
+                        <th>Stok</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="satirlar"></tbody>
+            </table>
+
+            <div id="sayfalama" class="d-flex align-items-center"></div>
+        </main>
+    </div>
+
+    <!-- Stok kartı ekleme / düzenleme -->
+    <div class="modal fade" id="form-penceresi" tabindex="-1">
+        <div class="modal-dialog">
+            <form class="modal-content" id="parca-formu">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="form-basligi">Stok kartı</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="p-ad" class="form-label">Parça adı</label>
+                    <input id="p-ad" class="form-control mb-3" maxlength="120" autocomplete="off" />
+
+                    <label for="p-kod" class="form-label">Stok kodu (isteğe bağlı)</label>
+                    <input id="p-kod" class="form-control mb-3" maxlength="60" autocomplete="off" />
+
+                    <div class="row g-3">
+                        <div class="col">
+                            <label for="p-fiyat" class="form-label">Birim fiyat (₺, KDV dahil)</label>
+                            <input id="p-fiyat" class="form-control" inputmode="decimal" placeholder="250" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label for="p-kritik" class="form-label">Kritik stok seviyesi</label>
+                            <input id="p-kritik" type="number" min="0" class="form-control" />
+                        </div>
+                    </div>
+                    <p class="small text-secondary mt-2">Stok kritik seviyeye inince parça “azaldı” olarak işaretlenir ve ana sayfada uyarı çıkar.</p>
+
+                    <div id="baslangic-kutusu">
+                        <label for="p-stok" class="form-label">Başlangıç stoğu</label>
+                        <input id="p-stok" type="number" min="0" class="form-control" />
+                    </div>
+
+                    <p id="form-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="kaydet-dugmesi" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stok girişi -->
+    <div class="modal fade" id="stok-penceresi" tabindex="-1">
+        <div class="modal-dialog">
+            <form class="modal-content" id="stok-formu">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="stok-basligi">Stok girişi</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary">Mevcut stok: <strong id="mevcut-stok"></strong></p>
+
+                    <label for="h-adet" class="form-label">Adet (sayım düzeltmesi için eksi değer girin)</label>
+                    <input id="h-adet" type="number" class="form-control mb-3" />
+
+                    <label for="h-aciklama" class="form-label">Açıklama (isteğe bağlı)</label>
+                    <input id="h-aciklama" class="form-control" maxlength="200" placeholder="Örn. tedarikçi faturası, sayım farkı" autocomplete="off" />
+
+                    <p id="stok-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="stok-kaydet" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stok hareketleri -->
+    <div class="modal fade" id="hareket-penceresi" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="hareket-basligi">Stok hareketleri</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="hareket-bilgisi" class="text-secondary"></p>
+                    <table class="table table-sm" id="hareket-tablosu" hidden>
+                        <thead>
+                            <tr><th>Tarih</th><th>Adet</th><th>Açıklama</th><th>Kayıt</th><th>Yapan</th></tr>
+                        </thead>
+                        <tbody id="hareketler"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Silme onayı -->
+    <div class="modal fade" id="silme-penceresi" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5">Parçayı sil</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong id="silinecek-ad"></strong> stok kartı silinecek. Parçanın kullanıldığı eski servis kayıtları değişmez.</p>
+                    <p id="silme-hatasi" class="text-danger mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" id="sil-dugmesi" class="btn btn-danger">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/stok.js"></script>
+</body>
+</html>

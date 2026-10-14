@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>Raporlar</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">Raporlar</h1>
+
+            <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+                <select id="donem" class="form-select w-auto">
+                    <option value="buAy">Bu ay</option>
+                    <option value="gecenAy">Geçen ay</option>
+                    <option value="buYil">Bu yıl</option>
+                    <option value="sonOnIkiAy">Son 12 ay</option>
+                </select>
+                <button type="button" id="excel-dugmesi" class="btn btn-outline-secondary">Excel'e aktar</button>
+                <span id="excel-bilgisi" class="small text-secondary"></span>
+                <span id="aralik" class="text-secondary ms-auto"></span>
+            </div>
+
+            <p id="hata" class="text-danger" hidden></p>
+
+            <div class="ozet-kutulari mb-4">
+                <div class="ozet-kutusu"><span class="sayi" id="acilan">…</span>Açılan servis kaydı</div>
+                <div class="ozet-kutusu"><span class="sayi" id="tamamlanan">…</span>Tamamlanan iş</div>
+                <div class="ozet-kutusu"><span class="sayi" id="ortalama">…</span>Ortalama tamir süresi</div>
+                <div class="ozet-kutusu"><span class="sayi" id="tahsil">…</span>Tahsil edilen</div>
+                <div class="ozet-kutusu"><span class="sayi" id="kesilen-tutar">…</span><span id="kesilen"></span></div>
+                <div class="ozet-kutusu"><span class="sayi" id="garanti">…</span>Garanti kapsamındaki iş</div>
+                <div class="ozet-kutusu"><span class="sayi" id="iptal">…</span>İptal edilen kayıt</div>
+            </div>
+
+            <div class="row g-3">
+                <section class="col-xl-4">
+                    <div class="card p-3 h-100">
+                        <h2 class="h6">Teknisyenler</h2>
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Teknisyen</th><th>Açılan</th><th>Tamamlanan</th><th>Ort. süre</th><th>Fatura</th></tr></thead>
+                            <tbody id="teknisyenler"></tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="col-xl-4">
+                    <div class="card p-3 h-100">
+                        <h2 class="h6">Aylara göre</h2>
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Ay</th><th>Açılan</th><th>Tamamlanan</th><th>Tahsil edilen</th></tr></thead>
+                            <tbody id="aylar"></tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="col-xl-4">
+                    <div class="card p-3 h-100">
+                        <h2 class="h6">En çok kullanılan parçalar</h2>
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Parça</th><th>Adet</th><th>Tutar</th></tr></thead>
+                            <tbody id="parcalar"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/raporlar.js"></script>
+</body>
+</html>

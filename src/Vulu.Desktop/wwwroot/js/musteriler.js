@@ -10,7 +10,7 @@ const formPenceresi = new bootstrap.Modal(document.getElementById("form-penceres
 const silmePenceresi = new bootstrap.Modal(document.getElementById("silme-penceresi"));
 
 async function listele() {
-    const cevap = await kopruyeSor("musteri_listele", { arama: arama, sayfa: sayfaNo });
+    const cevap = await kopruyeSor("musteri_listele", { arama: arama, sayfa: sayfaNo, boyut: 20 });
     if (!cevap.basarili) {
         hataGoster("liste-hatasi", cevap.hata);
         return;
@@ -38,20 +38,11 @@ async function listele() {
 
         const islemler = hucreEkle(satir, "");
         islemler.className = "text-end text-nowrap";
-
-        const duzenle = document.createElement("button");
-        duzenle.className = "btn btn-outline-secondary btn-sm";
-        duzenle.textContent = "Düzenle";
-        duzenle.addEventListener("click", function () { formuAc(musteri); });
-        islemler.appendChild(duzenle);
+        dugmeEkle(islemler, "Düzenle", "ikincil", function () { formuAc(musteri); });
 
         // Müşteriyi yalnızca yönetici silebilir (sunucu da aynı kuralı uygular).
         if (oturum.adminMi) {
-            const sil = document.createElement("button");
-            sil.className = "btn btn-outline-danger btn-sm ms-2";
-            sil.textContent = "Sil";
-            sil.addEventListener("click", function () { silmeyiAc(musteri); });
-            islemler.appendChild(sil);
+            dugmeEkle(islemler, "Sil", "tehlike", function () { silmeyiAc(musteri); });
         }
 
         satirlar.appendChild(satir);
@@ -71,7 +62,7 @@ async function listele() {
 
 // musteri verilirse düzenleme, verilmezse yeni kayıt penceresi açılır.
 function formuAc(musteri) {
-    duzenlenen = musteri || null;
+    duzenlenen = musteri;
     document.getElementById("form-basligi").textContent = musteri ? "Müşteriyi düzenle" : "Müşteri kaydı";
     document.getElementById("ad-soyad").value = musteri ? musteri.adSoyad : "";
     document.getElementById("telefon").value = musteri ? (musteri.telefon || "") : "";
@@ -88,10 +79,10 @@ async function kaydet(olay) {
 
     const cevap = await kopruyeSor("musteri_kaydet", {
         id: duzenlenen ? duzenlenen.id : "",
-        adSoyad: document.getElementById("ad-soyad").value,
-        telefon: document.getElementById("telefon").value,
-        email: document.getElementById("email").value,
-        adres: document.getElementById("adres").value
+        adSoyad: document.getElementById("ad-soyad").value.trim(),
+        telefon: document.getElementById("telefon").value.trim(),
+        email: bosIseNull(document.getElementById("email").value),
+        adres: bosIseNull(document.getElementById("adres").value)
     });
 
     dugme.disabled = false;
@@ -126,29 +117,15 @@ async function sil() {
     await listele();
 }
 
-async function exceleAktar() {
-    const dugme = document.getElementById("excel-dugmesi");
-    const bilgi = document.getElementById("excel-bilgisi");
-    dugme.disabled = true;
-    bilgi.textContent = "Hazırlanıyor…";
-
-    const cevap = await kopruyeSor("musteri_excel");
-
-    dugme.disabled = false;
-    bilgi.textContent = cevap.basarili
-        ? "İndirilenler klasörüne kaydedildi: " + cevap.veri.dosyaAdi
-        : cevap.hata;
-}
-
 async function baslat() {
     oturum = await sayfayiHazirla();
     if (!oturum) return;
 
     // Müşteri listesini Excel'e yalnızca yönetici aktarabilir.
     document.getElementById("excel-dugmesi").hidden = !oturum.adminMi;
+    excelDugmesiniBagla("excel-dugmesi", "excel-bilgisi", function () { return { liste: "musteriler" }; });
 
     document.getElementById("yeni-dugmesi").addEventListener("click", function () { formuAc(null); });
-    document.getElementById("excel-dugmesi").addEventListener("click", exceleAktar);
     document.getElementById("musteri-formu").addEventListener("submit", kaydet);
     document.getElementById("sil-dugmesi").addEventListener("click", sil);
     aramaKutusunuBagla("arama", function (metin) {

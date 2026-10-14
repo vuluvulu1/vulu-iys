@@ -18,11 +18,33 @@ Bir işletme bu sistemle şunları yapar:
 
 ```text
 Masaüstü uygulaması (Windows)  --HTTPS-->  API (Render, Docker)  -->  MongoDB Atlas
-     Photino + Blazor                       ASP.NET Core               işletme başına bir veritabanı
+  Photino + HTML/Bootstrap/JS               ASP.NET Core               işletme başına bir veritabanı
 ```
 
 Masaüstü uygulaması veritabanına hiç bağlanmaz; yalnızca API'nin adresini bilir. Veritabanına erişen tek şey
 API'dir, bu yüzden işletmelerin bilgisayarları herhangi bir ağdan çalışır.
+
+## Masaüstü uygulaması nasıl çalışır
+
+Pencere Photino.NET ile açılır ve `wwwroot` klasöründeki düz HTML sayfalarını gösterir. Her ekran bir `.html` ve
+aynı adlı bir `.js` dosyasıdır (`musteriler.html` + `js/musteriler.js`); sayfalar arasında düz bağlantıyla
+geçilir. Görünüm Bootstrap'tir (uygulamanın içinde gelir, internet gerektirmez); renkler `css/site.css`
+dosyasındadır.
+
+Sayfalar API'ye kendileri bağlanmaz. Her istek tek bir köprüden geçer:
+
+```text
+musteriler.js  --kopruyeSor("musteri_listele", {...})-->  Kopru.cs (switch)  -->  API
+               <--------- { basarili, veri, hata } ----------
+```
+
+- `js/kopru.js` isteğe bir numara verip C#'a yollar ve cevabı aynı numarayla eşleştirir.
+- `Kopru.cs` içindeki `switch`, her istek adının hangi API adresine gideceğini söyler. Giriş, oturum ve
+  token C# tarafındadır (`Servisler/OturumServisi.cs`, `Servisler/ApiIstemcisi.cs`); JavaScript tokenı hiç görmez.
+- PDF ve Excel dosyalarını açma, WhatsApp/e-posta bağlantıları ve kendini güncelleme de C# tarafındadır.
+- `js/ortak.js` bütün sayfaların paylaştığı menüyü, şifre değiştirme penceresini ve küçük yardımcıları içerir.
+- Kullanıcının yazdığı metinler sayfaya `textContent` ile yazılır, HTML olarak yorumlanmaz; sayfalar dışarıdan
+  betik yükleyemez (Content-Security-Policy).
 
 ## Çok işletmeli yapı
 
@@ -97,7 +119,7 @@ vekil” sıfır olmalıdır.
 - .NET 10
 - ASP.NET Core Web API
 - MongoDB (`MongoDB.Driver`)
-- Photino.NET + Blazor (masaüstü arayüzü)
+- Photino.NET (masaüstü penceresi) + düz HTML, Bootstrap ve JavaScript (ekranlar)
 - xUnit
 
 ## Proje yapısı
@@ -106,7 +128,7 @@ vekil” sıfır olmalıdır.
 src/
   Vulu.Api         Web API; veritabanına yalnızca bu proje erişir
   Vulu.Shared      API ile masaüstünün paylaştığı istek/yanıt türleri ve kurallar
-  Vulu.Desktop     Photino.Blazor masaüstü istemcisi
+  Vulu.Desktop     Photino masaüstü istemcisi (Kopru.cs + wwwroot içindeki html/js sayfaları)
 tests/
   Vulu.Tests       Otomatik testler (238 test; GuvenlikTestleri.cs saldırı denemeleridir)
 tools/
