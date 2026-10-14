@@ -12,7 +12,6 @@ public sealed class OturumServisi : IDisposable
     public OturumServisi(HttpClient http) => _http = http;
 
     public OturumYaniti? Oturum { get; private set; }
-    public KullaniciOzeti? Kullanici => Oturum?.Kullanici;
     public bool GirisYapildi => Oturum is not null;
 
     // Vulu yöneticisinin oturumu bir işletmeye bağlı değildir; servis ekranları yerine işletme yönetimini görür.
