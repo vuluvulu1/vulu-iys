@@ -131,6 +131,7 @@ body {
 }
 
 .yan-menu .nav-link {
+    text-align: left;
     color: var(--bs-secondary-color);
     border-radius: 3px;
     padding: 8px 10px;
@@ -196,10 +197,11 @@ body {
     border: 1px solid var(--bs-border-color);
     border-radius: 3px;
     color: var(--bs-secondary-color);
-    text-decoration: none;
+    text-align: left;
+    font: inherit;
 }
 
-a.ozet-kutusu:hover {
+button.ozet-kutusu:hover {
     border-color: #b5804f;
     color: var(--bs-body-color);
 }

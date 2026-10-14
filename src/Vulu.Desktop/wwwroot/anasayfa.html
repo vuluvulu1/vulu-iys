@@ -17,16 +17,16 @@
 
             <p id="hata" class="text-danger" hidden></p>
 
-            <!-- Özet kutuları; her biri ilgili sayfaya götürür. -->
+            <!-- Özet kutuları; her biri ilgili sayfaya götürür (data-adres, bkz. ortak.js). -->
             <div class="ozet-kutulari mb-4">
-                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="bekleyen">…</span>Bekleyen servis kaydı</a>
-                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="onay-bekleyen">…</span>Müşteri onayı bekleyen</a>
-                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="devam-eden">…</span>Devam eden iş</a>
-                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="teslim-bekleyen">…</span>Teslim bekleyen cihaz</a>
-                <a class="ozet-kutusu" href="randevular.html"><span class="sayi" id="bugunku-randevu">…</span>Bugünkü randevu</a>
-                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="odenmemis-tutar">…</span><span id="odenmemis-fatura"></span></a>
+                <button type="button" class="ozet-kutusu" data-adres="servis-kayitlari.html"><span class="sayi" id="bekleyen">…</span>Bekleyen servis kaydı</button>
+                <button type="button" class="ozet-kutusu" data-adres="servis-kayitlari.html"><span class="sayi" id="onay-bekleyen">…</span>Müşteri onayı bekleyen</button>
+                <button type="button" class="ozet-kutusu" data-adres="servis-kayitlari.html"><span class="sayi" id="devam-eden">…</span>Devam eden iş</button>
+                <button type="button" class="ozet-kutusu" data-adres="servis-kayitlari.html"><span class="sayi" id="teslim-bekleyen">…</span>Teslim bekleyen cihaz</button>
+                <button type="button" class="ozet-kutusu" data-adres="randevular.html"><span class="sayi" id="bugunku-randevu">…</span>Bugünkü randevu</button>
+                <button type="button" class="ozet-kutusu" data-adres="servis-kayitlari.html"><span class="sayi" id="odenmemis-tutar">…</span><span id="odenmemis-fatura"></span></button>
                 <div class="ozet-kutusu"><span class="sayi" id="bu-ay">…</span>Bu ay tahsil edilen</div>
-                <a class="ozet-kutusu" href="stok.html" id="azalan-kutusu" hidden><span class="sayi" id="azalan">…</span>Stoğu azalan parça</a>
+                <button type="button" class="ozet-kutusu" data-adres="stok.html" id="azalan-kutusu" hidden><span class="sayi" id="azalan">…</span>Stoğu azalan parça</button>
             </div>
 
             <div class="row g-3">
