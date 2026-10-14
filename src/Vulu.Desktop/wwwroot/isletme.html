@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:" />
+    <title>İşletme</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">İşletme</h1>
+
+            <p id="yukleniyor" class="text-secondary">Yükleniyor…</p>
+
+            <form class="card p-4 isletme-formu" id="isletme-formu" hidden>
+                <div class="d-flex gap-3 align-items-start mb-3">
+                    <img id="logo-onizleme" class="logo-onizleme" alt="İşletme logosu" />
+                    <div>
+                        <label for="i-logo" class="form-label">Logo</label>
+                        <input id="i-logo" type="file" accept="image/*" class="form-control mb-2" />
+                        <button type="button" id="logo-kaldir" class="btn btn-outline-secondary btn-sm">Logoyu kaldır</button>
+                        <p class="small text-secondary mt-2 mb-0" id="logo-bilgisi">
+                            Herhangi bir görsel seçebilirsiniz; yüklenirken otomatik küçültülür. Logo yan menüde ve fatura belgesinde görünür.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col">
+                        <label for="i-ad" class="form-label">İşletme adı</label>
+                        <input id="i-ad" class="form-control" autocomplete="off" />
+                    </div>
+                    <div class="col">
+                        <label for="i-kod" class="form-label">İşletme kodu</label>
+                        <input id="i-kod" class="form-control" disabled />
+                    </div>
+                </div>
+
+                <label for="i-adres" class="form-label">Adres</label>
+                <textarea id="i-adres" class="form-control mb-3" rows="2"></textarea>
+
+                <div class="row g-3 mb-3">
+                    <div class="col">
+                        <label for="i-telefon" class="form-label">Telefon</label>
+                        <input id="i-telefon" class="form-control" inputmode="numeric" maxlength="11" placeholder="03801234567" autocomplete="off" />
+                    </div>
+                    <div class="col">
+                        <label for="i-eposta" class="form-label">E-posta</label>
+                        <input id="i-eposta" type="email" class="form-control" autocomplete="off" />
+                    </div>
+                </div>
+
+                <h2 class="h6 mt-3">Fatura bilgileri</h2>
+                <div class="row g-3">
+                    <div class="col">
+                        <label for="i-vergi-dairesi" class="form-label">Vergi dairesi</label>
+                        <input id="i-vergi-dairesi" class="form-control" autocomplete="off" />
+                    </div>
+                    <div class="col">
+                        <label for="i-vergi-no" class="form-label">Vergi numarası</label>
+                        <input id="i-vergi-no" class="form-control" inputmode="numeric" maxlength="11" autocomplete="off" />
+                    </div>
+                    <div class="col">
+                        <label for="i-kdv" class="form-label">KDV oranı (%)</label>
+                        <input id="i-kdv" class="form-control" inputmode="decimal" autocomplete="off" />
+                    </div>
+                </div>
+                <p class="small text-secondary mt-2">Fatura tutarı KDV dahil girilir; belge matrahı ve KDV'yi bu orana göre ayırır.</p>
+
+                <label for="i-kosullar" class="form-label">Servis koşulları (kabul formunun altına yazılır)</label>
+                <textarea id="i-kosullar" class="form-control" rows="4" maxlength="1500" placeholder="Boş bırakılırsa genel bir metin kullanılır."></textarea>
+
+                <p id="hata" class="text-danger mt-3 mb-0" hidden></p>
+                <p id="kaydedildi" class="text-success mt-3 mb-0" hidden>Kaydedildi.</p>
+
+                <div class="mt-3">
+                    <button type="submit" id="kaydet-dugmesi" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/isletme.js"></script>
+</body>
+</html>

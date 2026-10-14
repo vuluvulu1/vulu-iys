@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>Randevular</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">Randevular</h1>
+
+            <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+                <button type="button" id="yeni-dugmesi" class="btn btn-primary">Randevu kaydı</button>
+                <div class="btn-group">
+                    <button type="button" id="liste-gorunumu" class="btn btn-primary">Liste</button>
+                    <button type="button" id="takvim-gorunumu" class="btn btn-outline-secondary">Takvim</button>
+                </div>
+                <select id="durum-suzgeci" class="form-select w-auto">
+                    <option value="">Tüm durumlar</option>
+                    <option value="Planlandi" selected>Planlandı</option>
+                    <option value="Tamamlandi">Tamamlandı</option>
+                    <option value="IptalEdildi">İptal edildi</option>
+                </select>
+                <input type="search" id="arama" class="form-control ms-auto arama" placeholder="Müşteri adı veya telefonu ara" />
+            </div>
+
+            <p id="liste-hatasi" class="text-danger" hidden></p>
+
+            <!-- Liste görünümü -->
+            <div id="liste-kutusu">
+                <p id="bos-mesaji" class="text-secondary" hidden></p>
+                <table class="table table-hover align-middle" id="tablo" hidden>
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Müşteri</th>
+                            <th>Teknisyen</th>
+                            <th>Açıklama</th>
+                            <th>Durum</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="satirlar"></tbody>
+                </table>
+                <div id="sayfalama" class="d-flex align-items-center"></div>
+            </div>
+
+            <!-- Takvim görünümü: bir hafta, yedi sütun -->
+            <div id="takvim-kutusu" hidden>
+                <div class="d-flex gap-2 align-items-center mb-3">
+                    <button type="button" id="onceki-hafta" class="btn btn-outline-secondary btn-sm">‹ Önceki hafta</button>
+                    <button type="button" id="bu-hafta" class="btn btn-outline-secondary btn-sm">Bu hafta</button>
+                    <button type="button" id="sonraki-hafta" class="btn btn-outline-secondary btn-sm">Sonraki hafta ›</button>
+                    <strong id="hafta-araligi"></strong>
+                </div>
+                <div class="takvim" id="takvim"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Randevu kaydı / düzenleme -->
+    <div class="modal fade" id="form-penceresi" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form class="modal-content" id="randevu-formu">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="form-basligi">Randevu kaydı</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Müşteri</label>
+                    <div id="musteri-secici" class="mb-3"></div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col">
+                            <label for="r-tarih" class="form-label">Tarih ve saat</label>
+                            <input id="r-tarih" type="datetime-local" class="form-control" />
+                        </div>
+                        <div class="col">
+                            <label for="r-sure" class="form-label">Süre</label>
+                            <select id="r-sure" class="form-select"></select>
+                        </div>
+                    </div>
+
+                    <label for="r-teknisyen" class="form-label">Teknisyen (isteğe bağlı)</label>
+                    <select id="r-teknisyen" class="form-select mb-3"></select>
+
+                    <label for="r-kayit" class="form-label">İlgili servis kaydı (isteğe bağlı)</label>
+                    <select id="r-kayit" class="form-select mb-3"></select>
+
+                    <label for="r-aciklama" class="form-label">Açıklama (isteğe bağlı)</label>
+                    <textarea id="r-aciklama" class="form-control" rows="3"></textarea>
+
+                    <p id="form-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="kaydet-dugmesi" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Silme onayı -->
+    <div class="modal fade" id="silme-penceresi" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5">Randevuyu sil</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="silme-metni"></p>
+                    <p>Randevu gerçekleşmeyecekse silmek yerine iptal edin.</p>
+                    <p id="silme-hatasi" class="text-danger mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="button" id="sil-dugmesi" class="btn btn-danger">Sil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/randevular.js"></script>
+</body>
+</html>

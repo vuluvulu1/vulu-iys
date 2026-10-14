@@ -8,6 +8,11 @@ const sifreKutusu = document.getElementById("sifre");
 const girisDugmesi = document.getElementById("giris-dugmesi");
 const girisHatasi = document.getElementById("giris-hatasi");
 
+// Vulu yöneticisi işletmeler listesiyle, işletme personeli ana sayfayla başlar.
+function acilisSayfasinaGit(vuluYoneticisi) {
+    window.location.href = vuluYoneticisi ? "vulu-isletmeler.html" : "anasayfa.html";
+}
+
 // Verilen bölümü gösterir, diğerlerini gizler.
 function bolumuGoster(gosterilecek) {
     for (const bolum of bolumler) {
@@ -26,7 +31,7 @@ async function baslangicKontrolu() {
 
     const durum = cevap.veri.durum;
     if (durum === "girisYapildi") {
-        window.location.href = "anasayfa.html";
+        acilisSayfasinaGit(cevap.veri.vuluYoneticisi);
     } else if (durum === "guncelleme") {
         document.getElementById("yeni-surum").textContent = cevap.veri.yeniSurum;
         document.getElementById("mevcut-surum").textContent = cevap.veri.mevcutSurum;
@@ -91,7 +96,7 @@ async function girisYap(olay) {
     });
 
     if (cevap.basarili) {
-        window.location.href = "anasayfa.html";
+        acilisSayfasinaGit(cevap.veri.vuluYoneticisi);
         return;
     }
 

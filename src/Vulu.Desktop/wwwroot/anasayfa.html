@@ -13,11 +13,40 @@
         <aside id="yan-menu" class="yan-menu"></aside>
 
         <main class="icerik">
-            <h1 class="h3 mb-3">Ana Sayfa</h1>
-            <p id="hos-geldiniz"></p>
+            <h1 class="h3 mb-3" id="hos-geldiniz">Ana Sayfa</h1>
+
+            <p id="hata" class="text-danger" hidden></p>
+
+            <!-- Özet kutuları; her biri ilgili sayfaya götürür. -->
+            <div class="ozet-kutulari mb-4">
+                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="bekleyen">…</span>Bekleyen servis kaydı</a>
+                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="onay-bekleyen">…</span>Müşteri onayı bekleyen</a>
+                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="devam-eden">…</span>Devam eden iş</a>
+                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="teslim-bekleyen">…</span>Teslim bekleyen cihaz</a>
+                <a class="ozet-kutusu" href="randevular.html"><span class="sayi" id="bugunku-randevu">…</span>Bugünkü randevu</a>
+                <a class="ozet-kutusu" href="servis-kayitlari.html"><span class="sayi" id="odenmemis-tutar">…</span><span id="odenmemis-fatura"></span></a>
+                <div class="ozet-kutusu"><span class="sayi" id="bu-ay">…</span>Bu ay tahsil edilen</div>
+                <a class="ozet-kutusu" href="stok.html" id="azalan-kutusu" hidden><span class="sayi" id="azalan">…</span>Stoğu azalan parça</a>
+            </div>
+
+            <div class="row g-3">
+                <section class="col-lg-6">
+                    <div class="card p-3 h-100">
+                        <h2 class="h6">Yaklaşan randevular</h2>
+                        <ul class="list-unstyled mb-0" id="randevular"></ul>
+                    </div>
+                </section>
+                <section class="col-lg-6">
+                    <div class="card p-3 h-100">
+                        <h2 class="h6">En uzun süredir açık kayıtlar</h2>
+                        <ul class="list-unstyled mb-0" id="acik-kayitlar"></ul>
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="js/kopru.js"></script>
     <script src="js/ortak.js"></script>
     <script src="js/anasayfa.js"></script>

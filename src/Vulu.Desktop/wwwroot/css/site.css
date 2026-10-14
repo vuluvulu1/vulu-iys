@@ -179,3 +179,146 @@ body {
     --bs-btn-hover-bg: #e5604d;
     --bs-btn-hover-border-color: #e5604d;
 }
+
+/* Ana sayfa ve raporlardaki özet kutuları */
+
+.ozet-kutulari {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.ozet-kutusu {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 3px;
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+}
+
+a.ozet-kutusu:hover {
+    border-color: #b5804f;
+    color: var(--bs-body-color);
+}
+
+.ozet-kutusu .sayi {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+
+.card {
+    --bs-card-bg: var(--bs-tertiary-bg);
+}
+
+.badge.text-bg-primary {
+    background-color: #b5804f !important;
+    color: #1a110a !important;
+}
+
+/* Servis kaydı ayrıntısı */
+
+.cok-satirli {
+    white-space: pre-line;
+}
+
+.adet-kutusu {
+    width: 90px;
+}
+
+.nav-tabs {
+    --bs-nav-tabs-link-active-bg: var(--bs-tertiary-bg);
+    --bs-nav-tabs-link-active-color: var(--bs-body-color);
+}
+
+.nav-tabs .nav-link {
+    color: var(--bs-secondary-color);
+}
+
+/* Randevu takvimi: haftanın yedi günü yan yana */
+
+.takvim {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.takvim-gunu {
+    min-height: 220px;
+    padding: 8px;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 3px;
+}
+
+.takvim-gunu.bugun {
+    border-color: #b5804f;
+}
+
+.takvim-gunu header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.takvim-randevusu {
+    display: block;
+    width: 100%;
+    margin-bottom: 6px;
+    padding: 6px;
+    text-align: left;
+    color: var(--bs-body-color);
+    background: var(--bs-secondary-bg);
+    border: 0;
+    border-left: 3px solid #6aa9d8;
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+.takvim-randevusu.Tamamlandi {
+    border-left-color: #7dbb6c;
+}
+
+.takvim-randevusu.IptalEdildi {
+    border-left-color: #e5604d;
+    opacity: 0.6;
+}
+
+/* İşletme ayarları */
+
+.isletme-formu {
+    max-width: 820px;
+}
+
+.logo-onizleme {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    background: var(--bs-secondary-bg);
+    border-radius: 3px;
+}
+
+/* Vulu yöneticisinin işletme listesindeki küçük logolar */
+
+.kucuk-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 8px;
+    object-fit: contain;
+    vertical-align: middle;
+    background: var(--bs-secondary-bg);
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.sunucu-karti {
+    max-width: 760px;
+}

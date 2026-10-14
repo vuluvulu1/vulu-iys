@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>İşletmeler</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="kabuk">
+        <aside id="yan-menu" class="yan-menu"></aside>
+
+        <main class="icerik">
+            <h1 class="h3 mb-3">İşletmeler</h1>
+
+            <div class="d-flex gap-2 mb-3">
+                <button type="button" id="yeni-dugmesi" class="btn btn-primary">İşletme kaydı</button>
+                <button type="button" id="yenile-dugmesi" class="btn btn-outline-secondary">Yenile</button>
+            </div>
+
+            <p id="liste-hatasi" class="text-danger" hidden></p>
+            <p id="bos-mesaji" class="text-secondary" hidden>Kayıtlı işletme bulunmuyor. “İşletme kaydı” düğmesiyle ilk işletmeyi açabilirsiniz.</p>
+
+            <table class="table table-hover align-middle" id="tablo" hidden>
+                <thead>
+                    <tr>
+                        <th>İşletme</th>
+                        <th>Kod</th>
+                        <th>Personel</th>
+                        <th>Açılış</th>
+                        <th>Durum</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="satirlar"></tbody>
+            </table>
+            <p id="toplam" class="text-secondary"></p>
+        </main>
+    </div>
+
+    <!-- Yeni işletme -->
+    <div class="modal fade" id="yeni-penceresi" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form class="modal-content" id="yeni-formu">
+                <div class="modal-header">
+                    <h2 class="modal-title h5">İşletme kaydı</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col">
+                            <label for="y-ad" class="form-label">İşletme adı</label>
+                            <input id="y-ad" class="form-control" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label for="y-kod" class="form-label">İşletme kodu</label>
+                            <input id="y-kod" class="form-control" autocomplete="off" spellcheck="false" placeholder="ornek-servis" />
+                        </div>
+                    </div>
+                    <p class="small text-secondary mt-1">Personel giriş ekranında bu kodu yazar. Küçük harf, rakam ve tire; açıldıktan sonra değiştirilemez.</p>
+
+                    <label for="y-adres" class="form-label">Adres</label>
+                    <textarea id="y-adres" class="form-control mb-3" rows="2"></textarea>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col">
+                            <label for="y-telefon" class="form-label">Telefon</label>
+                            <input id="y-telefon" class="form-control" inputmode="numeric" maxlength="11" placeholder="03801234567" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label for="y-eposta" class="form-label">E-posta</label>
+                            <input id="y-eposta" type="email" class="form-control" autocomplete="off" />
+                        </div>
+                    </div>
+
+                    <h3 class="h6 mt-4">İşletmenin ilk yöneticisi</h3>
+                    <label for="y-yonetici-ad" class="form-label">Ad soyad</label>
+                    <input id="y-yonetici-ad" class="form-control mb-3" autocomplete="off" />
+                    <div class="row g-3">
+                        <div class="col">
+                            <label for="y-yonetici-kullanici" class="form-label">Kullanıcı adı</label>
+                            <input id="y-yonetici-kullanici" class="form-control" autocomplete="off" />
+                        </div>
+                        <div class="col">
+                            <label for="y-yonetici-sifre" class="form-label">Şifre</label>
+                            <input id="y-yonetici-sifre" type="password" class="form-control" autocomplete="new-password" />
+                        </div>
+                    </div>
+                    <p class="small text-secondary mt-1">Bu bilgileri işletmeye siz iletirsiniz. Yönetici giriş yaptıktan sonra kendi personelini ekler.</p>
+
+                    <p id="yeni-hatasi" class="text-danger mt-3 mb-0" hidden></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bir işletmeyi yönetme: bilgiler, yönetici şifresi, kalıcı silme -->
+    <div class="modal fade" id="yonetim-penceresi" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="yonetim-basligi"></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="genel-formu">
+                        <label for="g-ad" class="form-label">İşletme adı</label>
+                        <input id="g-ad" class="form-control mb-3" autocomplete="off" />
+                        <label for="g-adres" class="form-label">Adres</label>
+                        <textarea id="g-adres" class="form-control mb-3" rows="2"></textarea>
+                        <div class="row g-3 mb-3">
+                            <div class="col">
+                                <label for="g-telefon" class="form-label">Telefon</label>
+                                <input id="g-telefon" class="form-control" inputmode="numeric" maxlength="11" autocomplete="off" />
+                            </div>
+                            <div class="col">
+                                <label for="g-eposta" class="form-label">E-posta</label>
+                                <input id="g-eposta" type="email" class="form-control" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input id="g-aktif" type="checkbox" class="form-check-input" />
+                            <label for="g-aktif" class="form-check-label">İşletme açık</label>
+                        </div>
+                        <p class="small text-secondary">Askıya alınan işletmenin personeli giriş yapamaz ve açık oturumları kapanır; verisi silinmez.</p>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="submit" class="btn btn-primary">Kaydet</button>
+                            <span id="genel-sonucu" class="small"></span>
+                        </div>
+                    </form>
+
+                    <hr />
+                    <h3 class="h6">Yönetici şifresini sıfırla</h3>
+                    <p class="small text-secondary">İşletme yöneticisi şifresini unuttuğunda yenisini buradan verirsiniz. Diğer personelin şifresini işletmenin kendi yöneticisi değiştirir.</p>
+                    <form id="sifre-sifirlama">
+                        <div class="row g-3 mb-2">
+                            <div class="col">
+                                <label for="s-yonetici" class="form-label">Yönetici hesabı</label>
+                                <select id="s-yonetici" class="form-select"></select>
+                            </div>
+                            <div class="col">
+                                <label for="s-sifre" class="form-label">Yeni şifre</label>
+                                <input id="s-sifre" type="password" class="form-control" autocomplete="new-password" />
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="submit" class="btn btn-primary">Şifreyi sıfırla</button>
+                            <span id="sifre-sonucu" class="small"></span>
+                        </div>
+                    </form>
+
+                    <hr />
+                    <h3 class="h6">İşletmeyi kalıcı olarak sil</h3>
+                    <p class="small text-secondary" id="silme-once-askiya">Silmek için önce işletmeyi askıya alın (yukarıdan “İşletme açık” işaretini kaldırıp kaydedin).</p>
+                    <form id="silme-formu">
+                        <p>
+                            İşletmenin personeli, müşterileri, servis kayıtları, randevuları ve faturaları <strong>geri getirilemeyecek
+                            şekilde</strong> silinir. Onaylamak için işletme kodunu (<code id="silme-kodu"></code>) yazın.
+                        </p>
+                        <input id="silme-onayi" class="form-control mb-2" autocomplete="off" spellcheck="false" />
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="submit" id="sil-dugmesi" class="btn btn-danger" disabled>Kalıcı olarak sil</button>
+                            <span id="silme-sonucu" class="small text-danger"></span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/kopru.js"></script>
+    <script src="js/ortak.js"></script>
+    <script src="js/vulu-isletmeler.js"></script>
+</body>
+</html>
