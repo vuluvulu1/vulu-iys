@@ -22,5 +22,6 @@ ENV Vekil__AtlamaSayisi=1 \
 
 USER $APP_UID
 
-# Platform dinlenecek kapıyı PORT değişkeniyle verir.
-CMD ["sh", "-c", "ASPNETCORE_URLS=http://0.0.0.0:${PORT:-8080} exec dotnet Vulu.Api.dll"]
+# Platform dinlenecek kapıyı PORT değişkeniyle verir. Taban imajın 8080 varsayılanı aynı ayarla (HTTP_PORTS)
+# değiştirilir; ASPNETCORE_URLS kullanılsaydı iki ayar çakışır ve her açılışta uyarı yazılırdı.
+CMD ["sh", "-c", "ASPNETCORE_HTTP_PORTS=${PORT:-8080} exec dotnet Vulu.Api.dll"]

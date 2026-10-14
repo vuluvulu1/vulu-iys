@@ -287,9 +287,9 @@ public static class Kopru
         // İşletmenin logosu ve tam bilgileri girişten sonra bir kez yüklenir.
         if (!_oturum.VuluYoneticisiMi && _oturum.Isletme is null)
         {
-            var sonuc = await _api.Getir<IsletmeYaniti>("api/isletme");
-            if (sonuc is { Basarili: true, Deger: not null })
-                _oturum.IsletmeyiAyarla(sonuc.Deger);
+            var sonuc = await _api.Getir("api/isletme");
+            if (sonuc.Basarili)
+                _oturum.IsletmeyiAyarla(JsonSerializer.Deserialize<IsletmeYaniti>(sonuc.Veri, JsonAyarlari)!);
             else if (!_oturum.GirisYapildi)
                 return OturumYok();
         }
@@ -318,13 +318,13 @@ public static class Kopru
 
     private static async Task<Cevap> SifreDegistir(JsonElement veri)
     {
-        var sonuc = await _api.Ekle<OturumYaniti>("api/kimlik/sifre",
+        var sonuc = await _api.Ekle("api/kimlik/sifre",
             new SifreDegistirmeIstegi(Yazi(veri, "mevcutSifre"), Yazi(veri, "yeniSifre")));
-        if (!sonuc.Basarili || sonuc.Deger is null)
+        if (!sonuc.Basarili)
             return ApiHatasi(sonuc.Hata);
 
         // Eski tokenlar artık geçersiz; sunucunun verdiği yeni oturumla devam edilir.
-        _oturum.OturumuYenile(sonuc.Deger);
+        _oturum.OturumuYenile(JsonSerializer.Deserialize<OturumYaniti>(sonuc.Veri, JsonAyarlari)!);
         return Tamam(null);
     }
 
@@ -353,11 +353,11 @@ public static class Kopru
         }
 
         var sonuc = await _api.Indir($"api/servis-kayitlari/{Kimlik(veri)}/{uc}");
-        if (!sonuc.Basarili || sonuc.Deger is null)
+        if (!sonuc.Basarili || sonuc.Dosya is null)
             return ApiHatasi(sonuc.Hata);
 
         // BelgeAcici dosya adındaki klasör ayraçlarını atar; ad yalnızca geçici klasörde kullanılır.
-        var hata = BelgeAcici.Ac(dosyaAdi, sonuc.Deger);
+        var hata = BelgeAcici.Ac(dosyaAdi, sonuc.Dosya);
         return hata is null ? Tamam(null) : Basarisiz(hata);
     }
 
@@ -368,26 +368,29 @@ public static class Kopru
         var yol = $"api/servis-kayitlari/{Kimlik(veri)}";
         var kanal = Yazi(veri, "kanal");
 
-        var mesaj = await _api.Getir<BildirimYaniti>($"{yol}/bildirim");
-        if (!mesaj.Basarili || mesaj.Deger is null)
+        var mesaj = await _api.Getir($"{yol}/bildirim");
+        if (!mesaj.Basarili)
             return ApiHatasi(mesaj.Hata);
 
-        var bildirim = mesaj.Deger;
-        var metin = Uri.EscapeDataString(bildirim.Metin);
+        // Sunucu mesajın metnini ve müşterinin WhatsApp numarası ile e-postasını (varsa) verir.
+        var bildirimMetni = Yazi(mesaj.Veri, "metin");
+        var whatsAppNumarasi = Yazi(mesaj.Veri, "whatsAppNumarasi");
+        var eposta = Yazi(mesaj.Veri, "eposta");
+        var metin = Uri.EscapeDataString(bildirimMetni);
         string? hata = null;
 
         if (kanal == "WhatsApp")
         {
-            if (bildirim.WhatsAppNumarasi is null)
+            if (whatsAppNumarasi == "")
                 return Basarisiz("Müşterinin telefonu WhatsApp için uygun biçimde değil.");
-            hata = BelgeAcici.BaglantiAc($"https://wa.me/{bildirim.WhatsAppNumarasi}?text={metin}");
+            hata = BelgeAcici.BaglantiAc($"https://wa.me/{whatsAppNumarasi}?text={metin}");
         }
         else if (kanal == "Eposta")
         {
-            if (bildirim.Eposta is null)
+            if (eposta == "")
                 return Basarisiz("Müşterinin e-posta adresi kayıtlı değil.");
             var konu = Uri.EscapeDataString("Servis kaydı " + Yazi(veri, "no"));
-            hata = BelgeAcici.BaglantiAc($"mailto:{Uri.EscapeDataString(bildirim.Eposta)}?subject={konu}&body={metin}");
+            hata = BelgeAcici.BaglantiAc($"mailto:{Uri.EscapeDataString(eposta)}?subject={konu}&body={metin}");
         }
         else if (kanal != "Telefon")
         {
@@ -397,22 +400,22 @@ public static class Kopru
         if (hata is not null)
             return Basarisiz(hata);
 
-        var kayit = await _api.Ekle<JsonElement>($"{yol}/bildirimler", new { kanal });
+        var kayit = await _api.Ekle($"{yol}/bildirimler", new { kanal });
         if (!kayit.Basarili)
             return ApiHatasi(kayit.Hata);
 
-        return Tamam(new { metin = bildirim.Metin });
+        return Tamam(new { metin = bildirimMetni });
     }
 
     private static async Task<Cevap> IsletmeKaydet(JsonElement veri)
     {
-        var sonuc = await _api.Guncelle<IsletmeYaniti>("api/isletme", veri);
-        if (!sonuc.Basarili || sonuc.Deger is null)
+        var sonuc = await _api.Guncelle("api/isletme", veri);
+        if (!sonuc.Basarili)
             return ApiHatasi(sonuc.Hata);
 
         // Yan menüdeki ad ve logo da yenilensin.
-        _oturum.IsletmeyiAyarla(sonuc.Deger);
-        return Tamam(sonuc.Deger);
+        _oturum.IsletmeyiAyarla(JsonSerializer.Deserialize<IsletmeYaniti>(sonuc.Veri, JsonAyarlari)!);
+        return Tamam(sonuc.Veri);
     }
 
     // Vulu yöneticisinin listesindeki işletme logosu; sayfaya gömülecek "data:" adresi olarak döner.
@@ -423,10 +426,10 @@ public static class Kopru
             return Basarisiz("Geçersiz logo türü.");
 
         var sonuc = await _api.Indir($"api/platform/isletmeler/{Kimlik(veri)}/logo");
-        if (!sonuc.Basarili || sonuc.Deger is null)
+        if (!sonuc.Basarili || sonuc.Dosya is null)
             return ApiHatasi(sonuc.Hata);
 
-        return Tamam(new { adres = $"data:{tur};base64,{Convert.ToBase64String(sonuc.Deger)}" });
+        return Tamam(new { adres = $"data:{tur};base64,{Convert.ToBase64String(sonuc.Dosya)}" });
     }
 
     // Listeyi Excel dosyası olarak indirir, İndirilenler klasörüne kaydeder ve açar.
@@ -458,10 +461,10 @@ public static class Kopru
         }
 
         var sonuc = await _api.Indir(yol);
-        if (!sonuc.Basarili || sonuc.Deger is null)
+        if (!sonuc.Basarili || sonuc.Dosya is null)
             return ApiHatasi(sonuc.Hata);
 
-        var (kaydedilen, hata) = BelgeAcici.KaydetVeAc($"{dosyaAdi}-{DateTime.Today:yyyy-MM-dd}.xlsx", sonuc.Deger);
+        var (kaydedilen, hata) = BelgeAcici.KaydetVeAc($"{dosyaAdi}-{DateTime.Today:yyyy-MM-dd}.xlsx", sonuc.Dosya);
         if (hata is not null)
             return Basarisiz(hata);
         return Tamam(new { dosyaAdi = kaydedilen });
@@ -470,13 +473,13 @@ public static class Kopru
     // --- Yardımcılar ---
 
     // API'ye giden dört istek türü; cevap JS'e olduğu gibi iletilir.
-    private static async Task<Cevap> Getir(string yol) => ApiCevabi(await _api.Getir<JsonElement>(yol));
+    private static async Task<Cevap> Getir(string yol) => ApiCevabi(await _api.Getir(yol));
 
-    private static async Task<Cevap> Ekle(string yol, JsonElement govde) => ApiCevabi(await _api.Ekle<JsonElement>(yol, govde));
+    private static async Task<Cevap> Ekle(string yol, JsonElement govde) => ApiCevabi(await _api.Ekle(yol, govde));
 
-    private static async Task<Cevap> Guncelle(string yol, JsonElement govde) => ApiCevabi(await _api.Guncelle<JsonElement>(yol, govde));
+    private static async Task<Cevap> Guncelle(string yol, JsonElement govde) => ApiCevabi(await _api.Guncelle(yol, govde));
 
-    private static async Task<Cevap> Sil(string yol) => ApiCevabi(await _api.Sil<JsonElement>(yol));
+    private static async Task<Cevap> Sil(string yol) => ApiCevabi(await _api.Sil(yol));
 
     // Formlar: veride kimlik varsa kayıt güncellenir, yoksa yenisi eklenir.
     private static Task<Cevap> Kaydet(string yol, JsonElement veri)
@@ -487,10 +490,10 @@ public static class Kopru
         return Guncelle($"{yol}/{id}", veri);
     }
 
-    private static Cevap ApiCevabi(ApiSonucu<JsonElement> sonuc)
+    private static Cevap ApiCevabi(ApiSonucu sonuc)
     {
         if (sonuc.Basarili)
-            return Tamam(sonuc.Deger.ValueKind == JsonValueKind.Undefined ? null : sonuc.Deger);
+            return Tamam(sonuc.Veri.ValueKind == JsonValueKind.Undefined ? null : sonuc.Veri);
         return ApiHatasi(sonuc.Hata);
     }
 
