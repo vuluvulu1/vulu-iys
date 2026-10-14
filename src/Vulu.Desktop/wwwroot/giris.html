@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:" />
+    <title>Giriş</title>
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <div class="d-flex align-items-center justify-content-center vh-100">
+        <div class="card giris-karti p-4">
+            <img class="giris-logo mx-auto mb-2" src="img/logo.svg" alt="vulu" />
+            <h1 class="h5 text-center mb-4">İşletme Yönetim Sistemi</h1>
+
+            <!-- Aşağıdaki bölümlerden aynı anda yalnızca biri görünür (giris.js: bolumuGoster). -->
+
+            <div id="kontrol-ediliyor">
+                <p class="text-secondary">Sunucuya bağlanılıyor… Sunucu uykudaysa bu bir dakika kadar sürebilir.</p>
+            </div>
+
+            <div id="ulasilamiyor" hidden>
+                <p class="text-danger">Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.</p>
+                <button type="button" id="yeniden-dene" class="btn btn-primary w-100">Yeniden dene</button>
+            </div>
+
+            <div id="uyumsuz" hidden>
+                <p class="text-danger">Bu uygulama sürümü sunucuyla uyumlu değil. Lütfen uygulamanın güncel sürümünü kurun.</p>
+            </div>
+
+            <div id="guncelleme" hidden>
+                <p>
+                    Yeni sürüm yayımlandı: <strong id="yeni-surum"></strong> (kurulu olan <span id="mevcut-surum"></span>).
+                    Devam etmek için uygulamanın güncellenmesi gerekiyor.
+                </p>
+                <div id="ilerleme-kutusu" class="progress mb-2" hidden>
+                    <div id="ilerleme" class="progress-bar"></div>
+                </div>
+                <p id="guncelleme-hatasi" class="text-danger" hidden></p>
+                <button type="button" id="guncelle-dugmesi" class="btn btn-primary w-100">Güncelle</button>
+                <p class="small text-secondary mt-2 mb-0">Güncelleme indirilir, kurulur ve uygulama kendiliğinden yeniden açılır.</p>
+            </div>
+
+            <form id="giris-formu" hidden>
+                <label for="isletme-kodu" class="form-label">İşletme kodu</label>
+                <input id="isletme-kodu" class="form-control mb-3" autocomplete="organization" spellcheck="false" />
+
+                <label for="kullanici-adi" class="form-label">Kullanıcı adı</label>
+                <input id="kullanici-adi" class="form-control mb-3" autocomplete="username" />
+
+                <label for="sifre" class="form-label">Şifre</label>
+                <input id="sifre" type="password" class="form-control mb-3" autocomplete="current-password" />
+
+                <p id="giris-hatasi" class="text-danger" hidden></p>
+                <button type="submit" id="giris-dugmesi" class="btn btn-primary w-100" disabled>Giriş yap</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/kopru.js"></script>
+    <script src="js/giris.js"></script>
+</body>
+</html>

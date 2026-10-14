@@ -1,0 +1,152 @@
+/* Bootstrap'in koyu teması, logodaki kahve paletine boyanır. Yalnızca renkler ve birkaç ölçü değişir;
+   düğmeler, kutular ve tablolar Bootstrap'in kendi sınıflarıyla yazılır. */
+
+[data-bs-theme=dark] {
+    --bs-body-bg: #1a110a;
+    --bs-body-color: #f3e6d6;
+    --bs-secondary-color: #b89a7c;
+    --bs-tertiary-bg: #2b1a10;
+    --bs-secondary-bg: #3a2416;
+    --bs-border-color: #4a2e1c;
+    --bs-link-color: #e9c699;
+    --bs-link-color-rgb: 233, 198, 153;
+    --bs-link-hover-color: #f3e6d6;
+    --bs-link-hover-color-rgb: 243, 230, 214;
+    --bs-danger-text-emphasis: #e5604d;
+    --bs-border-radius: 3px;
+    --bs-border-radius-sm: 3px;
+    --bs-border-radius-lg: 3px;
+    color-scheme: dark;
+    accent-color: #b5804f;
+}
+
+body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+}
+
+.text-danger {
+    color: #e5604d !important;
+}
+
+.btn-primary {
+    --bs-btn-color: #1a110a;
+    --bs-btn-bg: #b5804f;
+    --bs-btn-border-color: #b5804f;
+    --bs-btn-hover-color: #1a110a;
+    --bs-btn-hover-bg: #e9c699;
+    --bs-btn-hover-border-color: #e9c699;
+    --bs-btn-active-color: #1a110a;
+    --bs-btn-active-bg: #e9c699;
+    --bs-btn-active-border-color: #e9c699;
+    --bs-btn-disabled-color: #1a110a;
+    --bs-btn-disabled-bg: #b5804f;
+    --bs-btn-disabled-border-color: #b5804f;
+    --bs-btn-focus-shadow-rgb: 181, 128, 79;
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: #f3e6d6;
+    --bs-btn-border-color: #4a2e1c;
+    --bs-btn-hover-color: #f3e6d6;
+    --bs-btn-hover-bg: #3a2416;
+    --bs-btn-hover-border-color: #b5804f;
+    --bs-btn-active-bg: #3a2416;
+    --bs-btn-active-border-color: #b5804f;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #b5804f;
+    box-shadow: 0 0 0 0.2rem rgba(181, 128, 79, 0.35);
+}
+
+.progress {
+    --bs-progress-bar-bg: #b5804f;
+    --bs-progress-bar-color: #1a110a;
+}
+
+/* Kaydırma çubukları ince ve paletle uyumlu. */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4a2e1c;
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #b5804f;
+}
+
+/* Giriş ekranı */
+
+.giris-karti {
+    width: 360px;
+}
+
+.giris-logo {
+    width: 72px;
+    height: 72px;
+}
+
+/* Sayfa iskeleti: solda menü, sağda içerik. */
+
+.kabuk {
+    display: flex;
+    height: 100vh;
+}
+
+.yan-menu {
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    flex-shrink: 0;
+    padding: 16px 10px;
+    background: var(--bs-tertiary-bg);
+    border-right: 1px solid var(--bs-border-color);
+}
+
+.marka {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.marka img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.yan-menu .nav-link {
+    color: var(--bs-secondary-color);
+    border-radius: 3px;
+    padding: 8px 10px;
+}
+
+.yan-menu .nav-link:hover {
+    color: var(--bs-body-color);
+}
+
+.yan-menu .nav-link.active {
+    background: #b5804f;
+    color: #1a110a;
+}
+
+.icerik {
+    flex: 1;
+    overflow: auto;
+    padding: 24px 32px;
+}
