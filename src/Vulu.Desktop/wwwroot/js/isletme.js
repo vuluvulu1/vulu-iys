@@ -140,12 +140,11 @@ async function baslat() {
 
     const cevap = await kopruyeSor("isletme_getir");
     if (!cevap.basarili) {
-        document.getElementById("yukleniyor").textContent = cevap.hata;
+        hataGoster("yukleniyor", cevap.hata);
         return;
     }
 
     doldur(cevap.veri);
-    document.getElementById("yukleniyor").hidden = true;
     document.getElementById("isletme-formu").hidden = false;
 
     document.getElementById("i-logo").addEventListener("change", logoSecildi);

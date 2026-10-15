@@ -86,7 +86,8 @@ async function girisYap(olay) {
     if (girisDugmesi.disabled) return;
 
     girisDugmesi.disabled = true;
-    girisDugmesi.textContent = "Giriş yapılıyor…";
+    // Düğmede dönen halka; içerik sabit metindir.
+    girisDugmesi.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Giriş yapılıyor…';
     girisHatasi.hidden = true;
 
     const cevap = await kopruyeSor("giris_yap", {
