@@ -9,9 +9,10 @@ namespace Vulu.Desktop;
 
 // Ekranlar (JS) ile C# arasındaki tek bağlantı.
 //
-// JS bir istek yollar:  { "no": 7, "islem": "giris_yap", "veri": { ... } }
+// JS bir istek yollar:  { "no": "k3f9x-7", "islem": "giris_yap", "veri": { ... } }
 // C# işi yapar ve aynı numarayla cevap verir:
-//     { "no": 7, "basarili": true, "veri": { ... } }   ya da   { "no": 7, "basarili": false, "hata": "..." }
+//     { "no": "k3f9x-7", "basarili": true, "veri": { ... } }   ya da   { "no": "k3f9x-7", "basarili": false, "hata": "..." }
+// Numarayı JS verir ve C# yalnızca geri yollar (bkz. kopru.js).
 // C# kendiliğinden de mesaj yollayabilir (örneğin indirme yüzdesi):  { "olay": "indirme", "veri": 42 }
 //
 // API'yi her zaman C# çağırır; token ve oturum bilgisi JS tarafına hiç gelmez.
@@ -37,7 +38,7 @@ public static class Kopru
     // JS'e giden cevap.
     private sealed class Cevap
     {
-        public int No { get; set; }
+        public string No { get; set; } = "";
         public bool Basarili { get; set; }
         public object? Veri { get; set; }
         public string? Hata { get; set; }
@@ -73,12 +74,12 @@ public static class Kopru
     // Photino'nun olay işleyicisi Task döndüremediği için "async void"; bu yüzden hiçbir hata dışarı kaçmamalı.
     private static async void MesajGeldi(object? gonderen, string metin)
     {
-        var no = 0;
+        var no = "";
         Cevap cevap;
         try
         {
             using var belge = JsonDocument.Parse(metin);
-            no = belge.RootElement.GetProperty("no").GetInt32();
+            no = belge.RootElement.GetProperty("no").GetString() ?? "";
             var islem = belge.RootElement.GetProperty("islem").GetString() ?? "";
             var veri = belge.RootElement.TryGetProperty("veri", out var v) ? v.Clone() : default;
 
