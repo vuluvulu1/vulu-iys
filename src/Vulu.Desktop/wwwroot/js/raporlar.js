@@ -49,7 +49,11 @@ function tabloyuDoldur(govdeId, satirlar, sutunSayisi, bosMetin) {
     }
     for (const degerler of satirlar) {
         const satir = document.createElement("tr");
-        for (const deger of degerler) hucreEkle(satir, deger);
+        for (let i = 0; i < degerler.length; i++) {
+            const hucre = hucreEkle(satir, degerler[i]);
+            // İlk sütun ad (gerekirse alt satıra geçer); sayılar, tutarlar ve süreler bölünmez.
+            if (i > 0) hucre.className = "text-nowrap";
+        }
         govde.appendChild(satir);
     }
 }
