@@ -5,31 +5,43 @@ let sonNumara = 0;
 const bekleyenler = {};        // numara -> cevabı bekleyen fonksiyon
 const olayDinleyicileri = {};  // olay adı -> fonksiyon
 
-// --- Bekleme yazısı ---
-// Sunucu bir süre kullanılmayınca uyur ve ilk istek bir dakika kadar sürebilir. Bir istek 1,5 saniyeden uzun
-// sürerse ekranın üstünde bilgi yazısı çıkar, bütün cevaplar gelince kaybolur. Giriş ekranı bunu kendisi
-// anlattığı için orada gösterilmez.
+// --- Bekleme göstergesi ---
+// Cevap beklenirken ekranın üstünde dönen bir halka ve yazı görünür; böylece bir şeyin geldiği belli olur.
+// Kısa istekler göstergeyi hiç çıkarmaz. Bekleme uzarsa (sunucu uykudan uyanıyor olabilir) yazı değişir ve geçen
+// saniye sayılır. Sayfadaki "sayfa-yukleniyor" sınıflı halkalar ise ilk veriler gelince kaldırılır.
 let cevapBekleyenIstek = 0;
-let beklemeZamanlayicisi = null;
+let beklemeBaslangici = 0;       // ilk bekleyen isteğin başladığı an (milisaniye)
+let beklemeZamanlayicisi = null; // göstergeyi her saniye güncelleyen zamanlayıcı
 
-function beklemeYazisiniGoster() {
+function gostergeyiGuncelle() {
+    // Giriş ekranı sunucu kontrolünü kendi yazısıyla anlatır.
     if (window.location.pathname.endsWith("giris.html")) return;
 
-    let yazi = document.getElementById("bekleme-yazisi");
-    if (!yazi) {
-        yazi = document.createElement("div");
-        yazi.id = "bekleme-yazisi";
-        yazi.className = "bekleme-yazisi";
-        yazi.textContent = "Sunucuya bağlanılıyor… Sunucu uykudaysa bu bir dakika kadar sürebilir.";
-        document.body.appendChild(yazi);
+    const gecen = Math.floor((Date.now() - beklemeBaslangici) / 1000);
+    if (Date.now() - beklemeBaslangici < 400) return;
+
+    let gosterge = document.getElementById("bekleme-gostergesi");
+    if (!gosterge) {
+        gosterge = document.createElement("div");
+        gosterge.id = "bekleme-gostergesi";
+        gosterge.className = "bekleme-gostergesi";
+        gosterge.innerHTML = '<span class="spinner-border spinner-border-sm"></span><span id="bekleme-metni"></span>';
+        document.body.appendChild(gosterge);
     }
-    yazi.hidden = false;
+
+    let metin = "Yükleniyor…";
+    if (gecen >= 3) {
+        metin = "Sunucuya bağlanılıyor… Sunucu uykudaysa bu bir dakika kadar sürebilir (" + gecen + " sn)";
+    }
+    document.getElementById("bekleme-metni").textContent = metin;
+    gosterge.hidden = false;
 }
 
 function istekBasladi() {
     cevapBekleyenIstek++;
     if (beklemeZamanlayicisi === null) {
-        beklemeZamanlayicisi = setTimeout(beklemeYazisiniGoster, 1500);
+        beklemeBaslangici = Date.now();
+        beklemeZamanlayicisi = setInterval(gostergeyiGuncelle, 200);
     }
 }
 
@@ -37,11 +49,17 @@ function istekBitti() {
     cevapBekleyenIstek--;
     if (cevapBekleyenIstek > 0) return;
 
-    cevapBekleyenIstek = 0;
-    clearTimeout(beklemeZamanlayicisi);
-    beklemeZamanlayicisi = null;
-    const yazi = document.getElementById("bekleme-yazisi");
-    if (yazi) yazi.hidden = true;
+    // Bir cevap çoğu zaman hemen yeni bir isteği başlatır (önce oturum, sonra liste). Gösterge bu kısa arada
+    // kapanıp açılmasın diye biraz beklenir.
+    setTimeout(function () {
+        if (cevapBekleyenIstek > 0) return;
+
+        clearInterval(beklemeZamanlayicisi);
+        beklemeZamanlayicisi = null;
+        const gosterge = document.getElementById("bekleme-gostergesi");
+        if (gosterge) gosterge.hidden = true;
+        for (const halka of document.querySelectorAll(".sayfa-yukleniyor")) halka.remove();
+    }, 100);
 }
 
 // C#'tan gelen her mesaj buraya düşer.
