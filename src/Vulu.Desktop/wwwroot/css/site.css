@@ -342,24 +342,3 @@ button.ozet-kutusu:hover {
     border-radius: 3px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
-
-/* Sayfa açılırken verinin geleceği yerde dönen halka; ilk veriler gelince kaldırılır. */
-
-.sayfa-yukleniyor {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    padding: 40px 0;
-    color: var(--bs-secondary-color);
-}
-
-.sayfa-yukleniyor .spinner-border {
-    color: #b5804f;
-}
-
-.ozet-kutusu .spinner-border {
-    width: 22px;
-    height: 22px;
-    color: #b5804f;
-}

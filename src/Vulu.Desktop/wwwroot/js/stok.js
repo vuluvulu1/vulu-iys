@@ -169,7 +169,7 @@ async function stokuKaydet(olay) {
 
 async function hareketleriAc(parca) {
     document.getElementById("hareket-basligi").textContent = "Stok hareketleri – " + parca.ad;
-    document.getElementById("hareket-bilgisi").innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Yükleniyor…';
+    document.getElementById("hareket-bilgisi").textContent = "Yükleniyor…";
     document.getElementById("hareket-tablosu").hidden = true;
     hareketPenceresi.show();
 
