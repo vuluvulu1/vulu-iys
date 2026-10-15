@@ -31,6 +31,9 @@ public static class Kopru
     // Açılışta bulunan yeni sürüm; "guncelle" isteği bunu indirip kurar.
     private static YeniSurum? _yeniSurum;
 
+    // Sunucuyu uyanık tutan zamanlayıcı (bkz. Baslat).
+    private static Timer? _uyanikTutucu;
+
     // JS'e giden cevap.
     private sealed class Cevap
     {
@@ -51,6 +54,20 @@ public static class Kopru
         _api = new ApiIstemcisi(_http, _oturum);
 
         pencere.RegisterWebMessageReceivedHandler(MesajGeldi);
+
+        // Ücretsiz barındırma, 15 dakika istek gelmeyen sunucuyu uyutur; uyanması bir dakika kadar sürer ve o sırada
+        // ekranlar boş kalır. Uygulama açık olduğu sürece 10 dakikada bir kısa bir istek gönderilir. Sunucuya
+        // ulaşılamazsa sessizce geçilir; bir sonraki denemede yine gönderilir.
+        _uyanikTutucu = new Timer(async _ =>
+        {
+            try
+            {
+                using var yanit = await _http.GetAsync("api/saglik");
+            }
+            catch (Exception hata) when (hata is HttpRequestException or TaskCanceledException)
+            {
+            }
+        }, null, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10));
     }
 
     // Photino'nun olay işleyicisi Task döndüremediği için "async void"; bu yüzden hiçbir hata dışarı kaçmamalı.
