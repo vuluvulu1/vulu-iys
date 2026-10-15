@@ -438,7 +438,7 @@ async function parcalariYukle(aramaMetni) {
 
 async function gecmisiYukle() {
     const liste = document.getElementById("gecmis");
-    liste.innerHTML = '<li class="text-secondary"><span class="spinner-border spinner-border-sm me-2"></span>Yükleniyor…</li>';
+    liste.textContent = "Yükleniyor…";
     const cevap = await kopruyeSor("servis_gecmis", { id: acik.id });
     if (cevap.basarili) gecmisiCiz(cevap.veri);
     else liste.textContent = cevap.hata;

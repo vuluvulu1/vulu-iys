@@ -8,7 +8,7 @@ const olayDinleyicileri = {};  // olay adı -> fonksiyon
 // --- Bekleme göstergesi ---
 // Cevap beklenirken ekranın üstünde dönen bir halka ve yazı görünür; böylece bir şeyin geldiği belli olur.
 // Kısa istekler göstergeyi hiç çıkarmaz. Bekleme uzarsa (sunucu uykudan uyanıyor olabilir) yazı değişir ve geçen
-// saniye sayılır. Sayfadaki "sayfa-yukleniyor" sınıflı halkalar ise ilk veriler gelince kaldırılır.
+// saniye sayılır.
 let cevapBekleyenIstek = 0;
 let beklemeBaslangici = 0;       // ilk bekleyen isteğin başladığı an (milisaniye)
 let beklemeZamanlayicisi = null; // göstergeyi her saniye güncelleyen zamanlayıcı
@@ -58,7 +58,6 @@ function istekBitti() {
         beklemeZamanlayicisi = null;
         const gosterge = document.getElementById("bekleme-gostergesi");
         if (gosterge) gosterge.hidden = true;
-        for (const halka of document.querySelectorAll(".sayfa-yukleniyor")) halka.remove();
     }, 100);
 }
 
