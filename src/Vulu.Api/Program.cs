@@ -38,7 +38,18 @@ builder.Services.AddOptions<MongoAyarlari>()
     .ValidateOnStart();
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
-    new MongoClient(sp.GetRequiredService<IOptions<MongoAyarlari>>().Value.BaglantiDizesi));
+{
+    var ayarlar = MongoClientSettings.FromConnectionString(sp.GetRequiredService<IOptions<MongoAyarlari>>().Value.BaglantiDizesi);
+
+    // Barındırma ağı boşta kalan bağlantıları birkaç dakika sonra sessizce kapatır; havuzda kalan böyle bir
+    // bağlantıya giden sorgu cevapsız kalır ve istek dakikalarca asılı kalırdı. Bağlantılar bir dakika boşta
+    // kalınca bırakılır, bir sorgu da en fazla 30 saniye bekler (hata döner, kullanıcı yeniden dener).
+    ayarlar.MaxConnectionIdleTime = TimeSpan.FromMinutes(1);
+    ayarlar.SocketTimeout = TimeSpan.FromSeconds(30);
+    ayarlar.ConnectTimeout = TimeSpan.FromSeconds(10);
+    ayarlar.ServerSelectionTimeout = TimeSpan.FromSeconds(15);
+    return new MongoClient(ayarlar);
+});
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>()
         .GetDatabase(sp.GetRequiredService<IOptions<MongoAyarlari>>().Value.VeritabaniAdi));
