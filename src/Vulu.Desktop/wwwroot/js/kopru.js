@@ -1,6 +1,11 @@
 // C# ile konuşmanın tek yolu (C# tarafı: Kopru.cs).
 // Her istek bir numara alır; C# cevabı aynı numarayla yollar, böylece hangi cevabın hangi isteğe ait olduğu bilinir.
+//
+// Numaranın başında sayfanın kendi kimliği vardır ("k3f9x-1", "k3f9x-2"...). Kullanıcı bir sayfadan cevap gelmeden
+// başka sayfaya geçerse eski sayfanın geç kalan cevabı yeni sayfaya ulaşır; kimlik farklı olduğu için hiçbir
+// isteğe eşleşmez ve yok sayılır. Kimlik olmasaydı iki sayfanın 1 numaralı istekleri birbirine karışırdı.
 
+const sayfaKimligi = Math.random().toString(36).slice(2, 8);
 let sonNumara = 0;
 const bekleyenler = {};        // numara -> cevabı bekleyen fonksiyon
 const olayDinleyicileri = {};  // olay adı -> fonksiyon
@@ -89,7 +94,7 @@ window.external.receiveMessage(function (metin) {
 // Geriye { basarili, veri, hata } döner; await ile beklenir.
 function kopruyeSor(islem, veri) {
     sonNumara++;
-    const numara = sonNumara;
+    const numara = sayfaKimligi + "-" + sonNumara;
 
     return new Promise(function (cevapGelince) {
         bekleyenler[numara] = cevapGelince;
